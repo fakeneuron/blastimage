@@ -14,7 +14,9 @@
 
 import {
   SCHEMA_VERSION,
+  type GeneratedImage,
   type ID,
+  type Iteration,
   type PromptTask,
   type RefImage,
   type Session,
@@ -81,6 +83,24 @@ export function newRefImage(
   height?: number,
 ): RefImage {
   return { id: newId(), name, dataUrl, mimeType, width, height, addedAt: now() };
+}
+
+/**
+ * Creates a freshly generated image from a {@link import('./generate').GeneratedCandidate}'s
+ * `url` + `prompt`. Lands ready and undecided — review metadata (decision,
+ * rating, feedback) is filled in later by the review loop (BI-005/BI-006).
+ */
+export function newGeneratedImage(url: string, prompt: string): GeneratedImage {
+  return {
+    id: newId(),
+    url,
+    prompt,
+    status: 'ready',
+    decision: 'undecided',
+    rating: 0,
+    feedback: null,
+    createdAt: now(),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -171,4 +191,40 @@ export function toggleTaskRefImage(session: Session, taskId: ID, refId: ID): Ses
     ? task.activeRefImageIds.filter((id) => id !== refId)
     : [...task.activeRefImageIds, refId];
   return updateTask(session, taskId, { activeRefImageIds });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Generation / iteration mutations (BI-007; immutable; each bumps updatedAt)
+// ─────────────────────────────────────────────────────────────────────────
+
+/** The per-round inputs an iteration captures; `index` and provenance stamps are minted by {@link appendIteration}. */
+export interface IterationDraft {
+  /** Prompt used for this round (the task's base prompt, or an updated/refined prompt). */
+  prompt: string;
+  /** Library references active for this round (≤ {@link MAX_ACTIVE_REFS}). */
+  refImageIds: ID[];
+  /** A keeper promoted via "use as reference" that seeded this round, if any. */
+  primaryRefImageId: ID | null;
+  /** The batch produced for this round. */
+  images: GeneratedImage[];
+}
+
+/**
+ * Appends a new {@link Iteration} to a task, minting its 0-based round index
+ * from the task's existing iterations. Bumps the task's and session's
+ * `updatedAt`. Unknown task id leaves the session unchanged.
+ */
+export function appendIteration(session: Session, taskId: ID, draft: IterationDraft): Session {
+  const task = session.tasks.find((t) => t.id === taskId);
+  if (!task) return session;
+  const iteration: Iteration = {
+    id: newId(),
+    index: task.iterations.length,
+    prompt: draft.prompt,
+    refImageIds: draft.refImageIds,
+    primaryRefImageId: draft.primaryRefImageId,
+    images: draft.images,
+    createdAt: now(),
+  };
+  return updateTask(session, taskId, { iterations: [...task.iterations, iteration] });
 }

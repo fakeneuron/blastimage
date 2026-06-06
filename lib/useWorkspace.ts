@@ -29,7 +29,9 @@ import {
 import {
   addRefImage as addRefImageTo,
   addTask as addTaskTo,
+  appendIteration as appendIterationTo,
   deleteTask as deleteTaskFrom,
+  newGeneratedImage,
   newSession,
   newTask,
   removeRefImage as removeRefImageFrom,
@@ -38,9 +40,12 @@ import {
   setTaskPrompt as setTaskPromptOn,
   toggleTaskRefImage as toggleTaskRefImageOn,
 } from './workspace';
+import { generateBatch } from './generate';
+import type { BatchSize } from './types';
 
 const DEFAULT_SESSION_NAME = 'My Website';
 const DEFAULT_TASK_NAME = 'Untitled task';
+const DEFAULT_BATCH_SIZE: BatchSize = 4;
 
 export interface UseWorkspace {
   /** False until the mount-time load completes (render a neutral shell while false). */
@@ -49,7 +54,9 @@ export interface UseWorkspace {
   sessions: SessionMeta[];
   activeTask: PromptTask | null;
   activeTaskId: ID | null;
-  /** Last save failure, or `null`. */
+  /** Task id whose batch is currently being generated, or `null` (transient; not persisted). */
+  generatingTaskId: ID | null;
+  /** Last save/generation failure, or `null`. */
   error: string | null;
   createSession: (name: string) => void;
   switchSession: (id: ID) => void;
@@ -58,6 +65,14 @@ export interface UseWorkspace {
   renameTask: (taskId: ID, name: string) => void;
   deleteTask: (taskId: ID) => void;
   setTaskPrompt: (taskId: ID, basePrompt: string) => void;
+  /**
+   * Generates a batch for a task and appends it as a new iteration. `opts.prompt`
+   * overrides the task's base prompt (a refined prompt from the review loop);
+   * `opts.primaryRefImageId` records a keeper promoted to the round's primary
+   * reference. References are optional — generation runs from prompt and/or
+   * reference and never requires one.
+   */
+  generate: (taskId: ID, opts?: { prompt?: string; primaryRefImageId?: ID }) => Promise<void>;
   selectTask: (taskId: ID) => void;
   addRefImage: (ref: RefImage) => void;
   removeRefImage: (refId: ID) => void;
@@ -70,6 +85,7 @@ export function useWorkspace(): UseWorkspace {
   const [session, setSession] = useState<Session | null>(null);
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<ID | null>(null);
+  const [generatingTaskId, setGeneratingTaskId] = useState<ID | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Mount-time load: restore the active session, or bootstrap + persist a default.
@@ -161,6 +177,46 @@ export function useWorkspace(): UseWorkspace {
     commit(setTaskPromptOn(session, taskId, basePrompt));
   }
 
+  async function generate(
+    taskId: ID,
+    opts?: { prompt?: string; primaryRefImageId?: ID },
+  ): Promise<void> {
+    if (!session) return;
+    const task = session.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const prompt = (opts?.prompt ?? task.basePrompt).trim();
+    const primaryRefImageId = opts?.primaryRefImageId ?? null;
+    // References are optional, but a round needs a prompt or at least one reference.
+    const hasRef = primaryRefImageId !== null || task.activeRefImageIds.length > 0;
+    if (!prompt && !hasRef) return;
+
+    setGeneratingTaskId(taskId);
+    try {
+      const referenceSeeds = [
+        ...(primaryRefImageId ? [primaryRefImageId] : []),
+        ...task.activeRefImageIds,
+      ];
+      const candidates = await generateBatch({
+        prompt,
+        batchSize: DEFAULT_BATCH_SIZE,
+        referenceSeeds,
+      });
+      const images = candidates.map((c) => newGeneratedImage(c.url, c.prompt));
+      commit(
+        appendIterationTo(session, taskId, {
+          prompt,
+          refImageIds: task.activeRefImageIds,
+          primaryRefImageId,
+          images,
+        }),
+      );
+    } catch {
+      setError('Generation failed. Please try again.');
+    } finally {
+      setGeneratingTaskId(null);
+    }
+  }
+
   function selectTask(taskId: ID): void {
     setActiveTaskId(taskId);
   }
@@ -192,6 +248,7 @@ export function useWorkspace(): UseWorkspace {
     sessions,
     activeTask,
     activeTaskId,
+    generatingTaskId,
     error,
     createSession,
     switchSession,
@@ -200,6 +257,7 @@ export function useWorkspace(): UseWorkspace {
     renameTask,
     deleteTask,
     setTaskPrompt,
+    generate,
     selectTask,
     addRefImage,
     removeRefImage,

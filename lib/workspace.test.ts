@@ -4,8 +4,10 @@ import { SCHEMA_VERSION } from './types';
 import {
   addRefImage,
   addTask,
+  appendIteration,
   deleteTask,
   MAX_ACTIVE_REFS,
+  newGeneratedImage,
   newRefImage,
   newSession,
   newTask,
@@ -143,5 +145,72 @@ describe('reference library', () => {
     // The (MAX+1)-th toggle is a defensive no-op.
     expect(s.tasks[0].activeRefImageIds).toHaveLength(MAX_ACTIVE_REFS);
     expect(s.tasks[0].activeRefImageIds).not.toContain(refs[MAX_ACTIVE_REFS].id);
+  });
+});
+
+describe('generation / iterations', () => {
+  const img = (url = 'https://picsum.photos/seed/x-0/768/512', prompt = 'a sunset') =>
+    newGeneratedImage(url, prompt);
+
+  it('newGeneratedImage lands ready + undecided with the supplied url/prompt', () => {
+    const i = newGeneratedImage('https://example.com/a.jpg', 'a hero shot');
+    expect(i.url).toBe('https://example.com/a.jpg');
+    expect(i.prompt).toBe('a hero shot');
+    expect(i.status).toBe('ready');
+    expect(i.decision).toBe('undecided');
+    expect(i.rating).toBe(0);
+    expect(i.feedback).toBeNull();
+    expect(i.id).toBeTruthy();
+    expect(i.createdAt).toBeTruthy();
+  });
+
+  it('appendIteration appends a round and mints a 0-based index', () => {
+    const t = newTask('T');
+    const s = addTask(newSession('S'), t);
+    const next = appendIteration(s, t.id, {
+      prompt: 'a sunset',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [img()],
+    });
+    expect(next.tasks[0].iterations).toHaveLength(1);
+    expect(next.tasks[0].iterations[0].index).toBe(0);
+    expect(next.tasks[0].iterations[0].prompt).toBe('a sunset');
+    expect(next.tasks[0].iterations[0].images).toHaveLength(1);
+    expect(s.tasks[0].iterations).toHaveLength(0); // immutable
+  });
+
+  it('appendIteration increments the index across rounds and carries the draft fields', () => {
+    const t = newTask('T');
+    let s = addTask(newSession('S'), t);
+    s = appendIteration(s, t.id, {
+      prompt: 'round one',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [img()],
+    });
+    s = appendIteration(s, t.id, {
+      prompt: 'round two',
+      refImageIds: ['ref-a'],
+      primaryRefImageId: 'keeper-1',
+      images: [img(), img()],
+    });
+    const its = s.tasks[0].iterations;
+    expect(its.map((i) => i.index)).toEqual([0, 1]);
+    expect(its[1].refImageIds).toEqual(['ref-a']);
+    expect(its[1].primaryRefImageId).toBe('keeper-1');
+    expect(its[1].images).toHaveLength(2);
+  });
+
+  it('appendIteration is a no-op for an unknown task id', () => {
+    const t = newTask('T');
+    const s = addTask(newSession('S'), t);
+    const next = appendIteration(s, 'nope', {
+      prompt: 'x',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [img()],
+    });
+    expect(next).toBe(s);
   });
 });
