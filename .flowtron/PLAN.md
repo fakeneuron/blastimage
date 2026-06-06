@@ -8,7 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-003** [opus] | layout — Build the main workspace layout: sidebar with task list + add-new-task, main detail pane showing prompt editor, reference selector, and generate controls.
 - [ ] **BI-004** [opus] | ref-library — Create the reference library UI (drag-and-drop upload, thumbnail grid, per-task active selection limited to three) and wire it to the active task.
 - [ ] **BI-005** [opus] | review-grid — Implement the batch review grid: responsive image cards with keep/discard, star rating, feedback button, and visual states for approved/discarded.
 - [ ] **BI-006** [opus] | feedback — Build the feedback modal with textarea, "use as reference" checkbox, and quick-approve path; wire saving feedback back into the iteration and optionally promoting the image to current keeper.
@@ -33,4 +32,5 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [x] **BI-001** [opus] | types — Completed 2026-06-06.
 - [x] **BI-002** [opus] | persistence — Completed 2026-06-06.
+- [x] **BI-003** [opus] | layout — Completed 2026-06-06.
 
