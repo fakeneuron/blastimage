@@ -19,7 +19,9 @@ import {
   type Iteration,
   type PromptTask,
   type RefImage,
+  type ReviewDecision,
   type Session,
+  type StarRating,
   type Timestamp,
 } from './types';
 
@@ -227,4 +229,57 @@ export function appendIteration(session: Session, taskId: ID, draft: IterationDr
     createdAt: now(),
   };
   return updateTask(session, taskId, { iterations: [...task.iterations, iteration] });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Review mutations (BI-005; immutable; each bumps updatedAt)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Applies a partial update to a single {@link GeneratedImage} within a task,
+ * located by id across all of the task's iterations. Bumps the task's and
+ * session's `updatedAt`. Unknown task or image id leaves the session unchanged.
+ */
+function updateImage(
+  session: Session,
+  taskId: ID,
+  imageId: ID,
+  patch: Partial<GeneratedImage>,
+): Session {
+  const task = session.tasks.find((t) => t.id === taskId);
+  if (!task) return session;
+  let found = false;
+  const iterations = task.iterations.map((it) => ({
+    ...it,
+    images: it.images.map((img) => {
+      if (img.id !== imageId) return img;
+      found = true;
+      return { ...img, ...patch };
+    }),
+  }));
+  if (!found) return session;
+  return updateTask(session, taskId, { iterations });
+}
+
+/**
+ * Sets a generated image's review decision. Pass `'undecided'` to clear a prior
+ * keep/discard/approve (the review grid toggles the active decision off this way).
+ */
+export function setImageDecision(
+  session: Session,
+  taskId: ID,
+  imageId: ID,
+  decision: ReviewDecision,
+): Session {
+  return updateImage(session, taskId, imageId, { decision });
+}
+
+/** Sets a generated image's star rating (`0` = unrated). */
+export function setImageRating(
+  session: Session,
+  taskId: ID,
+  imageId: ID,
+  rating: StarRating,
+): Session {
+  return updateImage(session, taskId, imageId, { rating });
 }

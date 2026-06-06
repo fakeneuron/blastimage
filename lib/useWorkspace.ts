@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { ID, PromptTask, RefImage, Session } from './types';
+import type { ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
 import {
   listSessions,
   loadActiveSession,
@@ -37,6 +37,8 @@ import {
   removeRefImage as removeRefImageFrom,
   renameSession as renameSessionName,
   renameTask as renameTaskName,
+  setImageDecision as setImageDecisionOn,
+  setImageRating as setImageRatingOn,
   setTaskPrompt as setTaskPromptOn,
   toggleTaskRefImage as toggleTaskRefImageOn,
 } from './workspace';
@@ -74,6 +76,10 @@ export interface UseWorkspace {
    */
   generate: (taskId: ID, opts?: { prompt?: string; primaryRefImageId?: ID }) => Promise<void>;
   selectTask: (taskId: ID) => void;
+  /** Sets a generated image's review decision (pass `'undecided'` to clear). */
+  setImageDecision: (taskId: ID, imageId: ID, decision: ReviewDecision) => void;
+  /** Sets a generated image's star rating (`0` = unrated). */
+  setImageRating: (taskId: ID, imageId: ID, rating: StarRating) => void;
   addRefImage: (ref: RefImage) => void;
   removeRefImage: (refId: ID) => void;
   toggleTaskRef: (taskId: ID, refId: ID) => void;
@@ -221,6 +227,16 @@ export function useWorkspace(): UseWorkspace {
     setActiveTaskId(taskId);
   }
 
+  function setImageDecision(taskId: ID, imageId: ID, decision: ReviewDecision): void {
+    if (!session) return;
+    commit(setImageDecisionOn(session, taskId, imageId, decision));
+  }
+
+  function setImageRating(taskId: ID, imageId: ID, rating: StarRating): void {
+    if (!session) return;
+    commit(setImageRatingOn(session, taskId, imageId, rating));
+  }
+
   function addRefImage(ref: RefImage): void {
     if (!session) return;
     commit(addRefImageTo(session, ref));
@@ -259,6 +275,8 @@ export function useWorkspace(): UseWorkspace {
     setTaskPrompt,
     generate,
     selectTask,
+    setImageDecision,
+    setImageRating,
     addRefImage,
     removeRefImage,
     toggleTaskRef,

@@ -57,6 +57,10 @@ export default function Workspace() {
           onRemoveRefImage={ws.removeRefImage}
           onToggleRef={ws.toggleTaskRef}
           onGenerate={ws.generate}
+          onSetImageDecision={ws.setImageDecision}
+          onSetImageRating={ws.setImageRating}
+          // Feedback modal lands in BI-006; the grid's button is wired to this seam.
+          onFeedback={() => {}}
         />
       </div>
     </main>

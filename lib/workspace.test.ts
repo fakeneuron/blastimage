@@ -14,6 +14,8 @@ import {
   removeRefImage,
   renameSession,
   renameTask,
+  setImageDecision,
+  setImageRating,
   setTaskPrompt,
   toggleTaskRefImage,
 } from './workspace';
@@ -212,5 +214,59 @@ describe('generation / iterations', () => {
       images: [img()],
     });
     expect(next).toBe(s);
+  });
+});
+
+describe('review mutations', () => {
+  const img = (url = 'https://picsum.photos/seed/x-0/768/512', prompt = 'a sunset') =>
+    newGeneratedImage(url, prompt);
+
+  /** A session with one task that has two iterations of one image each. */
+  function seeded() {
+    const t = newTask('T');
+    const a = img('https://picsum.photos/seed/a/768/512', 'round one');
+    const b = img('https://picsum.photos/seed/b/768/512', 'round two');
+    let s = addTask(newSession('S'), t);
+    s = appendIteration(s, t.id, { prompt: 'r1', refImageIds: [], primaryRefImageId: null, images: [a] });
+    s = appendIteration(s, t.id, { prompt: 'r2', refImageIds: [], primaryRefImageId: null, images: [b] });
+    return { s, taskId: t.id, a, b };
+  }
+
+  it('setImageDecision sets the decision on the targeted image only', () => {
+    const { s, taskId, a, b } = seeded();
+    const next = setImageDecision(s, taskId, b.id, 'kept');
+    expect(next.tasks[0].iterations[1].images[0].decision).toBe('kept');
+    expect(next.tasks[0].iterations[0].images[0].decision).toBe('undecided');
+    expect(s.tasks[0].iterations[1].images[0].decision).toBe('undecided'); // immutable
+    expect(a.decision).toBe('undecided');
+  });
+
+  it('setImageDecision can approve and can clear back to undecided', () => {
+    const { s, taskId, b } = seeded();
+    const approved = setImageDecision(s, taskId, b.id, 'approved');
+    expect(approved.tasks[0].iterations[1].images[0].decision).toBe('approved');
+    const cleared = setImageDecision(approved, taskId, b.id, 'undecided');
+    expect(cleared.tasks[0].iterations[1].images[0].decision).toBe('undecided');
+  });
+
+  it('setImageRating sets the rating on the targeted image', () => {
+    const { s, taskId, a } = seeded();
+    const next = setImageRating(s, taskId, a.id, 4);
+    expect(next.tasks[0].iterations[0].images[0].rating).toBe(4);
+    expect(s.tasks[0].iterations[0].images[0].rating).toBe(0); // immutable
+  });
+
+  it('review mutators bump the task updatedAt', () => {
+    const { s, taskId, a } = seeded();
+    const before = s.tasks[0].updatedAt;
+    const next = setImageRating(s, taskId, a.id, 5);
+    expect(next.tasks[0].updatedAt >= before).toBe(true);
+    expect(next.updatedAt >= s.updatedAt).toBe(true);
+  });
+
+  it('review mutators are a no-op for unknown task or image ids', () => {
+    const { s, taskId, a } = seeded();
+    expect(setImageDecision(s, 'nope', a.id, 'kept')).toBe(s);
+    expect(setImageRating(s, taskId, 'nope', 3)).toBe(s);
   });
 });

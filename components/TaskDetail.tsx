@@ -4,13 +4,14 @@
  * blastimage — active-task detail pane (BI-003)
  *
  * Editable task name + base-prompt editor (persisted on blur), the reference
- * library (BI-004), and the generate controls (BI-007): a Generate button that
- * triggers a round plus a temporary strip of the latest batch. The polished
- * review grid (keep/discard/rating) lands in BI-005.
+ * library (BI-004), the generate controls (BI-007), and the batch review grid
+ * (BI-005): the latest iteration renders as keep/discard/approve cards with
+ * star ratings and a feedback button (the feedback modal lands in BI-006).
  */
 
-import type { ID, PromptTask, RefImage } from '@/lib/types';
+import type { ID, PromptTask, RefImage, ReviewDecision, StarRating } from '@/lib/types';
 import ReferenceLibrary from '@/components/ReferenceLibrary';
+import ReviewGrid from '@/components/ReviewGrid';
 
 interface TaskDetailProps {
   task: PromptTask | null;
@@ -23,6 +24,9 @@ interface TaskDetailProps {
   onRemoveRefImage: (refId: ID) => void;
   onToggleRef: (taskId: ID, refId: ID) => void;
   onGenerate: (taskId: ID) => void;
+  onSetImageDecision: (taskId: ID, imageId: ID, decision: ReviewDecision) => void;
+  onSetImageRating: (taskId: ID, imageId: ID, rating: StarRating) => void;
+  onFeedback: (taskId: ID, imageId: ID) => void;
 }
 
 export default function TaskDetail({
@@ -35,6 +39,9 @@ export default function TaskDetail({
   onRemoveRefImage,
   onToggleRef,
   onGenerate,
+  onSetImageDecision,
+  onSetImageRating,
+  onFeedback,
 }: TaskDetailProps) {
   if (!task) {
     return (
@@ -99,30 +106,31 @@ export default function TaskDetail({
         )}
       </div>
 
-      {/* Latest batch — temporary strip; the review grid lands in BI-005 */}
+      {/* Latest batch — the review grid (BI-005) */}
       {(generating || latest) && (
         <div className="flex flex-col gap-2">
           <label className="text-xs font-medium uppercase tracking-wide opacity-60">
             {generating ? 'Generating…' : `Latest batch · round ${(latest?.index ?? 0) + 1}`}
           </label>
-          <div className="flex flex-wrap gap-3">
-            {generating
-              ? Array.from({ length: 4 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="h-28 w-40 animate-pulse rounded border border-black/10 bg-foreground/10 dark:border-white/10"
-                  />
-                ))
-              : latest?.images.map((img) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={img.id}
-                    src={img.url}
-                    alt={img.prompt || 'generated image'}
-                    className="h-28 w-40 rounded border border-black/10 object-cover dark:border-white/10"
-                  />
-                ))}
-          </div>
+          {generating ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div
+                  key={i}
+                  className="aspect-[3/2] animate-pulse rounded-lg border border-black/10 bg-foreground/10 dark:border-white/10"
+                />
+              ))}
+            </div>
+          ) : (
+            latest && (
+              <ReviewGrid
+                iteration={latest}
+                onSetDecision={(imageId, decision) => onSetImageDecision(task.id, imageId, decision)}
+                onSetRating={(imageId, rating) => onSetImageRating(task.id, imageId, rating)}
+                onFeedback={(imageId) => onFeedback(task.id, imageId)}
+              />
+            )
+          )}
         </div>
       )}
     </section>
