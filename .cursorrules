@@ -1,0 +1,14 @@
+# Natabula — Cursor Rules
+
+**Canonical instructions:** `AGENTS.md` (repo root, agent-neutral SSOT) + `CLAUDE.md` (Claude-only addendum).
+Follow them for workflow, non-negotiables, architecture, task lifecycle, and skill triggers.
+
+**Higher-level standards:** Also follow the behavioral guidelines and general preferences in (read any file that exists; **narrower scope wins** on conflicts):
+- `~/Code/CLAUDE.md` — workspace standards for all repos under `~/Code/`
+- `~/.claude/CLAUDE.md` — global defaults for Claude Code
+
+**Skill definitions:** `.claude/skills/*/SKILL.md` or `.claude/commands/*.md`
+
+**Task initiation:** Before implementation, ensure `.flowtron/tasknote/<TASK-ID>.md` exists (run `/ft-task <TASK-ID>` if missing) and read it.
+
+**Agent commits:** When committing as the agent, append `Signed-off-by:` plus the current session's agent/model identifier.
