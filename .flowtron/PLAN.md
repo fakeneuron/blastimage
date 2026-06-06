@@ -8,7 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-001** [opus] | types — Define the complete TypeScript data model (Session, PromptTask, Iteration, GeneratedImage, RefImage, FeedbackState) and document it in lib/types.ts.
 - [ ] **BI-002** [opus] | persistence — Implement local persistence layer using localStorage + structured export/import helpers so a full workspace survives refresh and can be backed up.
 - [ ] **BI-003** [opus] | layout — Build the main workspace layout: sidebar with task list + add-new-task, main detail pane showing prompt editor, reference selector, and generate controls.
 - [ ] **BI-004** [opus] | ref-library — Create the reference library UI (drag-and-drop upload, thumbnail grid, per-task active selection limited to three) and wire it to the active task.
@@ -32,4 +31,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - Hosted webapp variation (multi-user, accounts, cloud storage).
 
 ## Completed
+
+- [x] **BI-001** [opus] | types — Completed 2026-06-06.
 
