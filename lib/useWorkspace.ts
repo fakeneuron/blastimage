@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { ID, PromptTask, Session } from './types';
+import type { ID, PromptTask, RefImage, Session } from './types';
 import {
   listSessions,
   loadActiveSession,
@@ -27,13 +27,16 @@ import {
   type SessionMeta,
 } from './storage';
 import {
+  addRefImage as addRefImageTo,
   addTask as addTaskTo,
   deleteTask as deleteTaskFrom,
   newSession,
   newTask,
+  removeRefImage as removeRefImageFrom,
   renameSession as renameSessionName,
   renameTask as renameTaskName,
   setTaskPrompt as setTaskPromptOn,
+  toggleTaskRefImage as toggleTaskRefImageOn,
 } from './workspace';
 
 const DEFAULT_SESSION_NAME = 'My Website';
@@ -56,6 +59,9 @@ export interface UseWorkspace {
   deleteTask: (taskId: ID) => void;
   setTaskPrompt: (taskId: ID, basePrompt: string) => void;
   selectTask: (taskId: ID) => void;
+  addRefImage: (ref: RefImage) => void;
+  removeRefImage: (refId: ID) => void;
+  toggleTaskRef: (taskId: ID, refId: ID) => void;
   dismissError: () => void;
 }
 
@@ -159,6 +165,21 @@ export function useWorkspace(): UseWorkspace {
     setActiveTaskId(taskId);
   }
 
+  function addRefImage(ref: RefImage): void {
+    if (!session) return;
+    commit(addRefImageTo(session, ref));
+  }
+
+  function removeRefImage(refId: ID): void {
+    if (!session) return;
+    commit(removeRefImageFrom(session, refId));
+  }
+
+  function toggleTaskRef(taskId: ID, refId: ID): void {
+    if (!session) return;
+    commit(toggleTaskRefImageOn(session, taskId, refId));
+  }
+
   function dismissError(): void {
     setError(null);
   }
@@ -180,6 +201,9 @@ export function useWorkspace(): UseWorkspace {
     deleteTask,
     setTaskPrompt,
     selectTask,
+    addRefImage,
+    removeRefImage,
+    toggleTaskRef,
     dismissError,
   };
 }

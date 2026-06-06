@@ -49,8 +49,12 @@ export default function Workspace() {
         />
         <TaskDetail
           task={ws.activeTask}
+          library={ws.session.refLibrary}
           onRenameTask={ws.renameTask}
           onSetPrompt={ws.setTaskPrompt}
+          onAddRefImage={ws.addRefImage}
+          onRemoveRefImage={ws.removeRefImage}
+          onToggleRef={ws.toggleTaskRef}
         />
       </div>
     </main>

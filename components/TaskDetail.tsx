@@ -3,20 +3,33 @@
 /**
  * blastimage — active-task detail pane (BI-003)
  *
- * Editable task name + base-prompt editor (persisted on blur), plus static
- * placeholder regions for the reference selector (BI-004) and generate controls
- * (BI-007), which later tasks fill in.
+ * Editable task name + base-prompt editor (persisted on blur), the reference
+ * library (BI-004), and a static placeholder for the generate controls
+ * (BI-007), which a later task fills in.
  */
 
-import type { ID, PromptTask } from '@/lib/types';
+import type { ID, PromptTask, RefImage } from '@/lib/types';
+import ReferenceLibrary from '@/components/ReferenceLibrary';
 
 interface TaskDetailProps {
   task: PromptTask | null;
+  library: RefImage[];
   onRenameTask: (id: ID, name: string) => void;
   onSetPrompt: (id: ID, basePrompt: string) => void;
+  onAddRefImage: (ref: RefImage) => void;
+  onRemoveRefImage: (refId: ID) => void;
+  onToggleRef: (taskId: ID, refId: ID) => void;
 }
 
-export default function TaskDetail({ task, onRenameTask, onSetPrompt }: TaskDetailProps) {
+export default function TaskDetail({
+  task,
+  library,
+  onRenameTask,
+  onSetPrompt,
+  onAddRefImage,
+  onRemoveRefImage,
+  onToggleRef,
+}: TaskDetailProps) {
   if (!task) {
     return (
       <section className="flex flex-1 items-center justify-center p-8">
@@ -52,13 +65,14 @@ export default function TaskDetail({ task, onRenameTask, onSetPrompt }: TaskDeta
         />
       </div>
 
-      {/* Reference selector — filled in by BI-004 */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium uppercase tracking-wide opacity-60">References</label>
-        <div className="flex min-h-24 items-center justify-center rounded border border-dashed border-black/20 p-4 text-sm opacity-50 dark:border-white/20">
-          Reference selector — coming in BI-004
-        </div>
-      </div>
+      {/* Reference library (BI-004) */}
+      <ReferenceLibrary
+        task={task}
+        library={library}
+        onAddRefImage={onAddRefImage}
+        onRemoveRefImage={onRemoveRefImage}
+        onToggleRef={onToggleRef}
+      />
 
       {/* Generate controls — wired up by BI-007 */}
       <div className="flex items-center gap-3">

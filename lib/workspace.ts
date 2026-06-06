@@ -12,7 +12,17 @@
  * unit-testable without a component-render dependency.
  */
 
-import { SCHEMA_VERSION, type ID, type PromptTask, type Session, type Timestamp } from './types';
+import {
+  SCHEMA_VERSION,
+  type ID,
+  type PromptTask,
+  type RefImage,
+  type Session,
+  type Timestamp,
+} from './types';
+
+/** Maximum library references a single task may have active at once (VISION / BI-004). */
+export const MAX_ACTIVE_REFS = 3;
 
 // ─────────────────────────────────────────────────────────────────────────
 // Clock / id helpers
@@ -56,6 +66,21 @@ export function newTask(name: string): PromptTask {
     createdAt: ts,
     updatedAt: ts,
   };
+}
+
+/**
+ * Creates a library reference image from already-decoded bytes. The
+ * `File`→`dataUrl` conversion (and size/type validation) is a DOM concern and
+ * lives in the upload component, mirroring how Sidebar owns `window.prompt`.
+ */
+export function newRefImage(
+  name: string,
+  dataUrl: string,
+  mimeType: string,
+  width?: number,
+  height?: number,
+): RefImage {
+  return { id: newId(), name, dataUrl, mimeType, width, height, addedAt: now() };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -103,4 +128,47 @@ export function renameTask(session: Session, taskId: ID, name: string): Session 
 /** Sets a task's editable base prompt. */
 export function setTaskPrompt(session: Session, taskId: ID, basePrompt: string): Session {
   return updateTask(session, taskId, { basePrompt });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Reference-library mutations (BI-004; immutable; each bumps updatedAt)
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Appends a reference image to the session's global library. */
+export function addRefImage(session: Session, ref: RefImage): Session {
+  return { ...touch(session), refLibrary: [...session.refLibrary, ref] };
+}
+
+/**
+ * Removes a reference image from the library and cascades the removal into
+ * every task — any task that had it active drops it from `activeRefImageIds`
+ * (and gets a fresh `updatedAt`). No-op if the id is unknown.
+ */
+export function removeRefImage(session: Session, refId: ID): Session {
+  const ts = now();
+  return {
+    ...touch(session),
+    refLibrary: session.refLibrary.filter((r) => r.id !== refId),
+    tasks: session.tasks.map((t) =>
+      t.activeRefImageIds.includes(refId)
+        ? { ...t, activeRefImageIds: t.activeRefImageIds.filter((id) => id !== refId), updatedAt: ts }
+        : t,
+    ),
+  };
+}
+
+/**
+ * Toggles a library reference in a task's active selection. Adding past the
+ * {@link MAX_ACTIVE_REFS} cap is a defensive no-op (the UI also disables the
+ * control at the cap). Unknown task id leaves the session unchanged.
+ */
+export function toggleTaskRefImage(session: Session, taskId: ID, refId: ID): Session {
+  const task = session.tasks.find((t) => t.id === taskId);
+  if (!task) return session;
+  const active = task.activeRefImageIds.includes(refId);
+  if (!active && task.activeRefImageIds.length >= MAX_ACTIVE_REFS) return session;
+  const activeRefImageIds = active
+    ? task.activeRefImageIds.filter((id) => id !== refId)
+    : [...task.activeRefImageIds, refId];
+  return updateTask(session, taskId, { activeRefImageIds });
 }
