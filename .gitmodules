@@ -1,0 +1,3 @@
+[submodule ".flowtron/core"]
+	path = .flowtron/core
+	url = https://github.com/fakeneuron/flowtron.git
