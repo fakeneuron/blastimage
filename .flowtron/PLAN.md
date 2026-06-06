@@ -8,7 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-002** [opus] | persistence — Implement local persistence layer using localStorage + structured export/import helpers so a full workspace survives refresh and can be backed up.
 - [ ] **BI-003** [opus] | layout — Build the main workspace layout: sidebar with task list + add-new-task, main detail pane showing prompt editor, reference selector, and generate controls.
 - [ ] **BI-004** [opus] | ref-library — Create the reference library UI (drag-and-drop upload, thumbnail grid, per-task active selection limited to three) and wire it to the active task.
 - [ ] **BI-005** [opus] | review-grid — Implement the batch review grid: responsive image cards with keep/discard, star rating, feedback button, and visual states for approved/discarded.
@@ -33,4 +32,5 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Completed
 
 - [x] **BI-001** [opus] | types — Completed 2026-06-06.
+- [x] **BI-002** [opus] | persistence — Completed 2026-06-06.
 
