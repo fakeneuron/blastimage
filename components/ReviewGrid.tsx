@@ -19,6 +19,8 @@ interface ReviewGridProps {
   onSetDecision: (imageId: ID, decision: ReviewDecision) => void;
   onSetRating: (imageId: ID, rating: StarRating) => void;
   onFeedback: (imageId: ID) => void;
+  /** Starts a refined next round seeded by this kept image (BI-009). */
+  onIterate: (imageId: ID) => void;
 }
 
 /** Per-decision card framing — the visual state cue for the reviewer. */
@@ -47,6 +49,7 @@ export default function ReviewGrid({
   onSetDecision,
   onSetRating,
   onFeedback,
+  onIterate,
 }: ReviewGridProps) {
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -57,6 +60,7 @@ export default function ReviewGrid({
           onSetDecision={onSetDecision}
           onSetRating={onSetRating}
           onFeedback={onFeedback}
+          onIterate={onIterate}
         />
       ))}
     </ul>
@@ -68,9 +72,10 @@ interface ReviewCardProps {
   onSetDecision: (imageId: ID, decision: ReviewDecision) => void;
   onSetRating: (imageId: ID, rating: StarRating) => void;
   onFeedback: (imageId: ID) => void;
+  onIterate: (imageId: ID) => void;
 }
 
-function ReviewCard({ image, onSetDecision, onSetRating, onFeedback }: ReviewCardProps) {
+function ReviewCard({ image, onSetDecision, onSetRating, onFeedback, onIterate }: ReviewCardProps) {
   const badge = STATE_BADGE[image.decision];
   return (
     <li
@@ -153,6 +158,18 @@ function ReviewCard({ image, onSetDecision, onSetRating, onFeedback }: ReviewCar
         >
           {image.feedback?.text ? '💬 Edit feedback' : 'Feedback'}
         </button>
+
+        {/* Iterate — only on keepers (approved is final). Seeds the next round
+            from this image as the primary reference (BI-009). */}
+        {image.decision === 'kept' && (
+          <button
+            type="button"
+            onClick={() => onIterate(image.id)}
+            className="rounded bg-foreground px-2 py-1 text-xs font-medium text-background hover:opacity-90"
+          >
+            Iterate →
+          </button>
+        )}
       </div>
     </li>
   );

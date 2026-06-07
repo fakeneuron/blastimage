@@ -9,6 +9,8 @@
  * star ratings and a feedback button (the feedback modal lands in BI-006).
  */
 
+import { useEffect, useState } from 'react';
+
 import type { ID, PromptTask, RefImage, ReviewDecision, StarRating } from '@/lib/types';
 import ReferenceLibrary from '@/components/ReferenceLibrary';
 import ReviewGrid from '@/components/ReviewGrid';
@@ -23,10 +25,11 @@ interface TaskDetailProps {
   onAddRefImage: (ref: RefImage) => void;
   onRemoveRefImage: (refId: ID) => void;
   onToggleRef: (taskId: ID, refId: ID) => void;
-  onGenerate: (taskId: ID) => void;
+  onGenerate: (taskId: ID, opts?: { prompt?: string; primaryRefImageId?: ID }) => void;
   onSetImageDecision: (taskId: ID, imageId: ID, decision: ReviewDecision) => void;
   onSetImageRating: (taskId: ID, imageId: ID, rating: StarRating) => void;
   onFeedback: (taskId: ID, imageId: ID) => void;
+  onIterate: (taskId: ID, imageId: ID) => void;
 }
 
 export default function TaskDetail({
@@ -42,7 +45,16 @@ export default function TaskDetail({
   onSetImageDecision,
   onSetImageRating,
   onFeedback,
+  onIterate,
 }: TaskDetailProps) {
+  // Controlled prompt draft so a just-typed (unblurred) prompt is never lost at
+  // generate time (fixes BI-007's known gap). Resyncs only on task switch, so an
+  // in-progress edit survives external session updates (e.g. a finished round).
+  const [promptDraft, setPromptDraft] = useState(task?.basePrompt ?? '');
+  useEffect(() => {
+    setPromptDraft(task?.basePrompt ?? '');
+  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!task) {
     return (
       <section className="flex flex-1 items-center justify-center p-8">
@@ -52,8 +64,15 @@ export default function TaskDetail({
   }
 
   // References are optional — a round needs a prompt or at least one reference.
-  const canGenerate = !!task.basePrompt.trim() || task.activeRefImageIds.length > 0;
+  const canGenerate = !!promptDraft.trim() || task.activeRefImageIds.length > 0;
   const latest = task.iterations.at(-1) ?? null;
+
+  // Persist the live draft and generate from it, so the round always uses what's
+  // on screen rather than the last-blurred value.
+  const handleGenerate = () => {
+    if (promptDraft !== task.basePrompt) onSetPrompt(task.id, promptDraft);
+    onGenerate(task.id, { prompt: promptDraft });
+  };
 
   return (
     <section className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
@@ -73,8 +92,8 @@ export default function TaskDetail({
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium uppercase tracking-wide opacity-60">Prompt</label>
         <textarea
-          key={`prompt-${task.id}`}
-          defaultValue={task.basePrompt}
+          value={promptDraft}
+          onChange={(e) => setPromptDraft(e.target.value)}
           rows={5}
           placeholder="Describe the image you want to generate…"
           className="w-full resize-y rounded border border-black/15 bg-background p-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/40 dark:border-white/15"
@@ -95,7 +114,7 @@ export default function TaskDetail({
       <div className="flex items-center gap-3">
         <button
           disabled={generating || !canGenerate}
-          onClick={() => onGenerate(task.id)}
+          onClick={handleGenerate}
           className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           title={canGenerate ? 'Generate a batch' : 'Add a prompt or a reference first'}
         >
@@ -128,6 +147,7 @@ export default function TaskDetail({
                 onSetDecision={(imageId, decision) => onSetImageDecision(task.id, imageId, decision)}
                 onSetRating={(imageId, rating) => onSetImageRating(task.id, imageId, rating)}
                 onFeedback={(imageId) => onFeedback(task.id, imageId)}
+                onIterate={(imageId) => onIterate(task.id, imageId)}
               />
             )
           )}

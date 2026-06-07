@@ -8,8 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-009** [opus] | end-to-end — Wire the full end-to-end loop in the main page component so creating tasks, generating, reviewing, iterating, and exporting works without data loss.
-
 ## Medium
 
 - [ ] **BI-008** [sonnet] | gallery — Add the approved gallery sidebar/panel that auto-collects keepers across tasks and provides per-item download + bulk export of images + JSON manifest.
@@ -33,4 +31,5 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [x] **BI-007** [opus] | generate — Completed 2026-06-06.
 - [x] **BI-005** [opus] | review-grid — Completed 2026-06-06.
 - [x] **BI-006** [opus] | feedback — Completed 2026-06-06.
+- [x] **BI-009** [opus] | end-to-end — Completed 2026-06-06.
 

@@ -16,11 +16,14 @@ import { useWorkspace } from '@/lib/useWorkspace';
 import Sidebar from '@/components/Sidebar';
 import TaskDetail from '@/components/TaskDetail';
 import FeedbackModal from '@/components/FeedbackModal';
+import IterateModal from '@/components/IterateModal';
 
 export default function Workspace() {
   const ws = useWorkspace();
   // Which image the feedback modal is open for (BI-006), or null when closed.
   const [feedbackFor, setFeedbackFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
+  // Which keeper the iterate modal is open for (BI-009), or null when closed.
+  const [iterateFor, setIterateFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
 
   // Resolve the open image from current session state so it reflects live edits.
   const feedbackImage = feedbackFor
@@ -28,6 +31,16 @@ export default function Workspace() {
         .find((t) => t.id === feedbackFor.taskId)
         ?.iterations.flatMap((it) => it.images)
         .find((img) => img.id === feedbackFor.imageId) ?? null)
+    : null;
+
+  // Resolve the keeper + its task's base prompt for the iterate modal prefill.
+  const iterateTask = iterateFor
+    ? (ws.session?.tasks.find((t) => t.id === iterateFor.taskId) ?? null)
+    : null;
+  const iterateImage = iterateTask
+    ? (iterateTask.iterations
+        .flatMap((it) => it.images)
+        .find((img) => img.id === iterateFor!.imageId) ?? null)
     : null;
 
   if (!ws.ready || !ws.session) {
@@ -74,6 +87,7 @@ export default function Workspace() {
           onSetImageDecision={ws.setImageDecision}
           onSetImageRating={ws.setImageRating}
           onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
+          onIterate={(taskId, imageId) => setIterateFor({ taskId, imageId })}
         />
       </div>
       {feedbackFor && feedbackImage && (
@@ -83,6 +97,17 @@ export default function Workspace() {
           onSubmit={(feedback, action) => {
             ws.submitFeedback(feedbackFor.taskId, feedbackFor.imageId, feedback, action);
             setFeedbackFor(null);
+          }}
+        />
+      )}
+      {iterateFor && iterateImage && (
+        <IterateModal
+          image={iterateImage}
+          basePrompt={iterateTask?.basePrompt ?? ''}
+          onClose={() => setIterateFor(null)}
+          onSubmit={(prompt) => {
+            ws.generate(iterateFor.taskId, { prompt, primaryRefImageId: iterateFor.imageId });
+            setIterateFor(null);
           }}
         />
       )}
