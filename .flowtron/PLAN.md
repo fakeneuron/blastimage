@@ -8,7 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-006** [opus] | feedback — Build the feedback modal with textarea, "use as reference" checkbox, and quick-approve path; wire saving feedback back into the iteration and optionally promoting the image to current keeper.
 - [ ] **BI-009** [opus] | end-to-end — Wire the full end-to-end loop in the main page component so creating tasks, generating, reviewing, iterating, and exporting works without data loss.
 
 ## Medium
@@ -33,4 +32,5 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [x] **BI-004** [opus] | ref-library — Completed 2026-06-06.
 - [x] **BI-007** [opus] | generate — Completed 2026-06-06.
 - [x] **BI-005** [opus] | review-grid — Completed 2026-06-06.
+- [x] **BI-006** [opus] | feedback — Completed 2026-06-06.
 

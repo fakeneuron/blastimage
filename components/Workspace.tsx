@@ -9,12 +9,26 @@
  * mount-time load completes, and a dismissible banner on a save failure.
  */
 
+import { useState } from 'react';
+
+import type { ID } from '@/lib/types';
 import { useWorkspace } from '@/lib/useWorkspace';
 import Sidebar from '@/components/Sidebar';
 import TaskDetail from '@/components/TaskDetail';
+import FeedbackModal from '@/components/FeedbackModal';
 
 export default function Workspace() {
   const ws = useWorkspace();
+  // Which image the feedback modal is open for (BI-006), or null when closed.
+  const [feedbackFor, setFeedbackFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
+
+  // Resolve the open image from current session state so it reflects live edits.
+  const feedbackImage = feedbackFor
+    ? (ws.session?.tasks
+        .find((t) => t.id === feedbackFor.taskId)
+        ?.iterations.flatMap((it) => it.images)
+        .find((img) => img.id === feedbackFor.imageId) ?? null)
+    : null;
 
   if (!ws.ready || !ws.session) {
     return (
@@ -59,10 +73,19 @@ export default function Workspace() {
           onGenerate={ws.generate}
           onSetImageDecision={ws.setImageDecision}
           onSetImageRating={ws.setImageRating}
-          // Feedback modal lands in BI-006; the grid's button is wired to this seam.
-          onFeedback={() => {}}
+          onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
         />
       </div>
+      {feedbackFor && feedbackImage && (
+        <FeedbackModal
+          image={feedbackImage}
+          onClose={() => setFeedbackFor(null)}
+          onSubmit={(feedback, action) => {
+            ws.submitFeedback(feedbackFor.taskId, feedbackFor.imageId, feedback, action);
+            setFeedbackFor(null);
+          }}
+        />
+      )}
     </main>
   );
 }

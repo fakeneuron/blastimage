@@ -15,6 +15,7 @@ import {
   renameSession,
   renameTask,
   setImageDecision,
+  setImageFeedback,
   setImageRating,
   setTaskPrompt,
   toggleTaskRefImage,
@@ -268,5 +269,33 @@ describe('review mutations', () => {
     const { s, taskId, a } = seeded();
     expect(setImageDecision(s, 'nope', a.id, 'kept')).toBe(s);
     expect(setImageRating(s, taskId, 'nope', 3)).toBe(s);
+  });
+
+  it('setImageFeedback sets a FeedbackState on the targeted image only', () => {
+    const { s, taskId, b } = seeded();
+    const next = setImageFeedback(s, taskId, b.id, { text: 'warmer light', useAsReference: true });
+    const fb = next.tasks[0].iterations[1].images[0].feedback;
+    expect(fb?.text).toBe('warmer light');
+    expect(fb?.useAsReference).toBe(true);
+    expect(fb?.updatedAt).toBeTruthy();
+    expect(next.tasks[0].iterations[0].images[0].feedback).toBeNull(); // other image untouched
+    expect(s.tasks[0].iterations[1].images[0].feedback).toBeNull(); // immutable
+    expect(b.feedback).toBeNull();
+  });
+
+  it('setImageFeedback clears feedback back to null', () => {
+    const { s, taskId, b } = seeded();
+    const withFb = setImageFeedback(s, taskId, b.id, { text: 'x', useAsReference: false });
+    const cleared = setImageFeedback(withFb, taskId, b.id, null);
+    expect(cleared.tasks[0].iterations[1].images[0].feedback).toBeNull();
+  });
+
+  it('setImageFeedback bumps the task updatedAt and no-ops on unknown ids', () => {
+    const { s, taskId, a } = seeded();
+    const before = s.tasks[0].updatedAt;
+    const next = setImageFeedback(s, taskId, a.id, { text: 'note', useAsReference: false });
+    expect(next.tasks[0].updatedAt >= before).toBe(true);
+    expect(setImageFeedback(s, 'nope', a.id, { text: 'x', useAsReference: false })).toBe(s);
+    expect(setImageFeedback(s, taskId, 'nope', { text: 'x', useAsReference: false })).toBe(s);
   });
 });

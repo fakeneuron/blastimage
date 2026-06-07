@@ -137,13 +137,21 @@ function ReviewCard({ image, onSetDecision, onSetRating, onFeedback }: ReviewCar
           ))}
         </div>
 
-        {/* Feedback button — opens the modal in BI-006. */}
+        {/* Feedback button — opens the modal (BI-006). Saved feedback surfaces
+            as a tooltip to keep the card compact; the label flips to signal it. */}
         <button
           type="button"
           onClick={() => onFeedback(image.id)}
+          title={
+            image.feedback?.text
+              ? image.feedback.useAsReference
+                ? `${image.feedback.text}\n\n(use as reference)`
+                : image.feedback.text
+              : undefined
+          }
           className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-foreground/5 dark:border-white/15"
         >
-          {image.feedback?.text ? 'Edit feedback' : 'Feedback'}
+          {image.feedback?.text ? '💬 Edit feedback' : 'Feedback'}
         </button>
       </div>
     </li>

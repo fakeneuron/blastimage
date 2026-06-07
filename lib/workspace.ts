@@ -14,6 +14,7 @@
 
 import {
   SCHEMA_VERSION,
+  type FeedbackState,
   type GeneratedImage,
   type ID,
   type Iteration,
@@ -282,4 +283,21 @@ export function setImageRating(
   rating: StarRating,
 ): Session {
   return updateImage(session, taskId, imageId, { rating });
+}
+
+/**
+ * Sets (or clears, with `null`) a generated image's {@link FeedbackState}. The
+ * feedback modal (BI-006) passes the text + `useAsReference` flag; the
+ * `updatedAt` stamp is minted here so callers don't have to.
+ */
+export function setImageFeedback(
+  session: Session,
+  taskId: ID,
+  imageId: ID,
+  feedback: { text: string; useAsReference: boolean } | null,
+): Session {
+  const next: FeedbackState | null = feedback
+    ? { text: feedback.text, useAsReference: feedback.useAsReference, updatedAt: now() }
+    : null;
+  return updateImage(session, taskId, imageId, { feedback: next });
 }

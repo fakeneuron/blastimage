@@ -38,6 +38,7 @@ import {
   renameSession as renameSessionName,
   renameTask as renameTaskName,
   setImageDecision as setImageDecisionOn,
+  setImageFeedback as setImageFeedbackOn,
   setImageRating as setImageRatingOn,
   setTaskPrompt as setTaskPromptOn,
   toggleTaskRefImage as toggleTaskRefImageOn,
@@ -80,6 +81,17 @@ export interface UseWorkspace {
   setImageDecision: (taskId: ID, imageId: ID, decision: ReviewDecision) => void;
   /** Sets a generated image's star rating (`0` = unrated). */
   setImageRating: (taskId: ID, imageId: ID, rating: StarRating) => void;
+  /**
+   * Saves an image's feedback and, per the modal action, optionally promotes its
+   * decision in the same atomic commit (BI-006): `'save'` persists feedback only,
+   * `'keep'` also sets the decision to `kept`, `'approve'` to `approved`.
+   */
+  submitFeedback: (
+    taskId: ID,
+    imageId: ID,
+    feedback: { text: string; useAsReference: boolean },
+    action: 'save' | 'keep' | 'approve',
+  ) => void;
   addRefImage: (ref: RefImage) => void;
   removeRefImage: (refId: ID) => void;
   toggleTaskRef: (taskId: ID, refId: ID) => void;
@@ -237,6 +249,20 @@ export function useWorkspace(): UseWorkspace {
     commit(setImageRatingOn(session, taskId, imageId, rating));
   }
 
+  function submitFeedback(
+    taskId: ID,
+    imageId: ID,
+    feedback: { text: string; useAsReference: boolean },
+    action: 'save' | 'keep' | 'approve',
+  ): void {
+    if (!session) return;
+    // Compose on the fresh session so feedback + decision land in one commit.
+    let next = setImageFeedbackOn(session, taskId, imageId, feedback);
+    if (action === 'keep') next = setImageDecisionOn(next, taskId, imageId, 'kept');
+    else if (action === 'approve') next = setImageDecisionOn(next, taskId, imageId, 'approved');
+    commit(next);
+  }
+
   function addRefImage(ref: RefImage): void {
     if (!session) return;
     commit(addRefImageTo(session, ref));
@@ -277,6 +303,7 @@ export function useWorkspace(): UseWorkspace {
     selectTask,
     setImageDecision,
     setImageRating,
+    submitFeedback,
     addRefImage,
     removeRefImage,
     toggleTaskRef,
