@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
+import type { ApprovedImage, ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
 import {
   listSessions,
   loadActiveSession,
@@ -30,6 +30,8 @@ import {
   addRefImage as addRefImageTo,
   addTask as addTaskTo,
   appendIteration as appendIterationTo,
+  buildApprovedImages,
+  buildExportManifest,
   deleteTask as deleteTaskFrom,
   newGeneratedImage,
   newSession,
@@ -61,6 +63,8 @@ export interface UseWorkspace {
   generatingTaskId: ID | null;
   /** Last save/generation failure, or `null`. */
   error: string | null;
+  /** Approved images derived live from the session; used by the gallery panel (BI-008). */
+  approvedImages: ApprovedImage[];
   createSession: (name: string) => void;
   switchSession: (id: ID) => void;
   renameSession: (name: string) => void;
@@ -96,6 +100,8 @@ export interface UseWorkspace {
   removeRefImage: (refId: ID) => void;
   toggleTaskRef: (taskId: ID, refId: ID) => void;
   dismissError: () => void;
+  /** Downloads the full provenance manifest as a JSON file. */
+  exportAll: () => void;
 }
 
 export function useWorkspace(): UseWorkspace {
@@ -283,6 +289,21 @@ export function useWorkspace(): UseWorkspace {
   }
 
   const activeTask = session?.tasks.find((t) => t.id === activeTaskId) ?? null;
+  const approvedImages = session ? buildApprovedImages(session) : [];
+
+  function exportAll(): void {
+    if (!session) return;
+    const manifest = buildExportManifest(session);
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${session.name.replace(/\s+/g, '-').toLowerCase()}-export.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   return {
     ready,
@@ -292,6 +313,7 @@ export function useWorkspace(): UseWorkspace {
     activeTaskId,
     generatingTaskId,
     error,
+    approvedImages,
     createSession,
     switchSession,
     renameSession,
@@ -308,5 +330,6 @@ export function useWorkspace(): UseWorkspace {
     removeRefImage,
     toggleTaskRef,
     dismissError,
+    exportAll,
   };
 }

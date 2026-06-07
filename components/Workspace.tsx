@@ -16,6 +16,7 @@ import { useWorkspace } from '@/lib/useWorkspace';
 import Sidebar from '@/components/Sidebar';
 import TaskDetail from '@/components/TaskDetail';
 import FeedbackModal from '@/components/FeedbackModal';
+import GalleryPanel from '@/components/GalleryPanel';
 import IterateModal from '@/components/IterateModal';
 
 export default function Workspace() {
@@ -89,6 +90,7 @@ export default function Workspace() {
           onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
           onIterate={(taskId, imageId) => setIterateFor({ taskId, imageId })}
         />
+        <GalleryPanel approved={ws.approvedImages} onExportAll={ws.exportAll} />
       </div>
       {feedbackFor && feedbackImage && (
         <FeedbackModal

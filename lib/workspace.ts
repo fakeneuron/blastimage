@@ -14,6 +14,8 @@
 
 import {
   SCHEMA_VERSION,
+  type ApprovedImage,
+  type ExportManifest,
   type FeedbackState,
   type GeneratedImage,
   type ID,
@@ -300,4 +302,60 @@ export function setImageFeedback(
     ? { text: feedback.text, useAsReference: feedback.useAsReference, updatedAt: now() }
     : null;
   return updateImage(session, taskId, imageId, { feedback: next });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Gallery & export derivations (BI-008; read-only; no mutations)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Derives the flat list of approved images across all tasks, in task + iteration
+ * order. Each entry is a provenance-rich {@link ApprovedImage} ready for the gallery.
+ * `approvedAt` proxies `GeneratedImage.createdAt` (no separate approval timestamp
+ * on the model).
+ */
+export function buildApprovedImages(session: Session): ApprovedImage[] {
+  const result: ApprovedImage[] = [];
+  for (const task of session.tasks) {
+    const accumulatedPrompts: string[] = [];
+    for (const iteration of task.iterations) {
+      accumulatedPrompts.push(iteration.prompt);
+      for (const img of iteration.images) {
+        if (img.decision === 'approved') {
+          result.push({
+            imageId: img.id,
+            taskId: task.id,
+            taskName: task.name,
+            url: img.url,
+            finalPrompt: img.prompt,
+            promptHistory: [...accumulatedPrompts],
+            refImageIds: iteration.refImageIds,
+            rating: img.rating,
+            feedback: img.feedback,
+            approvedAt: img.createdAt,
+          });
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Builds the {@link ExportManifest} for a session: all approved images plus the
+ * subset of library references that were used in at least one approved image's
+ * iteration.
+ */
+export function buildExportManifest(session: Session): ExportManifest {
+  const approved = buildApprovedImages(session);
+  const usedRefIds = new Set(approved.flatMap((a) => a.refImageIds));
+  const references = session.refLibrary.filter((r) => usedRefIds.has(r.id));
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    sessionId: session.id,
+    sessionName: session.name,
+    exportedAt: now(),
+    approved,
+    references,
+  };
 }

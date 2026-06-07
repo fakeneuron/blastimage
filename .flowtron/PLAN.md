@@ -10,7 +10,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-008** [sonnet] | gallery — Add the approved gallery sidebar/panel that auto-collects keepers across tasks and provides per-item download + bulk export of images + JSON manifest.
+- [x] **BI-008** [sonnet] | gallery — Completed 2026-06-06.
 - [ ] **BI-011** [opus] | api-prep — Prepare the real Grok Imagine API integration path (document the two endpoints, response shape, and proxy strategy) so swapping the mock is a single focused change later.
 
 ## Low

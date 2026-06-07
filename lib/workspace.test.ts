@@ -5,6 +5,8 @@ import {
   addRefImage,
   addTask,
   appendIteration,
+  buildApprovedImages,
+  buildExportManifest,
   deleteTask,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
@@ -297,5 +299,91 @@ describe('review mutations', () => {
     expect(next.tasks[0].updatedAt >= before).toBe(true);
     expect(setImageFeedback(s, 'nope', a.id, { text: 'x', useAsReference: false })).toBe(s);
     expect(setImageFeedback(s, taskId, 'nope', { text: 'x', useAsReference: false })).toBe(s);
+  });
+});
+
+describe('gallery derivations', () => {
+  function makeImg(url: string, prompt: string) {
+    return newGeneratedImage(url, prompt);
+  }
+
+  /** Session with two tasks, each with two iterations. Some images are approved. */
+  function seeded() {
+    const t1 = newTask('Hero');
+    const t2 = newTask('Logo');
+    const img1 = makeImg('https://picsum.photos/seed/a/1', 'hero v1');
+    const img2 = makeImg('https://picsum.photos/seed/b/1', 'hero v2');
+    const img3 = makeImg('https://picsum.photos/seed/c/1', 'logo v1');
+
+    let s = addTask(newSession('S'), t1);
+    s = addTask(s, t2);
+    s = appendIteration(s, t1.id, { prompt: 'hero r1', refImageIds: [], primaryRefImageId: null, images: [img1] });
+    s = appendIteration(s, t1.id, { prompt: 'hero r2', refImageIds: ['ref-x'], primaryRefImageId: null, images: [img2] });
+    s = appendIteration(s, t2.id, { prompt: 'logo r1', refImageIds: [], primaryRefImageId: null, images: [img3] });
+
+    s = setImageDecision(s, t1.id, img1.id, 'approved');
+    s = setImageDecision(s, t1.id, img2.id, 'kept');
+    s = setImageDecision(s, t2.id, img3.id, 'approved');
+
+    return { s, t1, t2, img1, img2, img3 };
+  }
+
+  it('buildApprovedImages returns only approved images across all tasks in order', () => {
+    const { s, t1, t2, img1, img3 } = seeded();
+    const approved = buildApprovedImages(s);
+    expect(approved).toHaveLength(2);
+    expect(approved[0].imageId).toBe(img1.id);
+    expect(approved[0].taskId).toBe(t1.id);
+    expect(approved[0].taskName).toBe('Hero');
+    expect(approved[1].imageId).toBe(img3.id);
+    expect(approved[1].taskId).toBe(t2.id);
+  });
+
+  it('buildApprovedImages returns an empty array for a session with no approvals', () => {
+    const s = addTask(newSession('Empty'), newTask('T'));
+    expect(buildApprovedImages(s)).toEqual([]);
+  });
+
+  it('buildApprovedImages accumulates promptHistory across iterations', () => {
+    const { s, t1, img2 } = seeded();
+    // img2 is 'kept' — also approve it so we can test multi-iteration promptHistory
+    const s2 = setImageDecision(s, t1.id, img2.id, 'approved');
+    const approved = buildApprovedImages(s2);
+    const heroApproved = approved.filter((a) => a.taskId === t1.id);
+    // img1 is in iteration 0 → promptHistory = ['hero r1']
+    expect(heroApproved[0].promptHistory).toEqual(['hero r1']);
+    // img2 is in iteration 1 → promptHistory = ['hero r1', 'hero r2']
+    expect(heroApproved[1].promptHistory).toEqual(['hero r1', 'hero r2']);
+  });
+
+  it('buildExportManifest includes session metadata and approved images', () => {
+    const { s } = seeded();
+    const manifest = buildExportManifest(s);
+    expect(manifest.sessionId).toBe(s.id);
+    expect(manifest.sessionName).toBe('S');
+    expect(manifest.approved).toHaveLength(2);
+    expect(manifest.exportedAt).toBeTruthy();
+  });
+
+  it('buildExportManifest includes only references used in approved images', () => {
+    const ref = newRefImage('brand.png', 'data:image/png;base64,abc', 'image/png');
+    const { s, t1, img2 } = seeded();
+    // Add ref to library and approve img2 (which is in the iteration with ref-x).
+    // For simplicity: use the ref from the library that matches an approved iteration.
+    let s2 = addRefImage(s, ref);
+    // Approve img2 (iteration with refImageIds=['ref-x']); ref.id ≠ 'ref-x' so references = []
+    s2 = setImageDecision(s2, t1.id, img2.id, 'approved');
+    const manifest = buildExportManifest(s2);
+    expect(manifest.references).toEqual([]);
+
+    // Now approve an image whose iteration references our real ref id
+    const t3 = newTask('T3');
+    const img4 = makeImg('https://picsum.photos/seed/d/1', 'with ref');
+    let s3 = addTask(addRefImage(newSession('S3'), ref), t3);
+    s3 = appendIteration(s3, t3.id, { prompt: 'p', refImageIds: [ref.id], primaryRefImageId: null, images: [img4] });
+    s3 = setImageDecision(s3, t3.id, img4.id, 'approved');
+    const m3 = buildExportManifest(s3);
+    expect(m3.references).toHaveLength(1);
+    expect(m3.references[0].id).toBe(ref.id);
   });
 });
