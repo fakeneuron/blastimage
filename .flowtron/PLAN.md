@@ -12,8 +12,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **BI-012** [sonnet] | docs — Write the short user-facing README and update any inline comments so the first cut is self-documenting.
-
 ## Future Opportunities
 
 - Hosted webapp variation (multi-user, accounts, cloud storage).
@@ -31,3 +29,4 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [x] **BI-008** [sonnet] | gallery — Completed 2026-06-06.
 - [x] **BI-010** [sonnet] | cost-ui — Won't do: SuperGrok is a flat subscription; per-image cost display is not applicable.
 - [x] **BI-011** [sonnet] | grok-handoff — Completed 2026-06-07.
+- [x] **BI-012** [sonnet] | docs — Completed 2026-06-07.
