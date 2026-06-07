@@ -10,6 +10,9 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
+- [ ] **BI-014** [sonnet] | submodule-adopt — Adopt blastimage as a git submodule in a real project, follow the integration guide end-to-end, and document any friction points for guide refinement.
+- [ ] **BI-015** [opus] | batch-generate — Add a "Generate All" action that fires generation across all session tasks simultaneously, producing a cross-task batch for one-pass bulk review.
+
 ## Low
 
 ## Future Opportunities
@@ -30,3 +33,4 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [x] **BI-010** [sonnet] | cost-ui — Won't do: SuperGrok is a flat subscription; per-image cost display is not applicable.
 - [x] **BI-011** [sonnet] | grok-handoff — Completed 2026-06-07.
 - [x] **BI-012** [sonnet] | docs — Completed 2026-06-07.
+- [x] **BI-013** [grok] | grok-live-test — Completed 2026-06-07.

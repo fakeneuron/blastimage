@@ -216,14 +216,30 @@ export function useWorkspace(): UseWorkspace {
 
     setGeneratingTaskId(taskId);
     try {
-      const referenceSeeds = [
+      // Resolve reference images to data URLs for the real seam (BI-013 / GROK-AGENT).
+      // Covers both library RefImages (active refs + library primaries) and previous
+      // GeneratedImages (when a kept image seeds the next round as primaryRefImageId).
+      // In the mock era these were opaque ID strings folded into a hash seed.
+      const refDataById = new Map(session.refLibrary.map((r) => [r.id, r.dataUrl] as const));
+      const allGeneratedById = new Map(
+        session.tasks.flatMap((t) =>
+          t.iterations.flatMap((it) => it.images.map((img) => [img.id, img.url] as const)),
+        ),
+      );
+      const resolveRefData = (id: ID): string | undefined =>
+        refDataById.get(id) || allGeneratedById.get(id);
+
+      const referenceImages = [
         ...(primaryRefImageId ? [primaryRefImageId] : []),
         ...task.activeRefImageIds,
-      ];
+      ]
+        .map((id) => resolveRefData(id))
+        .filter((d): d is string => Boolean(d));
+
       const candidates = await generateBatch({
         prompt,
         batchSize: DEFAULT_BATCH_SIZE,
-        referenceSeeds,
+        referenceImages,
       });
       const images = candidates.map((c) => newGeneratedImage(c.url, c.prompt));
       commit(

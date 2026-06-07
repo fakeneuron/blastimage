@@ -2,16 +2,68 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateBatch, type GenerationRequest } from './generate';
 
-/** Runs generateBatch past its simulated latency via fake timers. */
+/**
+ * Test-only provider that reproduces the original BI-007 mock behavior (picsum
+ * seeded URLs + determinism + fake latency). This keeps the unit surface of the
+ * seam (length, prompt passthrough, batchSize, distinctness) testable without
+ * depending on a real Grok Imagine provider. Real generations (BI-013 live test)
+ * are supplied by an agent-installed provider at runtime in the page.
+ */
+function installTestMockProvider() {
+  const MOCK_WIDTH = 768;
+  const MOCK_HEIGHT = 512;
+  const MOCK_LATENCY_MS = 600;
+
+  function hashSeed(input: string): string {
+    let h = 5381;
+    for (let i = 0; i < input.length; i++) {
+      h = (h * 33) ^ input.charCodeAt(i);
+    }
+    return (h >>> 0).toString(36);
+  }
+
+  function baseSeed(req: GenerationRequest): string {
+    const parts = [req.prompt.trim(), ...(req.referenceImages ?? [])].filter(Boolean);
+    if (parts.length === 0) return Math.random().toString(36).slice(2);
+    return hashSeed(parts.join('|'));
+  }
+
+  function candidateUrl(seed: string, index: number): string {
+    return `https://picsum.photos/seed/${seed}-${index}/${MOCK_WIDTH}/${MOCK_HEIGHT}`;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).__grokImagineProvider = async (req: GenerationRequest) => {
+    const seed = baseSeed(req);
+    await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
+    return Array.from({ length: req.batchSize }, (_, i) => ({
+      url: candidateUrl(seed, i),
+      prompt: req.prompt,
+    }));
+  };
+}
+
+function uninstallTestMockProvider() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (globalThis as any).__grokImagineProvider;
+}
+
+/** Runs generateBatch (now provider-backed) with fake timers for the latency. */
 async function run(req: GenerationRequest) {
   const p = generateBatch(req);
   await vi.runAllTimersAsync();
   return p;
 }
 
-describe('generateBatch (mock)', () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+describe('generateBatch (provider-backed seam)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    installTestMockProvider();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    uninstallTestMockProvider();
+  });
 
   it('produces exactly batchSize candidates carrying the prompt', async () => {
     const out = await run({ prompt: 'a sunset over the ocean', batchSize: 4 });
@@ -32,29 +84,29 @@ describe('generateBatch (mock)', () => {
     expect(new Set(out.map((c) => c.url)).size).toBe(5);
   });
 
-  it('is deterministic for the same prompt', async () => {
+  it('is deterministic for the same prompt (test provider behavior)', async () => {
     const a = await run({ prompt: 'brand logo', batchSize: 4 });
     const b = await run({ prompt: 'brand logo', batchSize: 4 });
     expect(a.map((c) => c.url)).toEqual(b.map((c) => c.url));
   });
 
-  it('produces different urls for different prompts', async () => {
+  it('produces different urls for different prompts (test provider behavior)', async () => {
     const a = await run({ prompt: 'cat', batchSize: 3 });
     const b = await run({ prompt: 'dog', batchSize: 3 });
     expect(a.map((c) => c.url)).not.toEqual(b.map((c) => c.url));
   });
 
-  it('generates deterministically from references alone (empty prompt)', async () => {
-    const req: GenerationRequest = { prompt: '', batchSize: 3, referenceSeeds: ['ref-1', 'ref-2'] };
+  it('accepts referenceImages (empty prompt + refs path)', async () => {
+    const req: GenerationRequest = { prompt: '', batchSize: 3, referenceImages: ['data:ref1', 'data:ref2'] };
     const a = await run(req);
     const b = await run(req);
     expect(a).toHaveLength(3);
     expect(a.map((c) => c.url)).toEqual(b.map((c) => c.url));
   });
 
-  it('folds reference seeds into the prompt seed (refs change the output)', async () => {
+  it('changes output when referenceImages are present (test provider folding)', async () => {
     const a = await run({ prompt: 'logo', batchSize: 3 });
-    const b = await run({ prompt: 'logo', batchSize: 3, referenceSeeds: ['ref-1'] });
+    const b = await run({ prompt: 'logo', batchSize: 3, referenceImages: ['data:ref-1'] });
     expect(a.map((c) => c.url)).not.toEqual(b.map((c) => c.url));
   });
 });
