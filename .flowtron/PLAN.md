@@ -10,12 +10,10 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [x] **BI-008** [sonnet] | gallery — Completed 2026-06-06.
-- [ ] **BI-011** [opus] | api-prep — Prepare the real Grok Imagine API integration path (document the two endpoints, response shape, and proxy strategy) so swapping the mock is a single focused change later.
+- [ ] **BI-011** [sonnet] | grok-handoff — Write the Grok Build agent instruction doc: app context, the mock→real integration seam in `lib/generate.ts`, and the `generateBatch` interface contract the agent must preserve.
 
 ## Low
 
-- [ ] **BI-010** [sonnet] | cost-ui — Add cost estimator display (per-batch and session total) and basic keyboard shortcuts (G to generate, etc.).
 - [ ] **BI-012** [sonnet] | docs — Write the short user-facing README and update any inline comments so the first cut is self-documenting.
 
 ## Future Opportunities
@@ -32,4 +30,5 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [x] **BI-005** [opus] | review-grid — Completed 2026-06-06.
 - [x] **BI-006** [opus] | feedback — Completed 2026-06-06.
 - [x] **BI-009** [opus] | end-to-end — Completed 2026-06-06.
-
+- [x] **BI-008** [sonnet] | gallery — Completed 2026-06-06.
+- [x] **BI-010** [sonnet] | cost-ui — Won't do: SuperGrok is a flat subscription; per-image cost display is not applicable.
