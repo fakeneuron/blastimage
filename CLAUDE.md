@@ -8,7 +8,7 @@ Local Next.js application for coordinated AI image generation workflows. Users d
 
 - **Framework:** Next.js 15 (App Router, TypeScript)
 - **State:** localStorage (frontend-only; no accounts, no backend)
-- **Target API:** Grok Imagine (mocked initially; real integration path in BI-011)
+- **Target API:** Grok Imagine via an agent-installed provider bridge (`globalThis.__grokImagineProvider`); see `docs/GROK-AGENT.md`
 - **Dev port:** `next dev -p 3003`
 
 ## Workflow

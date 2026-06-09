@@ -15,6 +15,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
+- [ ] **BI-017** [sonnet] | generated-quota — Add a localStorage quota guard for accumulated generated images (analogous to the existing 2 MB per-ref guard in ReferenceLibrary) to surface a warning before hitting the storage cliff.
+
 ## Future Opportunities
 
 - Hosted webapp variation (multi-user, accounts, cloud storage).
@@ -34,3 +36,4 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [x] **BI-011** [sonnet] | grok-handoff — Completed 2026-06-07.
 - [x] **BI-012** [sonnet] | docs — Completed 2026-06-07.
 - [x] **BI-013** [grok] | grok-live-test — Completed 2026-06-07.
+- [x] **BI-016** [light] | docs-refresh — Completed 2026-06-08.
