@@ -15,15 +15,17 @@
  * switch.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ApprovedImage, ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
 import {
+  downloadBlob,
   listSessions,
   loadActiveSession,
   loadSession,
   saveSession,
   setActiveSessionId,
+  slugify,
   type SessionMeta,
 } from './storage';
 import {
@@ -111,6 +113,11 @@ export function useWorkspace(): UseWorkspace {
   const [activeTaskId, setActiveTaskId] = useState<ID | null>(null);
   const [generatingTaskId, setGeneratingTaskId] = useState<ID | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Latest-session ref so async callbacks (generate's post-await commit) can
+  // see commits that landed after they captured `session` from a render.
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
 
   // Mount-time load: restore the active session, or bootstrap + persist a default.
   useEffect(() => {
@@ -242,14 +249,28 @@ export function useWorkspace(): UseWorkspace {
         referenceImages,
       });
       const images = candidates.map((c) => newGeneratedImage(c.url, c.prompt));
-      commit(
-        appendIterationTo(session, taskId, {
-          prompt,
-          refImageIds: task.activeRefImageIds,
-          primaryRefImageId,
-          images,
-        }),
-      );
+      // Provenance records the inputs actually sent (captured before the await).
+      const draft = {
+        prompt,
+        refImageIds: task.activeRefImageIds,
+        primaryRefImageId,
+        images,
+      };
+      const latest = sessionRef.current;
+      if (latest && latest.id === session.id) {
+        // Append onto the freshest state so commits that landed during the
+        // await (rename, decision, feedback) are not silently overwritten.
+        commit(appendIterationTo(latest, taskId, draft));
+      } else {
+        // The user switched sessions mid-generate: persist the batch into the
+        // originating stored session without flipping the UI back to it.
+        const origin = loadSession(session.id);
+        if (origin) {
+          const res = saveSession(appendIterationTo(origin, taskId, draft));
+          if (res.ok) setSessions(listSessions());
+          else setError(res.error);
+        }
+      }
     } catch {
       setError('Generation failed. Please try again.');
     } finally {
@@ -311,14 +332,7 @@ export function useWorkspace(): UseWorkspace {
     if (!session) return;
     const manifest = buildExportManifest(session);
     const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${session.name.replace(/\s+/g, '-').toLowerCase()}-export.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `${slugify(session.name) || 'session'}-export.json`);
   }
 
   return {

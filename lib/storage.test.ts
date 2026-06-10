@@ -11,6 +11,7 @@ import {
   saveSession,
   serializeSession,
   setActiveSessionId,
+  slugify,
 } from './storage';
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -109,5 +110,16 @@ describe('export / import', () => {
 
   it('rejects a backup with an unsupported schema version', () => {
     expect(importSession(serializeSession(makeSession({ schemaVersion: 999 }))).ok).toBe(false);
+  });
+});
+
+describe('slugify', () => {
+  it('lowercases and joins alphanumeric runs with hyphens', () => {
+    expect(slugify('My Website')).toBe('my-website');
+    expect(slugify('  Hero / Banner #2  ')).toBe('hero-banner-2');
+  });
+
+  it('returns an empty string when nothing survives', () => {
+    expect(slugify('!!!')).toBe('');
   });
 });

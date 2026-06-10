@@ -207,25 +207,35 @@ export function serializeSession(session: Session): string {
   return JSON.stringify(session, null, 2);
 }
 
-function slugify(name: string): string {
+/** Filesystem-safe slug for download filenames (lowercase, alphanumerics joined by `-`). */
+export function slugify(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
 
-/** Triggers a browser download of the session as a `.json` backup file. No-op outside the browser. */
-export function downloadSession(session: Session): void {
+/**
+ * Triggers a browser download of a blob via a temporary object-URL anchor.
+ * No-op outside the browser. Shared by the session backup, the manifest
+ * export (useWorkspace.exportAll), and the gallery image download.
+ */
+export function downloadBlob(blob: Blob, filename: string): void {
   if (typeof document === 'undefined') return;
-  const blob = new Blob([serializeSession(session)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${slugify(session.name) || 'session'}-${session.id}.json`;
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Triggers a browser download of the session as a `.json` backup file. No-op outside the browser. */
+export function downloadSession(session: Session): void {
+  const blob = new Blob([serializeSession(session)], { type: 'application/json' });
+  downloadBlob(blob, `${slugify(session.name) || 'session'}-${session.id}.json`);
 }
 
 /**

@@ -76,8 +76,7 @@ declare global {
  * (useWorkspace.generate) catches and shows a non-fatal "Generation failed".
  */
 export async function generateBatch(req: GenerationRequest): Promise<GeneratedCandidate[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const provider = (globalThis as any).__grokImagineProvider as GrokImagineProvider | undefined;
+  const provider = globalThis.__grokImagineProvider;
 
   if (provider && typeof provider === 'function') {
     const results = await provider(req);

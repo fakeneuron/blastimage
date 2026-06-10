@@ -9,6 +9,7 @@
  */
 
 import type { ApprovedImage } from '@/lib/types';
+import { downloadBlob, slugify } from '@/lib/storage';
 
 interface GalleryPanelProps {
   approved: ApprovedImage[];
@@ -28,14 +29,7 @@ async function downloadImage(url: string, filename: string) {
   try {
     const res = await fetch(url);
     const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
+    downloadBlob(blob, filename);
   } catch {
     // Fallback: open in a new tab if the fetch fails (e.g. strict CORS)
     window.open(url, '_blank');
@@ -93,7 +87,7 @@ export default function GalleryPanel({ approved, onExportAll }: GalleryPanelProp
                     onClick={() =>
                       downloadImage(
                         item.url,
-                        `${item.taskName.replace(/\s+/g, '-').toLowerCase()}-${item.imageId.slice(0, 8)}.jpg`,
+                        `${slugify(item.taskName) || 'image'}-${item.imageId.slice(0, 8)}.jpg`,
                       )
                     }
                     title="Download image"
