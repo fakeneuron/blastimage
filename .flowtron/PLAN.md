@@ -11,7 +11,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **CORE-EPIC-001** [opus] | code-quality-sweep — Code-quality sweep of blastimage's app surface (app/, components/, lib/, root configs). Discovery found a clean baseline (tsc/lint/tests green) with 5 medium findings — stale-session race in generate(), as-any provider cast, triplicated download logic, .jpg filename mislabel, batch-size duplicate — fixed across .2..4, verified by the .5 audit.
   - [x] **CORE-001.1** [opus] | code-quality-sweep discovery — Completed 2026-06-10.
   - [x] **CORE-001.2** [opus] | lib-quality — Completed 2026-06-10.
-  - [ ] **CORE-001.3** [opus] | component-quality — Fix medium component findings: GalleryPanel's download filename hardcodes .jpg regardless of image mime; TaskDetail's generating-skeleton hardcodes 4 placeholders duplicating DEFAULT_BATCH_SIZE. Low nits fixed only where already touched. Visual confirmation that the e2e flow is unchanged.
+  - [x] **CORE-001.3** [opus] | component-quality — Completed 2026-06-10.
   - [ ] **CORE-001.4** [opus] | config-docs-strays — Cross-cutting cleanup: delete superseded PLAN.legacy.md (per-file confirm), verify .gitignore covers *.tsbuildinfo, align npm test watch-vs-run script intent with docs, and verify README/AGENTS claims against code after .2/.3 land.
   - [ ] **CORE-001.5** [opus] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed at filing time as highest .5 child.
 

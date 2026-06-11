@@ -232,6 +232,20 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** File extension (no dot) for an image mime type; falls back to `jpg` for unknown types. */
+export function imageExtension(mime: string): string {
+  switch (mime) {
+    case 'image/png':
+      return 'png';
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/webp':
+      return 'webp';
+    default:
+      return 'jpg';
+  }
+}
+
 /** Triggers a browser download of the session as a `.json` backup file. No-op outside the browser. */
 export function downloadSession(session: Session): void {
   const blob = new Blob([serializeSession(session)], { type: 'application/json' });

@@ -12,6 +12,7 @@
 import { useEffect, useState } from 'react';
 
 import type { ID, PromptTask, RefImage, ReviewDecision, StarRating } from '@/lib/types';
+import { DEFAULT_BATCH_SIZE } from '@/lib/useWorkspace';
 import ReferenceLibrary from '@/components/ReferenceLibrary';
 import ReviewGrid from '@/components/ReviewGrid';
 
@@ -133,7 +134,7 @@ export default function TaskDetail({
           </label>
           {generating ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 4 }, (_, i) => (
+              {Array.from({ length: DEFAULT_BATCH_SIZE }, (_, i) => (
                 <div
                   key={i}
                   className="aspect-[3/2] animate-pulse rounded-lg border border-black/10 bg-foreground/10 dark:border-white/10"

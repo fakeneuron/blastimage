@@ -52,7 +52,8 @@ import type { BatchSize } from './types';
 
 const DEFAULT_SESSION_NAME = 'My Website';
 const DEFAULT_TASK_NAME = 'Untitled task';
-const DEFAULT_BATCH_SIZE: BatchSize = 4;
+/** Batch size used by `generate()`; also drives TaskDetail's generating skeleton. */
+export const DEFAULT_BATCH_SIZE: BatchSize = 4;
 
 export interface UseWorkspace {
   /** False until the mount-time load completes (render a neutral shell while false). */

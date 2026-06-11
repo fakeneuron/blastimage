@@ -8,15 +8,15 @@
  * Top: "Export all" downloads the JSON provenance manifest.
  */
 
-import type { ApprovedImage } from '@/lib/types';
-import { downloadBlob, slugify } from '@/lib/storage';
+import type { ApprovedImage, StarRating } from '@/lib/types';
+import { downloadBlob, imageExtension, slugify } from '@/lib/storage';
 
 interface GalleryPanelProps {
   approved: ApprovedImage[];
   onExportAll: () => void;
 }
 
-function StarDisplay({ rating }: { rating: number }) {
+function StarDisplay({ rating }: { rating: StarRating }) {
   if (rating === 0) return null;
   return (
     <span className="text-xs opacity-60" aria-label={`${rating} stars`}>
@@ -25,11 +25,11 @@ function StarDisplay({ rating }: { rating: number }) {
   );
 }
 
-async function downloadImage(url: string, filename: string) {
+async function downloadImage(url: string, basename: string) {
   try {
     const res = await fetch(url);
     const blob = await res.blob();
-    downloadBlob(blob, filename);
+    downloadBlob(blob, `${basename}.${imageExtension(blob.type)}`);
   } catch {
     // Fallback: open in a new tab if the fetch fails (e.g. strict CORS)
     window.open(url, '_blank');
@@ -87,7 +87,7 @@ export default function GalleryPanel({ approved, onExportAll }: GalleryPanelProp
                     onClick={() =>
                       downloadImage(
                         item.url,
-                        `${slugify(item.taskName) || 'image'}-${item.imageId.slice(0, 8)}.jpg`,
+                        `${slugify(item.taskName) || 'image'}-${item.imageId.slice(0, 8)}`,
                       )
                     }
                     title="Download image"

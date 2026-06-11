@@ -4,6 +4,7 @@ import { SCHEMA_VERSION, type Session } from './types';
 import {
   deleteSession,
   getActiveSessionId,
+  imageExtension,
   importSession,
   listSessions,
   loadActiveSession,
@@ -121,5 +122,18 @@ describe('slugify', () => {
 
   it('returns an empty string when nothing survives', () => {
     expect(slugify('!!!')).toBe('');
+  });
+});
+
+describe('imageExtension', () => {
+  it('maps known image mime types to their extensions', () => {
+    expect(imageExtension('image/png')).toBe('png');
+    expect(imageExtension('image/jpeg')).toBe('jpg');
+    expect(imageExtension('image/webp')).toBe('webp');
+  });
+
+  it('falls back to jpg for unknown or empty mime types', () => {
+    expect(imageExtension('image/tiff')).toBe('jpg');
+    expect(imageExtension('')).toBe('jpg');
   });
 });
