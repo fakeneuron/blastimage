@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-014** [sonnet] | submodule-adopt — Adopt blastimage as a git submodule in a real project, follow the integration guide end-to-end, and document any friction points for guide refinement.
+(none)
 
 ## Low
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-014** [sonnet] | submodule-adopt — Completed 2026-06-10.
 - [x] **CORE-EPIC-001** [opus] | code-quality-sweep — Completed 2026-06-10.
   - [x] **CORE-001.1** [opus] | code-quality-sweep discovery — Completed 2026-06-10.
   - [x] **CORE-001.2** [opus] | lib-quality — Completed 2026-06-10.
