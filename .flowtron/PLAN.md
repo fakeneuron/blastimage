@@ -8,12 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **CORE-EPIC-001** [opus] | code-quality-sweep — Code-quality sweep of blastimage's app surface (app/, components/, lib/, root configs). Discovery found a clean baseline (tsc/lint/tests green) with 5 medium findings — stale-session race in generate(), as-any provider cast, triplicated download logic, .jpg filename mislabel, batch-size duplicate — fixed across .2..4, verified by the .5 audit.
-  - [x] **CORE-001.1** [opus] | code-quality-sweep discovery — Completed 2026-06-10.
-  - [x] **CORE-001.2** [opus] | lib-quality — Completed 2026-06-10.
-  - [x] **CORE-001.3** [opus] | component-quality — Completed 2026-06-10.
-  - [x] **CORE-001.4** [opus] | config-docs-strays — Completed 2026-06-10.
-  - [ ] **CORE-001.5** [opus] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed at filing time as highest .5 child.
+(none)
 
 ## Medium
 
@@ -30,6 +25,12 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-EPIC-001** [opus] | code-quality-sweep — Completed 2026-06-10.
+  - [x] **CORE-001.1** [opus] | code-quality-sweep discovery — Completed 2026-06-10.
+  - [x] **CORE-001.2** [opus] | lib-quality — Completed 2026-06-10.
+  - [x] **CORE-001.3** [opus] | component-quality — Completed 2026-06-10.
+  - [x] **CORE-001.4** [opus] | config-docs-strays — Completed 2026-06-10.
+  - [x] **CORE-001.5** [opus] | audit — Completed 2026-06-10.
 - [x] **BI-001** [opus] | types — Completed 2026-06-06.
 - [x] **BI-002** [opus] | persistence — Completed 2026-06-06.
 - [x] **BI-003** [opus] | layout — Completed 2026-06-06.
