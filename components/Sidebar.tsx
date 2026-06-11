@@ -15,6 +15,8 @@ interface SidebarProps {
   session: Session;
   sessions: SessionMeta[];
   activeTaskId: ID | null;
+  /** True when Generate All can fire (≥1 eligible task, nothing in flight). */
+  canGenerateAll: boolean;
   onSwitchSession: (id: ID) => void;
   onCreateSession: (name: string) => void;
   onRenameSession: (name: string) => void;
@@ -22,12 +24,15 @@ interface SidebarProps {
   onSelectTask: (id: ID) => void;
   onRenameTask: (id: ID, name: string) => void;
   onDeleteTask: (id: ID) => void;
+  /** Fires generation for every eligible task and opens bulk review (BI-015). */
+  onGenerateAll: () => void;
 }
 
 export default function Sidebar({
   session,
   sessions,
   activeTaskId,
+  canGenerateAll,
   onSwitchSession,
   onCreateSession,
   onRenameSession,
@@ -35,6 +40,7 @@ export default function Sidebar({
   onSelectTask,
   onRenameTask,
   onDeleteTask,
+  onGenerateAll,
 }: SidebarProps) {
   function handleNewSession() {
     const name = window.prompt('Name the new website project:');
@@ -102,6 +108,22 @@ export default function Sidebar({
           onClick={handleAddTask}
         >
           + New task
+        </button>
+      </div>
+
+      {/* Generate All (BI-015) — one batch per eligible task, reviewed in one pass. */}
+      <div className="px-3 pb-2">
+        <button
+          disabled={!canGenerateAll}
+          onClick={onGenerateAll}
+          className="w-full rounded bg-foreground px-2 py-1.5 text-xs font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          title={
+            canGenerateAll
+              ? 'Generate a batch for every task with a prompt or reference'
+              : 'No eligible tasks (add a prompt or reference), or a run is in flight'
+          }
+        >
+          ⚡ Generate All
         </button>
       </div>
 

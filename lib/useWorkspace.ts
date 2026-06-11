@@ -62,8 +62,8 @@ export interface UseWorkspace {
   sessions: SessionMeta[];
   activeTask: PromptTask | null;
   activeTaskId: ID | null;
-  /** Task id whose batch is currently being generated, or `null` (transient; not persisted). */
-  generatingTaskId: ID | null;
+  /** Task ids whose batches are currently being generated (transient; not persisted). */
+  generatingTaskIds: ID[];
   /** Last save/generation failure, or `null`. */
   error: string | null;
   /** Approved images derived live from the session; used by the gallery panel (BI-008). */
@@ -83,6 +83,13 @@ export interface UseWorkspace {
    * reference and never requires one.
    */
   generate: (taskId: ID, opts?: { prompt?: string; primaryRefImageId?: ID }) => Promise<void>;
+  /**
+   * Fires `generate` concurrently for every eligible task (non-empty base
+   * prompt or ≥1 active reference) and returns the fired task ids so the UI
+   * can open the bulk-review view (BI-015). Each task's run handles its own
+   * failure — one failed batch never blocks the others.
+   */
+  generateAll: () => ID[];
   selectTask: (taskId: ID) => void;
   /** Sets a generated image's review decision (pass `'undecided'` to clear). */
   setImageDecision: (taskId: ID, imageId: ID, decision: ReviewDecision) => void;
@@ -112,7 +119,7 @@ export function useWorkspace(): UseWorkspace {
   const [session, setSession] = useState<Session | null>(null);
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<ID | null>(null);
-  const [generatingTaskId, setGeneratingTaskId] = useState<ID | null>(null);
+  const [generatingTaskIds, setGeneratingTaskIds] = useState<ID[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Latest-session ref so async callbacks (generate's post-await commit) can
@@ -152,6 +159,11 @@ export function useWorkspace(): UseWorkspace {
       return;
     }
     setError(null);
+    // Keep the latest-session ref current synchronously: the render-time
+    // assignment alone lags when several generates' post-await commits land
+    // in the same tick (BI-015 fires all tasks at once), which would silently
+    // drop all but the last batch.
+    sessionRef.current = next;
     setSession(next);
     setSessions(listSessions());
   }
@@ -214,6 +226,7 @@ export function useWorkspace(): UseWorkspace {
     opts?: { prompt?: string; primaryRefImageId?: ID },
   ): Promise<void> {
     if (!session) return;
+    if (generatingTaskIds.includes(taskId)) return; // re-entrancy guard: one in-flight batch per task
     const task = session.tasks.find((t) => t.id === taskId);
     if (!task) return;
     const prompt = (opts?.prompt ?? task.basePrompt).trim();
@@ -222,7 +235,7 @@ export function useWorkspace(): UseWorkspace {
     const hasRef = primaryRefImageId !== null || task.activeRefImageIds.length > 0;
     if (!prompt && !hasRef) return;
 
-    setGeneratingTaskId(taskId);
+    setGeneratingTaskIds((prev) => [...prev, taskId]);
     try {
       // Resolve reference images to data URLs for the real seam (BI-013 / GROK-AGENT).
       // Covers both library RefImages (active refs + library primaries) and previous
@@ -275,8 +288,22 @@ export function useWorkspace(): UseWorkspace {
     } catch {
       setError('Generation failed. Please try again.');
     } finally {
-      setGeneratingTaskId(null);
+      setGeneratingTaskIds((prev) => prev.filter((id) => id !== taskId));
     }
+  }
+
+  function generateAll(): ID[] {
+    if (!session) return [];
+    // Eligibility mirrors generate()'s own guard: a prompt or ≥1 active reference.
+    const eligible = session.tasks.filter(
+      (t) =>
+        !generatingTaskIds.includes(t.id) &&
+        (t.basePrompt.trim() !== '' || t.activeRefImageIds.length > 0),
+    );
+    // Fire-and-forget: each generate() catches its own failure and clears its
+    // own generating flag, so the batches run truly concurrently.
+    for (const t of eligible) void generate(t.id);
+    return eligible.map((t) => t.id);
   }
 
   function selectTask(taskId: ID): void {
@@ -342,7 +369,7 @@ export function useWorkspace(): UseWorkspace {
     sessions,
     activeTask,
     activeTaskId,
-    generatingTaskId,
+    generatingTaskIds,
     error,
     approvedImages,
     createSession,
@@ -353,6 +380,7 @@ export function useWorkspace(): UseWorkspace {
     deleteTask,
     setTaskPrompt,
     generate,
+    generateAll,
     selectTask,
     setImageDecision,
     setImageRating,

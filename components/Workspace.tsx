@@ -15,6 +15,7 @@ import type { ID } from '@/lib/types';
 import { useWorkspace } from '@/lib/useWorkspace';
 import Sidebar from '@/components/Sidebar';
 import TaskDetail from '@/components/TaskDetail';
+import BulkReviewPane from '@/components/BulkReviewPane';
 import FeedbackModal from '@/components/FeedbackModal';
 import GalleryPanel from '@/components/GalleryPanel';
 import IterateModal from '@/components/IterateModal';
@@ -25,6 +26,9 @@ export default function Workspace() {
   const [feedbackFor, setFeedbackFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
   // Which keeper the iterate modal is open for (BI-009), or null when closed.
   const [iterateFor, setIterateFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
+  // Tasks fired by Generate All — non-null renders the bulk-review pane (BI-015);
+  // selecting a task or switching sessions exits back to TaskDetail.
+  const [bulkTaskIds, setBulkTaskIds] = useState<ID[] | null>(null);
 
   // Resolve the open image from current session state so it reflects live edits.
   const feedbackImage = feedbackFor
@@ -52,6 +56,16 @@ export default function Workspace() {
     );
   }
 
+  // Eligibility mirrors generate()'s guard; disabled while any batch is in flight.
+  const canGenerateAll =
+    ws.generatingTaskIds.length === 0 &&
+    ws.session.tasks.some((t) => t.basePrompt.trim() !== '' || t.activeRefImageIds.length > 0);
+
+  // Resolve fired tasks from live session state (session order; deleted tasks drop out).
+  const bulkTasks = bulkTaskIds
+    ? ws.session.tasks.filter((t) => bulkTaskIds.includes(t.id))
+    : null;
+
   return (
     <main className="flex h-screen flex-col">
       {ws.error && (
@@ -67,29 +81,54 @@ export default function Workspace() {
           session={ws.session}
           sessions={ws.sessions}
           activeTaskId={ws.activeTaskId}
-          onSwitchSession={ws.switchSession}
-          onCreateSession={ws.createSession}
+          canGenerateAll={canGenerateAll}
+          onSwitchSession={(id) => {
+            setBulkTaskIds(null);
+            ws.switchSession(id);
+          }}
+          onCreateSession={(name) => {
+            setBulkTaskIds(null);
+            ws.createSession(name);
+          }}
           onRenameSession={ws.renameSession}
           onAddTask={ws.addTask}
-          onSelectTask={ws.selectTask}
+          onSelectTask={(id) => {
+            setBulkTaskIds(null);
+            ws.selectTask(id);
+          }}
           onRenameTask={ws.renameTask}
           onDeleteTask={ws.deleteTask}
+          onGenerateAll={() => {
+            const fired = ws.generateAll();
+            if (fired.length > 0) setBulkTaskIds(fired);
+          }}
         />
-        <TaskDetail
-          task={ws.activeTask}
-          library={ws.session.refLibrary}
-          generating={ws.activeTaskId !== null && ws.generatingTaskId === ws.activeTaskId}
-          onRenameTask={ws.renameTask}
-          onSetPrompt={ws.setTaskPrompt}
-          onAddRefImage={ws.addRefImage}
-          onRemoveRefImage={ws.removeRefImage}
-          onToggleRef={ws.toggleTaskRef}
-          onGenerate={ws.generate}
-          onSetImageDecision={ws.setImageDecision}
-          onSetImageRating={ws.setImageRating}
-          onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
-          onIterate={(taskId, imageId) => setIterateFor({ taskId, imageId })}
-        />
+        {bulkTasks ? (
+          <BulkReviewPane
+            tasks={bulkTasks}
+            generatingTaskIds={ws.generatingTaskIds}
+            onSetImageDecision={ws.setImageDecision}
+            onSetImageRating={ws.setImageRating}
+            onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
+            onIterate={(taskId, imageId) => setIterateFor({ taskId, imageId })}
+          />
+        ) : (
+          <TaskDetail
+            task={ws.activeTask}
+            library={ws.session.refLibrary}
+            generating={ws.activeTaskId !== null && ws.generatingTaskIds.includes(ws.activeTaskId)}
+            onRenameTask={ws.renameTask}
+            onSetPrompt={ws.setTaskPrompt}
+            onAddRefImage={ws.addRefImage}
+            onRemoveRefImage={ws.removeRefImage}
+            onToggleRef={ws.toggleTaskRef}
+            onGenerate={ws.generate}
+            onSetImageDecision={ws.setImageDecision}
+            onSetImageRating={ws.setImageRating}
+            onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
+            onIterate={(taskId, imageId) => setIterateFor({ taskId, imageId })}
+          />
+        )}
         <GalleryPanel approved={ws.approvedImages} onExportAll={ws.exportAll} />
       </div>
       {feedbackFor && feedbackImage && (

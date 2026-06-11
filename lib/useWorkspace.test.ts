@@ -11,7 +11,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act, cleanup, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
 import { useWorkspace } from './useWorkspace';
 import { loadSession } from './storage';
@@ -100,5 +100,72 @@ describe('generate() post-await reconciliation', () => {
     const task = origin.tasks.find((t) => t.id === taskId)!;
     expect(task.iterations).toHaveLength(1);
     expect(task.iterations[0].images).toHaveLength(4);
+  });
+});
+
+describe('generateAll() (BI-015)', () => {
+  it('fires only eligible tasks and lands every concurrent batch', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    expect(result.current.ready).toBe(true);
+
+    act(() => result.current.addTask('Hero'));
+    const heroId = result.current.activeTaskId!;
+    act(() => result.current.setTaskPrompt(heroId, 'a hero image'));
+    act(() => result.current.addTask('About'));
+    const aboutId = result.current.activeTaskId!;
+    act(() => result.current.setTaskPrompt(aboutId, 'an about photo'));
+    act(() => result.current.addTask('Empty')); // ineligible — no prompt, no refs
+    const emptyId = result.current.activeTaskId!;
+
+    const { release } = installDeferredProvider();
+    let fired!: string[];
+    act(() => {
+      fired = result.current.generateAll();
+    });
+    expect(fired).toEqual([heroId, aboutId]);
+    expect(result.current.generatingTaskIds).toEqual([heroId, aboutId]);
+
+    release();
+    await waitFor(() => expect(result.current.generatingTaskIds).toHaveLength(0));
+
+    // Both batches resolved in the same release tick; neither commit dropped
+    // the other (commit() keeps sessionRef current synchronously).
+    const tasks = result.current.session!.tasks;
+    for (const id of [heroId, aboutId]) {
+      const task = tasks.find((t) => t.id === id)!;
+      expect(task.iterations).toHaveLength(1);
+      expect(task.iterations[0].images).toHaveLength(4);
+    }
+    expect(tasks.find((t) => t.id === emptyId)!.iterations).toHaveLength(0);
+  });
+
+  it('a failing task does not block the others', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    expect(result.current.ready).toBe(true);
+
+    act(() => result.current.addTask('Good'));
+    const goodId = result.current.activeTaskId!;
+    act(() => result.current.setTaskPrompt(goodId, 'a good image'));
+    act(() => result.current.addTask('Bad'));
+    const badId = result.current.activeTaskId!;
+    act(() => result.current.setTaskPrompt(badId, 'bad'));
+
+    globalThis.__grokImagineProvider = async (req) => {
+      if (req.prompt === 'bad') throw new Error('boom');
+      return Array.from({ length: req.batchSize }, (_, i) => ({
+        url: `data:image/png;base64,candidate-${i}`,
+        prompt: req.prompt,
+      }));
+    };
+
+    act(() => {
+      result.current.generateAll();
+    });
+    await waitFor(() => expect(result.current.generatingTaskIds).toHaveLength(0));
+
+    const tasks = result.current.session!.tasks;
+    expect(tasks.find((t) => t.id === goodId)!.iterations).toHaveLength(1);
+    expect(tasks.find((t) => t.id === badId)!.iterations).toHaveLength(0);
+    expect(result.current.error).toBe('Generation failed. Please try again.');
   });
 });
