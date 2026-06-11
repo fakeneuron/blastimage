@@ -31,6 +31,9 @@ import {
 /** Maximum library references a single task may have active at once (VISION / BI-004). */
 export const MAX_ACTIVE_REFS = 3;
 
+/** Warning threshold for total generated-image data-URL bytes stored in localStorage. */
+export const GENERATED_QUOTA_WARN_BYTES = 4 * 1024 * 1024;
+
 // ─────────────────────────────────────────────────────────────────────────
 // Clock / id helpers
 // ─────────────────────────────────────────────────────────────────────────
@@ -339,6 +342,23 @@ export function buildApprovedImages(session: Session): ApprovedImage[] {
     }
   }
   return result;
+}
+
+/**
+ * Sums the byte-length of all generated-image data URLs stored in the session.
+ * Data URLs are base64/ASCII, so string .length ≈ byte count — close enough for
+ * a {@link GENERATED_QUOTA_WARN_BYTES} threshold check.
+ */
+export function countGeneratedImageBytes(session: Session): number {
+  let total = 0;
+  for (const task of session.tasks) {
+    for (const iteration of task.iterations) {
+      for (const img of iteration.images) {
+        if (img.url.startsWith('data:')) total += img.url.length;
+      }
+    }
+  }
+  return total;
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   appendIteration,
   buildApprovedImages,
   buildExportManifest,
+  countGeneratedImageBytes,
   deleteTask,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
@@ -299,6 +300,45 @@ describe('review mutations', () => {
     expect(next.tasks[0].updatedAt >= before).toBe(true);
     expect(setImageFeedback(s, 'nope', a.id, { text: 'x', useAsReference: false })).toBe(s);
     expect(setImageFeedback(s, taskId, 'nope', { text: 'x', useAsReference: false })).toBe(s);
+  });
+});
+
+describe('countGeneratedImageBytes', () => {
+  it('returns 0 for a session with no tasks', () => {
+    expect(countGeneratedImageBytes(newSession('S'))).toBe(0);
+  });
+
+  it('returns 0 for a session with tasks but no iterations', () => {
+    const s = addTask(newSession('S'), newTask('T'));
+    expect(countGeneratedImageBytes(s)).toBe(0);
+  });
+
+  it('sums the lengths of data-URL images only, ignoring remote URLs', () => {
+    const dataUrl = 'data:image/png;base64,ABCD'; // length = 26
+    const remoteUrl = 'https://picsum.photos/seed/x/1'; // should be ignored
+    const t = newTask('T');
+    let s = addTask(newSession('S'), t);
+    s = appendIteration(s, t.id, {
+      prompt: 'p',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [
+        newGeneratedImage(dataUrl, 'p'),
+        newGeneratedImage(remoteUrl, 'p'),
+      ],
+    });
+    expect(countGeneratedImageBytes(s)).toBe(dataUrl.length);
+  });
+
+  it('accumulates bytes across multiple tasks and iterations', () => {
+    const url1 = 'data:image/png;base64,AAAA'; // 26
+    const url2 = 'data:image/jpeg;base64,BBBBBB'; // 30
+    const t1 = newTask('T1');
+    const t2 = newTask('T2');
+    let s = addTask(addTask(newSession('S'), t1), t2);
+    s = appendIteration(s, t1.id, { prompt: 'p', refImageIds: [], primaryRefImageId: null, images: [newGeneratedImage(url1, 'p')] });
+    s = appendIteration(s, t2.id, { prompt: 'p', refImageIds: [], primaryRefImageId: null, images: [newGeneratedImage(url2, 'p')] });
+    expect(countGeneratedImageBytes(s)).toBe(url1.length + url2.length);
   });
 });
 

@@ -13,6 +13,7 @@ import { useState } from 'react';
 
 import type { ID } from '@/lib/types';
 import { useWorkspace } from '@/lib/useWorkspace';
+import { countGeneratedImageBytes, GENERATED_QUOTA_WARN_BYTES } from '@/lib/workspace';
 import Sidebar from '@/components/Sidebar';
 import TaskDetail from '@/components/TaskDetail';
 import BulkReviewPane from '@/components/BulkReviewPane';
@@ -22,6 +23,7 @@ import IterateModal from '@/components/IterateModal';
 
 export default function Workspace() {
   const ws = useWorkspace();
+  const [quotaWarningDismissed, setQuotaWarningDismissed] = useState(false);
   // Which image the feedback modal is open for (BI-006), or null when closed.
   const [feedbackFor, setFeedbackFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
   // Which keeper the iterate modal is open for (BI-009), or null when closed.
@@ -56,6 +58,8 @@ export default function Workspace() {
     );
   }
 
+  const genBytes = ws.session ? countGeneratedImageBytes(ws.session) : 0;
+
   // Eligibility mirrors generate()'s guard; disabled while any batch is in flight.
   const canGenerateAll =
     ws.generatingTaskIds.length === 0 &&
@@ -72,6 +76,17 @@ export default function Workspace() {
         <div className="flex items-center justify-between gap-4 bg-red-600 px-4 py-2 text-sm text-white">
           <span>{ws.error}</span>
           <button className="shrink-0 underline" onClick={ws.dismissError}>
+            Dismiss
+          </button>
+        </div>
+      )}
+      {!quotaWarningDismissed && genBytes >= GENERATED_QUOTA_WARN_BYTES && (
+        <div className="flex items-center justify-between gap-4 bg-amber-500 px-4 py-2 text-sm text-white">
+          <span>
+            Generated images are using ~{(genBytes / 1024 / 1024).toFixed(1)}&nbsp;MB of localStorage
+            — consider exporting and clearing old sessions before generating more.
+          </span>
+          <button className="shrink-0 underline" onClick={() => setQuotaWarningDismissed(true)}>
             Dismiss
           </button>
         </div>

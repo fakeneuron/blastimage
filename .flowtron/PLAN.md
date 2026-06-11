@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **BI-017** [sonnet] | generated-quota — Add a localStorage quota guard for accumulated generated images (analogous to the existing 2 MB per-ref guard in ReferenceLibrary) to surface a warning before hitting the storage cliff.
+(none)
 
 ## Future Opportunities
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-017** [sonnet] | generated-quota — Completed 2026-06-10.
 - [x] **BI-014** [sonnet] | submodule-adopt — Completed 2026-06-10.
 - [x] **CORE-EPIC-001** [opus] | code-quality-sweep — Completed 2026-06-10.
   - [x] **CORE-001.1** [opus] | code-quality-sweep discovery — Completed 2026-06-10.
