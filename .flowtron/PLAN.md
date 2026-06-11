@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **CORE-001.1** [opus] | code-quality-sweep discovery — Completed 2026-06-10.
   - [x] **CORE-001.2** [opus] | lib-quality — Completed 2026-06-10.
   - [x] **CORE-001.3** [opus] | component-quality — Completed 2026-06-10.
-  - [ ] **CORE-001.4** [opus] | config-docs-strays — Cross-cutting cleanup: delete superseded PLAN.legacy.md (per-file confirm), verify .gitignore covers *.tsbuildinfo, align npm test watch-vs-run script intent with docs, and verify README/AGENTS claims against code after .2/.3 land.
+  - [x] **CORE-001.4** [opus] | config-docs-strays — Completed 2026-06-10.
   - [ ] **CORE-001.5** [opus] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed at filing time as highest .5 child.
 
 ## Medium

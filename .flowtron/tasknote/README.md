@@ -73,4 +73,5 @@ project. Keep it terse and high-signal.
 
 - Type check: `npx tsc --noEmit`
 - Lint: `npm run lint`
+- Test: `npm test` (one-shot; `npm run test:watch` for watch mode)
 - Dev server: `npm run dev` (port 3003)
