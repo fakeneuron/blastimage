@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-020** [light] | adopter-repo-layout — Completed 2026-06-11.
 - [x] **BI-019** [heavy] | task-import — Completed 2026-06-11.
 - [x] **BI-018** [sonnet] | adopter-usage-guide — Completed 2026-06-11.
 - [x] **BI-017** [sonnet] | generated-quota — Completed 2026-06-10.

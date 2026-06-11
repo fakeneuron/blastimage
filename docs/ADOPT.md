@@ -89,7 +89,61 @@ button. The contract:
 - Import **appends** to the current session — create or switch sessions first
   if you want a clean slate. Reference photos are attached in-app afterwards.
 
-## 7. Keep up to date
+Where this file (and everything around it) should live in your repo: see §7.
+
+## 7. Structure your repo for blastimage
+
+blastimage keeps all working state in browser `localStorage` — your repo is the
+durable home for prompt sources, the import file, reference images, and the
+approved output. The canonical layout is a single `imagegen/` directory at the
+parent project root:
+
+```
+imagegen/
+├─ tasks.json          ← ⇪ Import file (the §6 contract)
+├─ prompts/
+│  └─ <task-name>.txt  ← prompt source, one file per task
+├─ refs/
+│  └─ *.jpg|png        ← reference images, staged for in-app upload
+└─ approved/
+   ├─ manifest.json    ← export provenance manifest
+   └─ *.png            ← exported approved images
+```
+
+This layout is a **convention, not a requirement** — blastimage never reads the
+parent repo. But treat it as canonical: agents and future tooling will look for
+these exact paths, so deviating costs more than it saves.
+
+**`tasks.json`** — the import file from §6. Compose it from `prompts/` (by hand
+or with a small script) and load it via **⇪ Import**. Task names double as
+filename slugs on downloaded images, so keep them short and filesystem-friendly
+(e.g. `pressure-relief — hero`).
+
+**`prompts/<task-name>.txt`** — one prompt per file, filename matching the task
+name. This is the editable source of truth; `tasks.json` is the generated (or
+hand-assembled) artifact. Prompt-writing craft lives in
+[`docs/USAGE.md`](USAGE.md).
+
+**`refs/`** — reference images staged for upload through the in-app Reference
+Library. Keep each under the **2 MB upload cap** and use descriptive kebab-case
+names (`brand-palette-forest-gold.png`, not `IMG_4291.jpg`) — names surface in
+the UI and in the export manifest. Sizing and framing guidance:
+[`docs/USAGE.md`](USAGE.md).
+
+**`approved/`** — the landing spot for gallery output. Browser downloads land
+in your download folder; move them here:
+
+- **Export JSON** produces `<session-slug>-export.json` — rename it to
+  `manifest.json` (it carries full provenance: final prompts, prompt history,
+  ratings, and the references used per approved image).
+- Per-image **↓** downloads are named `<task-slug>-<id>.png` — move them in
+  as-is; the manifest's `approved` entries tie each image back to its task and
+  prompts.
+
+From `approved/`, copy or process images into your project's real asset
+pipeline (`public/`, `src/assets/`, …) as a separate, project-owned step.
+
+## 8. Keep up to date
 
 To pull the latest blastimage into the parent project:
 
