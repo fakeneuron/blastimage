@@ -130,6 +130,20 @@ export function addTask(session: Session, task: PromptTask): Session {
   return { ...touch(session), tasks: [...session.tasks, task] };
 }
 
+/**
+ * Appends a batch of imported prompt tasks (BI-019): each draft is minted into
+ * a fresh {@link PromptTask} via {@link newTask} with the draft's base prompt.
+ * The drafts are validated upstream (`parseTaskImport`, lib/storage.ts); the
+ * structural parameter keeps this module storage-free.
+ */
+export function importTasks(
+  session: Session,
+  drafts: ReadonlyArray<{ name: string; basePrompt: string }>,
+): Session {
+  const tasks = drafts.map((d) => ({ ...newTask(d.name), basePrompt: d.basePrompt }));
+  return { ...touch(session), tasks: [...session.tasks, ...tasks] };
+}
+
 /** Removes a task by id (no-op if the id is unknown). */
 export function deleteTask(session: Session, taskId: ID): Session {
   return { ...touch(session), tasks: session.tasks.filter((t) => t.id !== taskId) };

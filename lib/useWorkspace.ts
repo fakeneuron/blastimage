@@ -23,6 +23,7 @@ import {
   listSessions,
   loadActiveSession,
   loadSession,
+  parseTaskImport,
   saveSession,
   setActiveSessionId,
   slugify,
@@ -35,6 +36,7 @@ import {
   buildApprovedImages,
   buildExportManifest,
   deleteTask as deleteTaskFrom,
+  importTasks as importTasksInto,
   newGeneratedImage,
   newSession,
   newTask,
@@ -72,6 +74,12 @@ export interface UseWorkspace {
   switchSession: (id: ID) => void;
   renameSession: (name: string) => void;
   addTask: (name: string) => void;
+  /**
+   * Imports prompt tasks from a task-import JSON string (BI-019) and appends
+   * them to the current session; parse/validation failures surface via
+   * {@link UseWorkspace.error}. Selects the first imported task on success.
+   */
+  importTasks: (json: string) => void;
   renameTask: (taskId: ID, name: string) => void;
   deleteTask: (taskId: ID) => void;
   setTaskPrompt: (taskId: ID, basePrompt: string) => void;
@@ -200,6 +208,19 @@ export function useWorkspace(): UseWorkspace {
     const task = newTask(name.trim() || DEFAULT_TASK_NAME);
     commit(addTaskTo(session, task));
     setActiveTaskId(task.id);
+  }
+
+  function importTasks(json: string): void {
+    if (!session) return;
+    const parsed = parseTaskImport(json);
+    if (!parsed.ok) {
+      setError(parsed.error);
+      return;
+    }
+    const next = importTasksInto(session, parsed.value);
+    const firstImported = next.tasks[session.tasks.length];
+    commit(next);
+    if (firstImported) setActiveTaskId(firstImported.id);
   }
 
   function renameTask(taskId: ID, name: string): void {
@@ -376,6 +397,7 @@ export function useWorkspace(): UseWorkspace {
     switchSession,
     renameSession,
     addTask,
+    importTasks,
     renameTask,
     deleteTask,
     setTaskPrompt,

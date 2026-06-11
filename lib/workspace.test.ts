@@ -9,6 +9,7 @@ import {
   buildExportManifest,
   countGeneratedImageBytes,
   deleteTask,
+  importTasks,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
   newRefImage,
@@ -87,6 +88,21 @@ describe('session mutations', () => {
     const s = addTask(newSession('S'), t);
     const next = setTaskPrompt(s, t.id, 'a sunset over the ocean');
     expect(next.tasks[0].basePrompt).toBe('a sunset over the ocean');
+  });
+
+  it('importTasks appends fresh tasks with the drafted prompts, preserving existing ones', () => {
+    const existing = newTask('Existing');
+    const s = addTask(newSession('S'), existing);
+    const next = importTasks(s, [
+      { name: 'Hero', basePrompt: 'a flat-vector hero' },
+      { name: 'Inline', basePrompt: '' },
+    ]);
+    expect(next.tasks.map((t) => t.name)).toEqual(['Existing', 'Hero', 'Inline']);
+    expect(next.tasks[1].basePrompt).toBe('a flat-vector hero');
+    expect(next.tasks[2].basePrompt).toBe('');
+    expect(next.tasks[1].iterations).toEqual([]);
+    expect(next.tasks[1].id).not.toBe(next.tasks[2].id);
+    expect(s.tasks).toHaveLength(1); // immutable
   });
 });
 

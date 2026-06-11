@@ -107,6 +107,7 @@ export default function Workspace() {
           }}
           onRenameSession={ws.renameSession}
           onAddTask={ws.addTask}
+          onImportTasks={ws.importTasks}
           onSelectTask={(id) => {
             setBulkTaskIds(null);
             ws.selectTask(id);

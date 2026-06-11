@@ -9,10 +9,12 @@ import {
   listSessions,
   loadActiveSession,
   loadSession,
+  parseTaskImport,
   saveSession,
   serializeSession,
   setActiveSessionId,
   slugify,
+  TASK_IMPORT_VERSION,
 } from './storage';
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -111,6 +113,52 @@ describe('export / import', () => {
 
   it('rejects a backup with an unsupported schema version', () => {
     expect(importSession(serializeSession(makeSession({ schemaVersion: 999 }))).ok).toBe(false);
+  });
+});
+
+describe('parseTaskImport', () => {
+  const valid = {
+    version: TASK_IMPORT_VERSION,
+    tasks: [
+      { name: 'pressure-injuries — hero', basePrompt: 'A flat-vector body map…' },
+      { name: 'pressure-relief — hero', basePrompt: '' },
+    ],
+  };
+
+  it('parses a valid file into drafts', () => {
+    expect(parseTaskImport(JSON.stringify(valid))).toEqual({ ok: true, value: valid.tasks });
+  });
+
+  it('trims task names', () => {
+    const res = parseTaskImport(
+      JSON.stringify({ version: 1, tasks: [{ name: '  Hero  ', basePrompt: 'p' }] }),
+    );
+    expect(res).toEqual({ ok: true, value: [{ name: 'Hero', basePrompt: 'p' }] });
+  });
+
+  it('rejects non-JSON input', () => {
+    expect(parseTaskImport('not json').ok).toBe(false);
+  });
+
+  it('rejects JSON without a tasks array', () => {
+    expect(parseTaskImport(JSON.stringify({ version: 1 })).ok).toBe(false);
+  });
+
+  it('rejects an unsupported version', () => {
+    expect(parseTaskImport(JSON.stringify({ ...valid, version: 999 })).ok).toBe(false);
+  });
+
+  it('rejects an empty tasks array', () => {
+    expect(parseTaskImport(JSON.stringify({ version: 1, tasks: [] })).ok).toBe(false);
+  });
+
+  it('rejects entries with a blank name or non-string basePrompt', () => {
+    expect(
+      parseTaskImport(JSON.stringify({ version: 1, tasks: [{ name: '  ', basePrompt: 'p' }] })).ok,
+    ).toBe(false);
+    expect(
+      parseTaskImport(JSON.stringify({ version: 1, tasks: [{ name: 'Hero', basePrompt: 7 }] })).ok,
+    ).toBe(false);
   });
 });
 

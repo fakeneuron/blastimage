@@ -275,3 +275,68 @@ export function importSession(json: string): Result<Session> {
   }
   return { ok: true, value: parsed };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Task import (BI-019)
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Version of the task-import file contract (independent of {@link SCHEMA_VERSION}). */
+export const TASK_IMPORT_VERSION = 1;
+
+/**
+ * One importable prompt task — the stageable subset of a
+ * {@link import('./types').PromptTask}. Adopter projects emit these so a batch
+ * of composed prompts lands as tasks without per-task pasting; the full task
+ * (ids, timestamps, iterations) is minted on merge by `importTasks`
+ * (lib/workspace.ts). A third JSON shape alongside the full-session backup
+ * (above) and the approved-images {@link import('./types').ExportManifest} —
+ * not interchangeable with either.
+ */
+export interface TaskImportDraft {
+  name: string;
+  basePrompt: string;
+}
+
+/**
+ * Parses + validates a task-import JSON string —
+ * `{"version": 1, "tasks": [{"name", "basePrompt"}, …]}` — into drafts.
+ * `name` must be non-empty (trimmed); `basePrompt` must be a string and may be
+ * empty (valid in-app, just ineligible for Generate All). Returns a specific
+ * error per failure rather than throwing or trusting unvalidated input.
+ */
+export function parseTaskImport(json: string): Result<TaskImportDraft[]> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return { ok: false, error: 'File is not valid JSON.' };
+  }
+  if (!isRecord(parsed) || !Array.isArray(parsed.tasks)) {
+    return { ok: false, error: 'File is not a valid task-import file (expected {version, tasks}).' };
+  }
+  if (parsed.version !== TASK_IMPORT_VERSION) {
+    return {
+      ok: false,
+      error: `Unsupported task-import version ${String(parsed.version)}; this app expects ${TASK_IMPORT_VERSION}.`,
+    };
+  }
+  if (parsed.tasks.length === 0) {
+    return { ok: false, error: 'Task-import file contains no tasks.' };
+  }
+  const drafts: TaskImportDraft[] = [];
+  for (const [i, entry] of parsed.tasks.entries()) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.name !== 'string' ||
+      entry.name.trim() === '' ||
+      typeof entry.basePrompt !== 'string'
+    ) {
+      return {
+        ok: false,
+        error: `Task ${i + 1} is invalid (expected a non-empty "name" and a string "basePrompt").`,
+      };
+    }
+    drafts.push({ name: entry.name.trim(), basePrompt: entry.basePrompt });
+  }
+  return { ok: true, value: drafts };
+}

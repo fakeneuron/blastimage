@@ -4,9 +4,13 @@
  * blastimage — workspace sidebar (BI-003)
  *
  * Session switcher (switch / new / rename) above the prompt-task list
- * (select / add / rename / delete). Naming prompts use native dialogs to keep
- * the shell minimal; richer inline editing can replace them later if needed.
+ * (select / add / rename / delete / import-from-JSON). Naming prompts use
+ * native dialogs to keep the shell minimal; richer inline editing can replace
+ * them later if needed. The import file-read (DOM concern) lives here, per
+ * the ReferenceLibrary precedent; parse/validate/merge live in lib (BI-019).
  */
+
+import { useRef } from 'react';
 
 import type { ID, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
@@ -21,6 +25,8 @@ interface SidebarProps {
   onCreateSession: (name: string) => void;
   onRenameSession: (name: string) => void;
   onAddTask: (name: string) => void;
+  /** Receives the raw text of a selected task-import JSON file (BI-019). */
+  onImportTasks: (json: string) => void;
   onSelectTask: (id: ID) => void;
   onRenameTask: (id: ID, name: string) => void;
   onDeleteTask: (id: ID) => void;
@@ -37,11 +43,14 @@ export default function Sidebar({
   onCreateSession,
   onRenameSession,
   onAddTask,
+  onImportTasks,
   onSelectTask,
   onRenameTask,
   onDeleteTask,
   onGenerateAll,
 }: SidebarProps) {
+  const importInputRef = useRef<HTMLInputElement>(null);
+
   function handleNewSession() {
     const name = window.prompt('Name the new website project:');
     if (name && name.trim()) onCreateSession(name);
@@ -103,12 +112,32 @@ export default function Sidebar({
       {/* Task list */}
       <div className="flex items-center justify-between px-3 pb-1 pt-3">
         <span className="text-xs font-medium uppercase tracking-wide opacity-60">Tasks</span>
-        <button
-          className="rounded bg-foreground px-2 py-0.5 text-xs font-medium text-background hover:opacity-90"
-          onClick={handleAddTask}
-        >
-          + New task
-        </button>
+        <div className="flex gap-1">
+          <button
+            className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            title="Import tasks from a JSON file ({version, tasks: [{name, basePrompt}]})"
+            onClick={() => importInputRef.current?.click()}
+          >
+            ⇪ Import
+          </button>
+          <button
+            className="rounded bg-foreground px-2 py-0.5 text-xs font-medium text-background hover:opacity-90"
+            onClick={handleAddTask}
+          >
+            + New task
+          </button>
+        </div>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void file.text().then(onImportTasks);
+            e.target.value = ''; // allow re-selecting the same file
+          }}
+        />
       </div>
 
       {/* Generate All (BI-015) — one batch per eligible task, reviewed in one pass. */}

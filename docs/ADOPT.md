@@ -66,7 +66,30 @@ Port **3003** is dedicated; it doesn't conflict with common project ports (Next.
 
 For real image generation inside a Grok Build session, follow [`docs/GROK-AGENT.md`](GROK-AGENT.md). The integration contract: install a provider function on `globalThis.__grokImagineProvider` before the user triggers generation. All other app logic (review, iterate, export) is already wired and requires no changes.
 
-## 6. Keep up to date
+## 6. Stage prompt tasks from the parent project
+
+Instead of creating tasks and pasting prompts one at a time, emit a task-import
+JSON file from your project's tooling and load it via the sidebar's **⇪ Import**
+button. The contract:
+
+```json
+{
+  "version": 1,
+  "tasks": [
+    { "name": "pressure-injuries — hero", "basePrompt": "Flat-vector body map showing…" },
+    { "name": "pressure-relief — hero", "basePrompt": "Technique illustration of…" }
+  ]
+}
+```
+
+- `version` must be `1`.
+- Each task needs a non-empty `name`; `basePrompt` must be a string (an empty
+  prompt is allowed but the task won't be eligible for ⚡ Generate All until it
+  gets a prompt or a reference).
+- Import **appends** to the current session — create or switch sessions first
+  if you want a clean slate. Reference photos are attached in-app afterwards.
+
+## 7. Keep up to date
 
 To pull the latest blastimage into the parent project:
 
