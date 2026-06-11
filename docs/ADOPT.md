@@ -81,3 +81,22 @@ git commit -m "chore: bump blastimage to latest"
 - **Isolation.** blastimage's `node_modules`, dev server, and `localStorage` data are fully isolated from the parent project. Running `npm install` inside `blastimage/` will not affect the parent's dependencies.
 - **Detached HEAD.** After `git submodule add` or `update --init`, the submodule is checked out at a pinned commit (detached HEAD). This is intentional — the parent tracks a specific blastimage version. Run `git checkout main` inside `blastimage/` to work on the latest branch.
 - **Clearing state.** All blastimage sessions and generated images live in browser `localStorage` at the `localhost:3003` origin. Clearing browser storage for that origin resets all blastimage data.
+
+## Troubleshooting
+
+**`git submodule add` fails on a second attempt after a previous failure**
+
+If a prior `git submodule add` attempt was aborted (e.g. because the remote was empty), git leaves stale state in two places:
+
+1. `.git/modules/_project/blastimage/` — a partial git directory
+2. `blastimage/` — an empty directory with a dangling `.git` gitlink file
+
+Clean both before retrying:
+
+```bash
+rm -rf .git/modules/_project/blastimage
+rm -rf blastimage
+git submodule add --name _project/blastimage \
+  https://github.com/fakeneuron/blastimage.git \
+  blastimage
+```
