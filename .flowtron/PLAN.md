@@ -8,7 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-019** [heavy] | task-import — Import prompt tasks from a JSON file into the current session: pure lib parse/validate/merge (accept `{version, tasks: [{name, basePrompt}]}`, append as fresh PromptTasks) + a sidebar file-input control, complementing the existing export manifest — so adopter projects can stage composed prompts programmatically instead of pasting by hand (driving need: spinalcord SCI-017.2's 5 sample hero prompts now, ~56 more at the full SCI-017.4 run).
 
 ## Medium
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-018** [sonnet] | adopter-usage-guide — Completed 2026-06-11.
 - [x] **BI-017** [sonnet] | generated-quota — Completed 2026-06-10.
 - [x] **BI-014** [sonnet] | submodule-adopt — Completed 2026-06-10.
 - [x] **CORE-EPIC-001** [opus] | code-quality-sweep — Completed 2026-06-10.
