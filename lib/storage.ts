@@ -19,7 +19,14 @@
  * and is not handled here.
  */
 
-import { SCHEMA_VERSION, type ID, type Session, type Timestamp } from './types';
+import {
+  SCHEMA_VERSION,
+  type ApprovedImage,
+  type ExportManifest,
+  type ID,
+  type Session,
+  type Timestamp,
+} from './types';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Keys & result types
@@ -339,4 +346,119 @@ export function parseTaskImport(json: string): Result<TaskImportDraft[]> {
     drafts.push({ name: entry.name.trim(), basePrompt: entry.basePrompt });
   }
   return { ok: true, value: drafts };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Folder export — File System Access API (BI-021.2)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Narrow shape of the File System Access directory-picker entry point. The
+ * handle interfaces (`FileSystemDirectoryHandle` …) ship in TS's `lib.dom`, but
+ * `window.showDirectoryPicker` itself is not yet declared there, so we type
+ * only the one method we call rather than bumping the ambient lib.
+ */
+interface DirectoryPickerWindow {
+  showDirectoryPicker(options?: {
+    mode?: 'read' | 'readwrite';
+  }): Promise<FileSystemDirectoryHandle>;
+}
+
+/** One named file in an approved-images export bundle. */
+interface ExportFile {
+  name: string;
+  blob: Blob;
+}
+
+/** Outcome of a folder export: files written, user cancelled, or a failure. */
+export type FolderExportResult =
+  | { status: 'written'; images: number; failedImages: number }
+  | { status: 'cancelled' }
+  | { status: 'error'; error: string };
+
+/** True when the File System Access directory picker is available (Chromium-family). */
+export function supportsDirectoryPicker(): boolean {
+  return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+}
+
+/** Bundle filename for an approved image: `<task-slug>-<id8>.<ext>` (matches the per-image download). */
+function approvedImageFilename(approved: ApprovedImage, mime: string): string {
+  const base = `${slugify(approved.taskName) || 'image'}-${approved.imageId.slice(0, 8)}`;
+  return `${base}.${imageExtension(mime)}`;
+}
+
+/**
+ * Resolves the full file set for an export bundle: `manifest.json` plus one file
+ * per approved image (fetched to a blob — data URLs and remote Grok URLs both
+ * fetch client-side). Skips images whose fetch fails and reports the count so
+ * callers can land a partial bundle. Shared by the folder-write and the
+ * download fallback.
+ */
+async function gatherExportFiles(
+  manifest: ExportManifest,
+): Promise<{ files: ExportFile[]; failed: number }> {
+  const files: ExportFile[] = [
+    {
+      name: 'manifest.json',
+      blob: new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' }),
+    },
+  ];
+  let failed = 0;
+  for (const approved of manifest.approved) {
+    try {
+      const res = await fetch(approved.url);
+      const blob = await res.blob();
+      files.push({ name: approvedImageFilename(approved, blob.type), blob });
+    } catch {
+      failed += 1;
+    }
+  }
+  return { files, failed };
+}
+
+/**
+ * Writes the manifest + every approved image into a user-picked directory via
+ * the File System Access API. Returns `cancelled` when the user dismisses the
+ * picker, `error` on a picker/write failure, or `written` with the count of
+ * images landed (and any whose fetch failed). Caller should feature-detect with
+ * {@link supportsDirectoryPicker} first.
+ */
+export async function exportManifestToFolder(
+  manifest: ExportManifest,
+): Promise<FolderExportResult> {
+  if (!supportsDirectoryPicker()) {
+    return { status: 'error', error: 'This browser does not support folder export.' };
+  }
+  let dir: FileSystemDirectoryHandle;
+  try {
+    dir = await (window as unknown as DirectoryPickerWindow).showDirectoryPicker({
+      mode: 'readwrite',
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return { status: 'cancelled' };
+    return { status: 'error', error: 'Could not open the selected folder.' };
+  }
+  try {
+    const { files, failed } = await gatherExportFiles(manifest);
+    for (const file of files) {
+      const handle = await dir.getFileHandle(file.name, { create: true });
+      const writable = await handle.createWritable();
+      await writable.write(file.blob);
+      await writable.close();
+    }
+    return { status: 'written', images: files.length - 1, failedImages: failed };
+  } catch {
+    return { status: 'error', error: 'Failed to write files to the selected folder.' };
+  }
+}
+
+/**
+ * Fallback for browsers without the directory picker: downloads `manifest.json`
+ * and each approved image as separate files via the existing download path.
+ * Returns the count of images whose fetch failed (still downloads the rest).
+ */
+export async function downloadManifestBundle(manifest: ExportManifest): Promise<number> {
+  const { files, failed } = await gatherExportFiles(manifest);
+  for (const file of files) downloadBlob(file.blob, file.name);
+  return failed;
 }

@@ -20,6 +20,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { ApprovedImage, ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
 import {
   downloadBlob,
+  downloadManifestBundle,
+  exportManifestToFolder,
   listSessions,
   loadActiveSession,
   loadSession,
@@ -27,6 +29,7 @@ import {
   saveSession,
   setActiveSessionId,
   slugify,
+  supportsDirectoryPicker,
   type SessionMeta,
 } from './storage';
 import {
@@ -120,6 +123,14 @@ export interface UseWorkspace {
   dismissError: () => void;
   /** Downloads the full provenance manifest as a JSON file. */
   exportAll: () => void;
+  /**
+   * Writes the provenance manifest + every approved image into a user-picked
+   * directory via the File System Access API (BI-021.2), falling back to
+   * downloading them individually on browsers without the picker. Cancelling
+   * the picker is a no-op; write/fetch failures surface via
+   * {@link UseWorkspace.error}.
+   */
+  exportToFolder: () => Promise<void>;
 }
 
 export function useWorkspace(): UseWorkspace {
@@ -384,6 +395,35 @@ export function useWorkspace(): UseWorkspace {
     downloadBlob(blob, `${slugify(session.name) || 'session'}-export.json`);
   }
 
+  async function exportToFolder(): Promise<void> {
+    if (!session) return;
+    const manifest = buildExportManifest(session);
+    const total = manifest.approved.length;
+    if (supportsDirectoryPicker()) {
+      const result = await exportManifestToFolder(manifest);
+      if (result.status === 'cancelled') return;
+      if (result.status === 'error') {
+        setError(result.error);
+        return;
+      }
+      if (result.failedImages > 0) {
+        setError(
+          `Exported the manifest and ${result.images} of ${total} images; ${result.failedImages} could not be fetched.`,
+        );
+        return;
+      }
+    } else {
+      const failed = await downloadManifestBundle(manifest);
+      if (failed > 0) {
+        setError(
+          `Downloaded the manifest and ${total - failed} of ${total} images; ${failed} could not be fetched.`,
+        );
+        return;
+      }
+    }
+    setError(null);
+  }
+
   return {
     ready,
     session,
@@ -412,5 +452,6 @@ export function useWorkspace(): UseWorkspace {
     toggleTaskRef,
     dismissError,
     exportAll,
+    exportToFolder,
   };
 }

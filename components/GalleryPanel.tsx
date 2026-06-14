@@ -14,6 +14,7 @@ import { downloadBlob, imageExtension, slugify } from '@/lib/storage';
 interface GalleryPanelProps {
   approved: ApprovedImage[];
   onExportAll: () => void;
+  onExportToFolder: () => void;
 }
 
 function StarDisplay({ rating }: { rating: StarRating }) {
@@ -36,7 +37,7 @@ async function downloadImage(url: string, basename: string) {
   }
 }
 
-export default function GalleryPanel({ approved, onExportAll }: GalleryPanelProps) {
+export default function GalleryPanel({ approved, onExportAll, onExportToFolder }: GalleryPanelProps) {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-l border-black/10 bg-black/[.02] dark:border-white/10 dark:bg-white/[.02]">
       <div className="flex items-center justify-between border-b border-black/10 px-3 py-2.5 dark:border-white/10">
@@ -49,13 +50,22 @@ export default function GalleryPanel({ approved, onExportAll }: GalleryPanelProp
           )}
         </span>
         {approved.length > 0 && (
-          <button
-            className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            onClick={onExportAll}
-            title="Download JSON provenance manifest"
-          >
-            Export JSON
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+              onClick={onExportToFolder}
+              title="Write approved images + manifest.json into a folder (downloads individually on browsers without folder access)"
+            >
+              Folder
+            </button>
+            <button
+              className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+              onClick={onExportAll}
+              title="Download JSON provenance manifest only"
+            >
+              JSON
+            </button>
+          </div>
         )}
       </div>
 

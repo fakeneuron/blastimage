@@ -145,7 +145,11 @@ export default function Workspace() {
             onIterate={(taskId, imageId) => setIterateFor({ taskId, imageId })}
           />
         )}
-        <GalleryPanel approved={ws.approvedImages} onExportAll={ws.exportAll} />
+        <GalleryPanel
+          approved={ws.approvedImages}
+          onExportAll={ws.exportAll}
+          onExportToFolder={ws.exportToFolder}
+        />
       </div>
       {feedbackFor && feedbackImage && (
         <FeedbackModal
