@@ -16,7 +16,7 @@ npm run dev   # http://localhost:3003
 3. **Generate** — click **Generate** to produce a batch of candidate images via Grok Imagine. Running inside Grok Build (SuperGrok), generation uses the built-in image model; the integration contract is documented in [`docs/GROK-AGENT.md`](docs/GROK-AGENT.md). **⚡ Generate All** in the sidebar fires a batch for every eligible task at once and opens a stacked bulk-review view for one-pass review across tasks.
 4. **Review** — keep, discard, or approve each image. Add star ratings and feedback notes. Toggle **Use as reference** to seed the keeper into the next round.
 5. **Iterate** — click **Iterate →** on a kept image to open the refine modal, edit the prompt, and generate a new round seeded by that image as the primary reference.
-6. **Export** — approved images collect in the Gallery panel. **Folder** writes every approved image plus a `manifest.json` provenance file (full prompt history and reference metadata) into a directory you pick, in one step — falling back to individual downloads on browsers without folder access. **JSON** downloads the provenance manifest on its own.
+6. **Export** — approved images collect in the Gallery panel. **Folder** writes every approved image plus a `manifest.json` provenance file (full prompt history and reference metadata) into a directory you pick, in one step — falling back to individual downloads on browsers without folder access. **JSON** downloads the provenance manifest on its own. **Sheet** downloads a self-contained `review.html` (embedded thumbnails + prompt, rating, and provenance per image) for a repo-durable house-style/consistency pass.
 
 Sessions persist in `localStorage` — no backend required.
 

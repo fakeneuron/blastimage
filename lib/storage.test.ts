@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION, type ApprovedImage, type ExportManifest, type Session } from './types';
 import {
+  buildReviewSheetHtml,
   deleteSession,
   downloadManifestBundle,
+  downloadReviewSheet,
+  escapeHtml,
   exportManifestToFolder,
   getActiveSessionId,
   imageExtension,
@@ -330,6 +333,98 @@ describe('exportManifestToFolder', () => {
     delete (window as unknown as Record<string, unknown>).showDirectoryPicker;
     const res = await exportManifestToFolder(makeManifest([{}]));
     expect(res.status).toBe('error');
+  });
+});
+
+describe('escapeHtml', () => {
+  it('escapes the five HTML-significant characters', () => {
+    expect(escapeHtml(`<a href="x" data-q='y'>5 & 6</a>`)).toBe(
+      '&lt;a href=&quot;x&quot; data-q=&#39;y&#39;&gt;5 &amp; 6&lt;/a&gt;',
+    );
+  });
+
+  it('leaves plain text untouched', () => {
+    expect(escapeHtml('a calm forest at dawn')).toBe('a calm forest at dawn');
+  });
+});
+
+describe('buildReviewSheetHtml', () => {
+  it('embeds the passed data URL and renders name, stars, prompt, and approved date', () => {
+    const manifest = makeManifest([{ imageId: 'img1', taskName: 'Hero Banner' }]);
+    manifest.approved[0].finalPrompt = 'a sunlit ridge';
+    manifest.approved[0].rating = 3;
+    const html = buildReviewSheetHtml(manifest, new Map([['img1', 'data:image/png;base64,AAA']]));
+
+    expect(html).toContain('<!doctype html>');
+    expect(html).toContain('src="data:image/png;base64,AAA"');
+    expect(html).toContain('Hero Banner');
+    expect(html).toContain('a sunlit ridge');
+    expect(html).toContain('★★★☆☆');
+  });
+
+  it('escapes free-text prompts and names so markup cannot inject', () => {
+    const manifest = makeManifest([{ imageId: 'img1', taskName: '<b>x</b>' }]);
+    manifest.approved[0].finalPrompt = '<script>alert(1)</script>';
+    const html = buildReviewSheetHtml(manifest, new Map([['img1', 'data:,x']]));
+
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).toContain('&lt;b&gt;x&lt;/b&gt;');
+  });
+
+  it('renders a placeholder for an image absent from the embedded map, keeping the card', () => {
+    const manifest = makeManifest([{ imageId: 'img1', taskName: 'No Image' }]);
+    const html = buildReviewSheetHtml(manifest, new Map());
+
+    expect(html).toContain('image unavailable');
+    expect(html).not.toContain('<img class="thumb"');
+    expect(html).toContain('No Image');
+  });
+
+  it('resolves reference names from the manifest and renders prompt history', () => {
+    const manifest = makeManifest([{ imageId: 'img1' }]);
+    manifest.approved[0].refImageIds = ['r1'];
+    manifest.approved[0].promptHistory = ['first pass', 'refined'];
+    manifest.references = [
+      { id: 'r1', name: 'brand-blue', dataUrl: 'data:,r', mimeType: 'image/png', addedAt: 'x' },
+    ];
+    const html = buildReviewSheetHtml(manifest, new Map([['img1', 'data:,x']]));
+
+    expect(html).toContain('brand-blue');
+    expect(html).toContain('prompt history (2)');
+    expect(html).toContain('first pass');
+    expect(html).toContain('refined');
+  });
+
+  it('omits the refs line and history block when there are none', () => {
+    const html = buildReviewSheetHtml(makeManifest([{ imageId: 'img1' }]), new Map([['img1', 'data:,x']]));
+    expect(html).not.toContain('class="label">refs');
+    expect(html).not.toContain('prompt history');
+  });
+});
+
+describe('downloadReviewSheet', () => {
+  it('downloads review.html and reports images whose fetch failed', async () => {
+    const created: string[] = [];
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:x'),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      created.push(this.download);
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ blob: async () => new Blob(['x'], { type: 'image/png' }) })
+      .mockRejectedValueOnce(new Error('CORS'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const failed = await downloadReviewSheet(makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]));
+
+    expect(failed).toBe(1);
+    expect(created).toEqual(['review.html']);
   });
 });
 

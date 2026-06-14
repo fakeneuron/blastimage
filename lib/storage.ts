@@ -496,3 +496,156 @@ export function downloadTaskImport(drafts: TaskImportDraft[]): void {
   const blob = new Blob([serializeTaskImport(drafts)], { type: 'application/json' });
   downloadBlob(blob, 'tasks.json');
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Review sheet (BI-021.4)
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Escapes the five HTML-significant characters so free-text prompts/names can't break or inject markup. */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Five-glyph star rendering for a 0–5 rating: filled ★ then empty ☆. */
+function starGlyphs(rating: number): string {
+  const filled = Math.max(0, Math.min(5, rating));
+  return '★'.repeat(filled) + '☆'.repeat(5 - filled);
+}
+
+/** Self-contained CSS for the review sheet — inlined so the file renders offline with no assets. */
+const REVIEW_SHEET_STYLE = `
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; padding: 2rem; }
+  header { margin-bottom: 1.5rem; }
+  h1 { margin: 0 0 .25rem; font-size: 1.5rem; }
+  .sub { margin: 0; opacity: .6; font-size: .85rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+  .card { border: 1px solid rgba(128,128,128,.3); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .thumb { width: 100%; aspect-ratio: 3/2; object-fit: cover; display: block; background: rgba(128,128,128,.1); }
+  .thumb.missing { display: flex; align-items: center; justify-content: center; font-size: .8rem; opacity: .5; }
+  .body { padding: .75rem; display: flex; flex-direction: column; gap: .5rem; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+  .task { font-weight: 600; }
+  .stars { letter-spacing: 1px; opacity: .8; white-space: nowrap; }
+  .prompt { margin: 0; white-space: pre-wrap; }
+  .meta { font-size: .8rem; opacity: .7; }
+  .label { text-transform: uppercase; letter-spacing: .05em; font-size: .7rem; opacity: .7; margin-right: .35rem; }
+  details.history { font-size: .8rem; opacity: .85; }
+  details.history summary { cursor: pointer; opacity: .7; }
+  details.history ol { margin: .35rem 0 0; padding-left: 1.25rem; }
+  details.history li { margin: .15rem 0; white-space: pre-wrap; }
+  .step { opacity: .5; margin-right: .25rem; }
+`;
+
+/**
+ * Builds a self-contained static review-sheet HTML document from an
+ * {@link ExportManifest}: one card per approved image with its embedded
+ * thumbnail (from `embedded`, keyed by `imageId`), task name, star rating,
+ * final prompt, and provenance (approved date, reference names resolved from
+ * `manifest.references`, full prompt history). An image absent from `embedded`
+ * renders a "missing" placeholder, keeping its provenance text. All free text
+ * is escaped via {@link escapeHtml}. Pure (no DOM/fetch) for easy testing.
+ */
+export function buildReviewSheetHtml(manifest: ExportManifest, embedded: Map<ID, string>): string {
+  const refName = new Map(manifest.references.map((r) => [r.id, r.name] as const));
+
+  const cards = manifest.approved
+    .map((img) => {
+      const src = embedded.get(img.imageId);
+      const thumb = src
+        ? `<img class="thumb" src="${src}" alt="${escapeHtml(img.taskName)}" />`
+        : `<div class="thumb missing">image unavailable</div>`;
+      const refs = img.refImageIds.map((id) => escapeHtml(refName.get(id) ?? id));
+      const refsLine = refs.length
+        ? `<div class="meta"><span class="label">refs</span>${refs.join(', ')}</div>`
+        : '';
+      const historyBlock = img.promptHistory.length
+        ? `<details class="history"><summary>prompt history (${img.promptHistory.length})</summary><ol>${img.promptHistory
+            .map((p) => `<li>${escapeHtml(p)}</li>`)
+            .join('')}</ol></details>`
+        : '';
+      return `<article class="card">
+  ${thumb}
+  <div class="body">
+    <div class="head"><span class="task">${escapeHtml(img.taskName)}</span><span class="stars" title="${img.rating}/5">${starGlyphs(img.rating)}</span></div>
+    <p class="prompt">${escapeHtml(img.finalPrompt)}</p>
+    <div class="meta"><span class="label">approved</span>${escapeHtml(img.approvedAt)}</div>
+    ${refsLine}
+    ${historyBlock}
+  </div>
+</article>`;
+    })
+    .join('\n');
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Review sheet — ${escapeHtml(manifest.sessionName)}</title>
+<style>${REVIEW_SHEET_STYLE}</style>
+</head>
+<body>
+<header>
+<h1>${escapeHtml(manifest.sessionName)}</h1>
+<p class="sub">${manifest.approved.length} approved · exported ${escapeHtml(manifest.exportedAt)}</p>
+</header>
+<main class="grid">
+${cards}
+</main>
+</body>
+</html>`;
+}
+
+/** Reads a blob as a base64 data URL via FileReader (browser only). */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read image.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Fetches each approved image and converts it to a base64 data URL for inline
+ * embedding in the review sheet, keyed by `imageId`. Skips images whose fetch
+ * fails and reports the count so the sheet can still land. Mirrors
+ * {@link gatherExportFiles} but yields data URLs (for HTML embed) rather than
+ * blobs (for file writes).
+ */
+async function gatherReviewImages(
+  manifest: ExportManifest,
+): Promise<{ embedded: Map<ID, string>; failed: number }> {
+  const embedded = new Map<ID, string>();
+  let failed = 0;
+  for (const approved of manifest.approved) {
+    try {
+      const res = await fetch(approved.url);
+      const blob = await res.blob();
+      embedded.set(approved.imageId, await blobToDataUrl(blob));
+    } catch {
+      failed += 1;
+    }
+  }
+  return { embedded, failed };
+}
+
+/**
+ * Builds and downloads a self-contained `review.html` for the manifest: fetches
+ * + embeds every approved image as a data URL, renders the sheet, and triggers
+ * the download. Returns the count of images whose fetch failed (still downloads
+ * the sheet with placeholders for those).
+ */
+export async function downloadReviewSheet(manifest: ExportManifest): Promise<number> {
+  const { embedded, failed } = await gatherReviewImages(manifest);
+  const blob = new Blob([buildReviewSheetHtml(manifest, embedded)], { type: 'text/html' });
+  downloadBlob(blob, 'review.html');
+  return failed;
+}

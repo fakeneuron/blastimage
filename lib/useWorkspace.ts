@@ -21,6 +21,7 @@ import type { ApprovedImage, ID, PromptTask, RefImage, ReviewDecision, Session, 
 import {
   downloadBlob,
   downloadManifestBundle,
+  downloadReviewSheet,
   exportManifestToFolder,
   listSessions,
   loadActiveSession,
@@ -131,6 +132,14 @@ export interface UseWorkspace {
    * {@link UseWorkspace.error}.
    */
   exportToFolder: () => Promise<void>;
+  /**
+   * Downloads a self-contained static `review.html` (BI-021.4) — embedded image
+   * thumbnails plus prompt/rating/provenance from the manifest — for the
+   * repo-durable house-style/consistency pass. Images that can't be fetched
+   * render as placeholders and the shortfall surfaces via
+   * {@link UseWorkspace.error}.
+   */
+  exportReviewSheet: () => Promise<void>;
 }
 
 export function useWorkspace(): UseWorkspace {
@@ -424,6 +433,20 @@ export function useWorkspace(): UseWorkspace {
     setError(null);
   }
 
+  async function exportReviewSheet(): Promise<void> {
+    if (!session) return;
+    const manifest = buildExportManifest(session);
+    const total = manifest.approved.length;
+    const failed = await downloadReviewSheet(manifest);
+    if (failed > 0) {
+      setError(
+        `Downloaded the review sheet with ${total - failed} of ${total} images embedded; ${failed} could not be fetched.`,
+      );
+      return;
+    }
+    setError(null);
+  }
+
   return {
     ready,
     session,
@@ -453,5 +476,6 @@ export function useWorkspace(): UseWorkspace {
     dismissError,
     exportAll,
     exportToFolder,
+    exportReviewSheet,
   };
 }

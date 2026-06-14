@@ -153,6 +153,7 @@ export default function Workspace() {
           approved={ws.approvedImages}
           onExportAll={ws.exportAll}
           onExportToFolder={ws.exportToFolder}
+          onExportReviewSheet={ws.exportReviewSheet}
         />
       </div>
       {feedbackFor && feedbackImage && (
