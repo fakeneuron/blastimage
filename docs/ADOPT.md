@@ -1,6 +1,6 @@
 # blastimage — Submodule Adoption Guide
 
-This guide walks through adding blastimage as a git submodule so you can generate coordinated AI images for a project's website assets.
+This guide walks through adding blastimage as a git submodule so you can generate coordinated AI images for a project's website assets. Once set up, [`docs/WORKFLOW.md`](WORKFLOW.md) is the directed operating loop for actually producing a set of images.
 
 ## Prerequisites
 
@@ -68,9 +68,11 @@ For real image generation inside a Grok Build session, follow [`docs/GROK-AGENT.
 
 ## 6. Stage prompt tasks from the parent project
 
-Instead of creating tasks and pasting prompts one at a time, emit a task-import
-JSON file from your project's tooling and load it via the sidebar's **⇪ Import**
-button. The contract:
+Instead of creating tasks and pasting prompts one at a time, stage a batch from
+a task-import JSON file and load it via the sidebar's **⇪ Import** button. The
+sidebar's **🛠 Build** action composes this file in-app — upload your
+`prompts/*.txt` files or paste prompts, edit the names, and download
+`tasks.json` — so you don't need to hand-roll a script. The contract:
 
 ```json
 {
@@ -107,6 +109,7 @@ imagegen/
 │  └─ *.jpg|png        ← reference images, staged for in-app upload
 └─ approved/
    ├─ manifest.json    ← export provenance manifest
+   ├─ review.html      ← self-contained house-style review sheet
    └─ *.png            ← exported approved images
 ```
 
@@ -114,10 +117,10 @@ This layout is a **convention, not a requirement** — blastimage never reads th
 parent repo. But treat it as canonical: agents and future tooling will look for
 these exact paths, so deviating costs more than it saves.
 
-**`tasks.json`** — the import file from §6. Compose it from `prompts/` (by hand
-or with a small script) and load it via **⇪ Import**. Task names double as
-filename slugs on downloaded images, so keep them short and filesystem-friendly
-(e.g. `pressure-relief — hero`).
+**`tasks.json`** — the import file from §6. Compose it in-app with **🛠 Build**
+(or by hand) and load it via **⇪ Import**. Task names double as filename slugs on
+downloaded images, so keep them short and filesystem-friendly (e.g.
+`pressure-relief — hero`).
 
 **`prompts/<task-name>.txt`** — one prompt per file, filename matching the task
 name. This is the editable source of truth; `tasks.json` is the generated (or
@@ -130,18 +133,23 @@ names (`brand-palette-forest-gold.png`, not `IMG_4291.jpg`) — names surface in
 the UI and in the export manifest. Sizing and framing guidance:
 [`docs/USAGE.md`](USAGE.md).
 
-**`approved/`** — the landing spot for gallery output. Browser downloads land
-in your download folder; move them here:
+**`approved/`** — the landing spot for gallery output. Three Gallery export
+actions feed it:
 
-- **Export JSON** produces `<session-slug>-export.json` — rename it to
-  `manifest.json` (it carries full provenance: final prompts, prompt history,
-  ratings, and the references used per approved image).
-- Per-image **↓** downloads are named `<task-slug>-<id>.png` — move them in
-  as-is; the manifest's `approved` entries tie each image back to its task and
-  prompts.
+- **Folder** — writes every approved image plus `manifest.json` (full
+  provenance: final prompts, prompt history, ratings, and the references used per
+  image) into a directory you pick, in one step. Point it straight at
+  `imagegen/approved/`. On browsers without folder access it falls back to
+  downloading each file individually (then move them here).
+- **JSON** — downloads the provenance manifest on its own.
+- **Sheet** — downloads `review.html`, a self-contained house-style review sheet
+  (embedded thumbnails + prompt, rating, and provenance per image). Commit it
+  alongside the manifest so the consistency decision travels with the assets.
 
 From `approved/`, copy or process images into your project's real asset
-pipeline (`public/`, `src/assets/`, …) as a separate, project-owned step.
+pipeline (`public/`, `src/assets/`, …) as a separate, project-owned step. The
+full directed sequence — stage, import, generate, review, iterate, export,
+land, review — is [`docs/WORKFLOW.md`](WORKFLOW.md).
 
 ## 8. Keep up to date
 

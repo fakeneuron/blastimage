@@ -22,6 +22,7 @@ Sessions persist in `localStorage` — no backend required.
 
 ## Docs
 
+- [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — the directed adopter operating loop, stage to landed assets
 - [`docs/USAGE.md`](docs/USAGE.md) — prompt-writing conventions and reference image preparation
 - [`docs/ADOPT.md`](docs/ADOPT.md) — how to add blastimage as a git submodule in another project
 - [`docs/GROK-AGENT.md`](docs/GROK-AGENT.md) — Grok Build integration guide for wiring real Grok Imagine

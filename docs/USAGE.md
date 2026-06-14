@@ -1,6 +1,6 @@
 # blastimage — Usage Guide
 
-Practical guidance for writing effective prompts and preparing reference images. This guide covers the craft layer that README.md's 6-step workflow overview leaves implicit.
+Practical guidance for writing effective prompts and preparing reference images. This guide covers the craft layer that README.md's 6-step workflow overview leaves implicit. For the end-to-end sequence these fit into, see [`docs/WORKFLOW.md`](WORKFLOW.md).
 
 ---
 

@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-021.2** [heavy] | export-folder-write — Completed 2026-06-14.
   - [x] **BI-021.3** [heavy] | import-builder — Completed 2026-06-14.
   - [x] **BI-021.4** [heavy] | review-sheet — Completed 2026-06-14.
-  - [ ] **BI-021.5** [heavy] | adopter-playbook — Write docs/WORKFLOW.md: the directed adopter operating loop (stage → import → attach refs → iterate → export → land → review) documenting the .2/.3/.4 affordances. Cross-link from ADOPT.md and USAGE.md. Filed last so it reflects the shipped features.
+  - [x] **BI-021.5** [heavy] | adopter-playbook — Completed 2026-06-14.
   - [ ] **BI-021.6** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line).
 
 ## Medium
