@@ -25,6 +25,8 @@ interface SidebarProps {
   onCreateSession: (name: string) => void;
   onRenameSession: (name: string) => void;
   onAddTask: (name: string) => void;
+  /** Opens the in-app task-import builder modal (BI-021.3). */
+  onOpenBuilder: () => void;
   /** Receives the raw text of a selected task-import JSON file (BI-019). */
   onImportTasks: (json: string) => void;
   onSelectTask: (id: ID) => void;
@@ -43,6 +45,7 @@ export default function Sidebar({
   onCreateSession,
   onRenameSession,
   onAddTask,
+  onOpenBuilder,
   onImportTasks,
   onSelectTask,
   onRenameTask,
@@ -113,6 +116,13 @@ export default function Sidebar({
       <div className="flex items-center justify-between px-3 pb-1 pt-3">
         <span className="text-xs font-medium uppercase tracking-wide opacity-60">Tasks</span>
         <div className="flex gap-1">
+          <button
+            className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            title="Build a task-import file (tasks.json) from pasted prompts or prompts/*.txt"
+            onClick={onOpenBuilder}
+          >
+            🛠 Build
+          </button>
           <button
             className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             title="Import tasks from a JSON file ({version, tasks: [{name, basePrompt}]})"

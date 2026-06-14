@@ -11,7 +11,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **BI-EPIC-021** [heavy] | adopter-workflow-ux — Round off the blastimage adopter experience using real friction from spinalcord (first adopter): bundle the export/landing roundtrip, ship an import-file authoring aid, write a directed operating-loop playbook, and bless a repo-durable review surface. Guidance + light in-app UX. Refined at .1 closure.
   - [x] **BI-021.1** [heavy] | discovery — Completed 2026-06-14.
   - [x] **BI-021.2** [heavy] | export-folder-write — Completed 2026-06-14.
-  - [ ] **BI-021.3** [heavy] | import-builder — Add an in-app import-file builder: paste prompts or upload prompts/*.txt, preview, and download a valid tasks.json (version 1). Round-trips with ⇪ Import so adopters compose the import bundle without rewriting a per-repo emitter.
+  - [x] **BI-021.3** [heavy] | import-builder — Completed 2026-06-14.
   - [ ] **BI-021.4** [heavy] | review-sheet — Add an "Export review sheet" gallery action that downloads a self-contained static review.html (thumbnails + prompt/rating/provenance from the session manifest) for the repo-durable house-style/consistency pass — replacing the hand-rolled per-repo contact-sheet.html.
   - [ ] **BI-021.5** [heavy] | adopter-playbook — Write docs/WORKFLOW.md: the directed adopter operating loop (stage → import → attach refs → iterate → export → land → review) documenting the .2/.3/.4 affordances. Cross-link from ADOPT.md and USAGE.md. Filed last so it reflects the shipped features.
   - [ ] **BI-021.6** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line).

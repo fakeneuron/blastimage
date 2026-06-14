@@ -11,9 +11,11 @@ import {
   listSessions,
   loadActiveSession,
   loadSession,
+  parsePastedPrompts,
   parseTaskImport,
   saveSession,
   serializeSession,
+  serializeTaskImport,
   setActiveSessionId,
   slugify,
   supportsDirectoryPicker,
@@ -162,6 +164,41 @@ describe('parseTaskImport', () => {
     expect(
       parseTaskImport(JSON.stringify({ version: 1, tasks: [{ name: 'Hero', basePrompt: 7 }] })).ok,
     ).toBe(false);
+  });
+});
+
+describe('parsePastedPrompts', () => {
+  it('splits blank-line-separated blocks into auto-named drafts', () => {
+    expect(parsePastedPrompts('First prompt.\n\nSecond prompt.')).toEqual([
+      { name: 'Task 1', basePrompt: 'First prompt.' },
+      { name: 'Task 2', basePrompt: 'Second prompt.' },
+    ]);
+  });
+
+  it('preserves inner line breaks within a block', () => {
+    expect(parsePastedPrompts('A serene forest,\nsoft golden light.')).toEqual([
+      { name: 'Task 1', basePrompt: 'A serene forest,\nsoft golden light.' },
+    ]);
+  });
+
+  it('collapses multiple blank lines and drops empty/whitespace blocks', () => {
+    expect(parsePastedPrompts('\n\n  \n\nOnly one.\n\n   \n\n')).toEqual([
+      { name: 'Task 1', basePrompt: 'Only one.' },
+    ]);
+  });
+
+  it('returns an empty array for blank input', () => {
+    expect(parsePastedPrompts('   \n\n  ')).toEqual([]);
+  });
+});
+
+describe('serializeTaskImport', () => {
+  it('emits a version-1 file that round-trips through parseTaskImport', () => {
+    const drafts = [
+      { name: 'forest-hero', basePrompt: 'A serene forest at dawn.' },
+      { name: 'bodymap-hero', basePrompt: '' },
+    ];
+    expect(parseTaskImport(serializeTaskImport(drafts))).toEqual({ ok: true, value: drafts });
   });
 });
 

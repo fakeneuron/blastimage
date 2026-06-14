@@ -20,6 +20,7 @@ import BulkReviewPane from '@/components/BulkReviewPane';
 import FeedbackModal from '@/components/FeedbackModal';
 import GalleryPanel from '@/components/GalleryPanel';
 import IterateModal from '@/components/IterateModal';
+import ImportBuilder from '@/components/ImportBuilder';
 
 export default function Workspace() {
   const ws = useWorkspace();
@@ -31,6 +32,8 @@ export default function Workspace() {
   // Tasks fired by Generate All — non-null renders the bulk-review pane (BI-015);
   // selecting a task or switching sessions exits back to TaskDetail.
   const [bulkTaskIds, setBulkTaskIds] = useState<ID[] | null>(null);
+  // Open state for the in-app task-import builder modal (BI-021.3).
+  const [showBuilder, setShowBuilder] = useState(false);
 
   // Resolve the open image from current session state so it reflects live edits.
   const feedbackImage = feedbackFor
@@ -107,6 +110,7 @@ export default function Workspace() {
           }}
           onRenameSession={ws.renameSession}
           onAddTask={ws.addTask}
+          onOpenBuilder={() => setShowBuilder(true)}
           onImportTasks={ws.importTasks}
           onSelectTask={(id) => {
             setBulkTaskIds(null);
@@ -172,6 +176,7 @@ export default function Workspace() {
           }}
         />
       )}
+      {showBuilder && <ImportBuilder onClose={() => setShowBuilder(false)} />}
     </main>
   );
 }

@@ -462,3 +462,37 @@ export async function downloadManifestBundle(manifest: ExportManifest): Promise<
   for (const file of files) downloadBlob(file.blob, file.name);
   return failed;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Task-import builder (BI-021.3)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Splits pasted free text into task drafts: each blank-line-separated block
+ * becomes one task's `basePrompt` (inner line breaks preserved), auto-named
+ * `Task 1`, `Task 2`, … in order. Empty/whitespace-only blocks are dropped.
+ * The auto-names are placeholders the in-app builder lets the user edit before
+ * emitting `tasks.json`. Pure (no DOM) for easy testing.
+ */
+export function parsePastedPrompts(text: string): TaskImportDraft[] {
+  return text
+    .split(/\n[ \t]*\n/)
+    .map((block) => block.trim())
+    .filter((block) => block !== '')
+    .map((basePrompt, i) => ({ name: `Task ${i + 1}`, basePrompt }));
+}
+
+/**
+ * Serializes task drafts into a version-1 task-import JSON string — the exact
+ * inverse of {@link parseTaskImport}, so the output round-trips through ⇪ Import.
+ * Pretty-printed to match {@link serializeSession}. Pure (no DOM).
+ */
+export function serializeTaskImport(drafts: TaskImportDraft[]): string {
+  return JSON.stringify({ version: TASK_IMPORT_VERSION, tasks: drafts }, null, 2);
+}
+
+/** Triggers a browser download of the drafts as a `tasks.json` import file. No-op outside the browser. */
+export function downloadTaskImport(drafts: TaskImportDraft[]): void {
+  const blob = new Blob([serializeTaskImport(drafts)], { type: 'application/json' });
+  downloadBlob(blob, 'tasks.json');
+}
