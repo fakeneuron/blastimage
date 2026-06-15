@@ -8,13 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-EPIC-021** [heavy] | adopter-workflow-ux — Round off the blastimage adopter experience using real friction from spinalcord (first adopter): bundle the export/landing roundtrip, ship an import-file authoring aid, write a directed operating-loop playbook, and bless a repo-durable review surface. Guidance + light in-app UX. Refined at .1 closure.
-  - [x] **BI-021.1** [heavy] | discovery — Completed 2026-06-14.
-  - [x] **BI-021.2** [heavy] | export-folder-write — Completed 2026-06-14.
-  - [x] **BI-021.3** [heavy] | import-builder — Completed 2026-06-14.
-  - [x] **BI-021.4** [heavy] | review-sheet — Completed 2026-06-14.
-  - [x] **BI-021.5** [heavy] | adopter-playbook — Completed 2026-06-14.
-  - [ ] **BI-021.6** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line).
+(none)
 
 ## Medium
 
@@ -30,6 +24,13 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-EPIC-021** [heavy] | adopter-workflow-ux — Completed 2026-06-14.
+  - [x] **BI-021.1** [heavy] | discovery — Completed 2026-06-14.
+  - [x] **BI-021.2** [heavy] | export-folder-write — Completed 2026-06-14.
+  - [x] **BI-021.3** [heavy] | import-builder — Completed 2026-06-14.
+  - [x] **BI-021.4** [heavy] | review-sheet — Completed 2026-06-14.
+  - [x] **BI-021.5** [heavy] | adopter-playbook — Completed 2026-06-14.
+  - [x] **BI-021.6** [heavy] | audit — Completed 2026-06-14.
 - [x] **BI-020** [light] | adopter-repo-layout — Completed 2026-06-11.
 - [x] **BI-019** [heavy] | task-import — Completed 2026-06-11.
 - [x] **BI-018** [sonnet] | adopter-usage-guide — Completed 2026-06-11.
