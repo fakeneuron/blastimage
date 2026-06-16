@@ -1,16 +1,21 @@
 /**
- * supabaseAdapter row-mapping tests (BI-022.3).
+ * supabaseAdapter row-mapping tests (BI-022.3; image buckets BI-022.4).
  *
  * Pins the pure domain ↔ relational-row mapping: a Session flattened to insert
  * rows and reassembled must round-trip exactly, including ordered arrays
  * (ref library, tasks, iterations, images) regardless of the row order the DB
- * returns. No Supabase client is constructed — these are pure functions.
+ * returns. Image bytes are not in the rows (they live in the bucket); rows
+ * carry a `storage_path` and reassembly takes an injected URL resolver, so the
+ * mapping stays client-free. Also pins the data-URL → Blob decode. No Supabase
+ * client is constructed — these are pure functions.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import type { Session } from './types';
-import { rowsToSession, sessionToRows } from './supabaseAdapter';
+import { dataUrlToBlob, rowsToSession, sessionToRows } from './supabaseAdapter';
+
+const OWNER = 'owner-1';
 
 function sampleSession(): Session {
   return {
@@ -114,7 +119,18 @@ function sampleSession(): Session {
 describe('sessionToRows / rowsToSession', () => {
   it('round-trips a session exactly, even with shuffled row order', () => {
     const session = sampleSession();
-    const rows = sessionToRows(session);
+    const rows = sessionToRows(session, OWNER);
+
+    // Image bytes are uploaded to the bucket, not stored in rows; the resolver
+    // stands in for signed-URL minting by mapping a storage_path back to the
+    // original url/dataUrl via the image id (the path's last segment).
+    const urlById = new Map<string, string>([
+      ...session.refLibrary.map((r) => [r.id, r.dataUrl] as const),
+      ...session.tasks.flatMap((t) =>
+        t.iterations.flatMap((it) => it.images.map((img) => [img.id, img.url] as const)),
+      ),
+    ]);
+    const resolve = (path: string): string => urlById.get(path.split('/').pop() ?? '') ?? '';
 
     // Reverse every child-row array to prove reassembly sorts by its order key.
     const restored = rowsToSession(
@@ -123,13 +139,14 @@ describe('sessionToRows / rowsToSession', () => {
       [...rows.tasks].reverse(),
       [...rows.iterations].reverse(),
       [...rows.images].reverse(),
+      resolve,
     );
 
     expect(restored).toEqual(session);
   });
 
-  it('flattens children with denormalized session_id and order columns', () => {
-    const rows = sessionToRows(sampleSession());
+  it('flattens children with denormalized session_id, order columns, and owner-prefixed storage paths', () => {
+    const rows = sessionToRows(sampleSession(), OWNER);
 
     expect(rows.refImages.map((r) => r.position)).toEqual([0, 1]);
     expect(rows.tasks.map((t) => t.position)).toEqual([0, 1]);
@@ -140,5 +157,22 @@ describe('sessionToRows / rowsToSession', () => {
     // Optional dimensions: present on ref-1, omitted (null) on ref-2.
     expect(rows.refImages[0].width).toBe(120);
     expect(rows.refImages[1].width).toBeNull();
+    // Storage paths are deterministic: {owner}/{session_id}/{image_id}.
+    expect(rows.refImages[0].storage_path).toBe('owner-1/sess-1/ref-1');
+    expect(rows.images[2].storage_path).toBe('owner-1/sess-1/img-3');
+  });
+});
+
+describe('dataUrlToBlob', () => {
+  it('decodes a base64 data URL into a typed blob', async () => {
+    const blob = dataUrlToBlob('data:image/png;base64,aGVsbG8=');
+    expect(blob.type).toBe('image/png');
+    expect(await blob.text()).toBe('hello');
+  });
+
+  it('defaults the content type when the header omits a mime', async () => {
+    const blob = dataUrlToBlob('data:;base64,aGk=');
+    expect(blob.type).toBe('application/octet-stream');
+    expect(await blob.text()).toBe('hi');
   });
 });

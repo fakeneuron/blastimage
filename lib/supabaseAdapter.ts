@@ -1,5 +1,5 @@
 /**
- * blastimage — Supabase persistence adapter (BI-022.3)
+ * blastimage — Supabase persistence adapter (BI-022.3; image buckets BI-022.4)
  *
  * Implements the {@link PersistenceAdapter} seam against the owner-scoped
  * Postgres schema in `supabase/migrations`. It maps the nested domain
@@ -18,10 +18,16 @@
  * saves whole sessions, so a full replace matches the localStorage semantics
  * exactly. The deletes + inserts are issued sequentially, not in one
  * transaction — acceptable for a single-operator instance; wrapping them in a
- * Postgres RPC for atomicity is a future refinement (noted for BI-022.4+).
+ * Postgres RPC for atomicity is a future refinement.
  *
- * **Image bytes** stay inline (data URLs in `url` / `data_url`) this task;
- * moving them to storage buckets is BI-022.4.
+ * **Image bytes live in a private storage bucket** (BI-022.4), not inline in
+ * the rows. Each generated/reference image is uploaded once to
+ * `{owner}/{session_id}/{image_id}` in the `images` bucket; the row carries the
+ * object's `storage_path`. `saveSession` uploads bytes not yet present (decoding
+ * data URLs and re-hosting remote Grok URLs alike, keyed by image id so a
+ * re-save never re-uploads); `loadSession` mints short-lived signed URLs and
+ * places them in the domain `url` / `dataUrl`, so the UI renders unchanged.
+ * `deleteSession` removes the session's bucket objects.
  */
 
 import type {
@@ -36,6 +42,21 @@ import type {
 import type { PersistenceAdapter } from './persistence';
 import type { Result, SessionMeta } from './storage';
 import { getSupabaseClient } from './supabaseClient';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+/** Private bucket holding all generated + reference image bytes. */
+const BUCKET = 'images';
+/**
+ * Signed-URL lifetime for loaded images. Generous (single-operator instance;
+ * images render once at session load and the browser caches the bytes) — long
+ * enough to outlast a working session without a re-sign.
+ */
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 8;
+
+/** Deterministic bucket object path for an image — owner-prefixed for RLS. */
+function imageObjectPath(owner: ID, sessionId: ID, imageId: ID): string {
+  return `${owner}/${sessionId}/${imageId}`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Row shapes (the columns the adapter reads/writes)
@@ -53,7 +74,7 @@ interface RefImageRow {
   session_id: ID;
   position: number;
   name: string;
-  data_url: string;
+  storage_path: string;
   mime_type: string;
   width: number | null;
   height: number | null;
@@ -84,7 +105,7 @@ interface GeneratedImageRow {
   iteration_id: ID;
   session_id: ID;
   position: number;
-  url: string;
+  storage_path: string;
   prompt: string;
   status: GeneratedImage['status'];
   decision: GeneratedImage['decision'];
@@ -103,17 +124,51 @@ export interface SessionRows {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Image bytes ↔ blobs
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Decodes a base64 (or url-encoded) data URL into a {@link Blob}, carrying the
+ * declared content type. Pure (browser/jsdom `atob` + `Blob`) for unit testing
+ * without a network or Supabase client.
+ */
+export function dataUrlToBlob(dataUrl: string): Blob {
+  const comma = dataUrl.indexOf(',');
+  const header = dataUrl.slice(0, comma);
+  const data = dataUrl.slice(comma + 1);
+  const contentType = /^data:([^;]+)/.exec(header)?.[1] ?? 'application/octet-stream';
+  if (/;base64/i.test(header)) {
+    const binary = atob(data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: contentType });
+  }
+  return new Blob([decodeURIComponent(data)], { type: contentType });
+}
+
+/** Resolves an image's bytes to a blob: data URLs decode locally; remote URLs (Grok) are fetched. */
+async function imageToBlob(url: string): Promise<Blob> {
+  if (url.startsWith('data:')) return dataUrlToBlob(url);
+  const res = await fetch(url);
+  return res.blob();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Pure mapping (domain ↔ rows) — exported for unit testing without a client
 // ─────────────────────────────────────────────────────────────────────────
 
-/** Flattens a {@link Session} into the relational insert payloads. */
-export function sessionToRows(session: Session): SessionRows {
+/**
+ * Flattens a {@link Session} into the relational insert payloads. Image rows
+ * carry the deterministic bucket `storage_path` (owner-prefixed); the bytes
+ * themselves are uploaded separately by {@link supabaseAdapter.saveSession}.
+ */
+export function sessionToRows(session: Session, owner: ID): SessionRows {
   const refImages: RefImageRow[] = session.refLibrary.map((r, position) => ({
     id: r.id,
     session_id: session.id,
     position,
     name: r.name,
-    data_url: r.dataUrl,
+    storage_path: imageObjectPath(owner, session.id, r.id),
     mime_type: r.mimeType,
     width: r.width ?? null,
     height: r.height ?? null,
@@ -152,7 +207,7 @@ export function sessionToRows(session: Session): SessionRows {
           iteration_id: it.id,
           session_id: session.id,
           position: imgPosition,
-          url: img.url,
+          storage_path: imageObjectPath(owner, session.id, img.id),
           prompt: img.prompt,
           status: img.status,
           decision: img.decision,
@@ -179,13 +234,19 @@ export function sessionToRows(session: Session): SessionRows {
   };
 }
 
-/** Reassembles a {@link Session} from its relational rows (any row order). */
+/**
+ * Reassembles a {@link Session} from its relational rows (any row order).
+ * `resolveImageUrl` turns a row's `storage_path` into a usable image URL (a
+ * signed bucket URL in {@link supabaseAdapter.loadSession}); injected so the
+ * mapping stays pure and client-free for unit testing.
+ */
 export function rowsToSession(
   session: SessionRow,
   refRows: RefImageRow[],
   taskRows: TaskRow[],
   iterRows: IterationRow[],
   imgRows: GeneratedImageRow[],
+  resolveImageUrl: (storagePath: string) => string,
 ): Session {
   // Postgres timestamptz columns come back as e.g. "…+00:00"; the domain model
   // (and the localStorage adapter) use canonical ISO "…Z" strings. Normalize so
@@ -208,7 +269,7 @@ export function rowsToSession(
 
   const toImage = (row: GeneratedImageRow): GeneratedImage => ({
     id: row.id,
-    url: row.url,
+    url: resolveImageUrl(row.storage_path),
     prompt: row.prompt,
     status: row.status,
     decision: row.decision,
@@ -249,7 +310,7 @@ export function rowsToSession(
     .map((r) => ({
       id: r.id,
       name: r.name,
-      dataUrl: r.data_url,
+      dataUrl: resolveImageUrl(r.storage_path),
       mimeType: r.mime_type,
       ...(r.width != null ? { width: r.width } : {}),
       ...(r.height != null ? { height: r.height } : {}),
@@ -271,7 +332,7 @@ export function rowsToSession(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Adapter
+// Bucket IO (client-bound; verified against a live local stack)
 // ─────────────────────────────────────────────────────────────────────────
 
 /** Resolves the logged-in operator's id, or throws if no session is present. */
@@ -280,6 +341,63 @@ async function ownerId(): Promise<ID> {
   if (error || !data.user) throw new Error('Not authenticated.');
   return data.user.id;
 }
+
+/**
+ * Uploads every image's bytes to the bucket, skipping ids already present (so a
+ * re-save never re-uploads). Returns an error message on failure, or `null` on
+ * success. A "resource already exists" upload race is tolerated as success.
+ */
+async function uploadSessionImages(
+  sb: SupabaseClient,
+  owner: ID,
+  session: Session,
+): Promise<string | null> {
+  const prefix = `${owner}/${session.id}`;
+  const { data: existing } = await sb.storage.from(BUCKET).list(prefix, { limit: 1000 });
+  const have = new Set((existing ?? []).map((o) => o.name));
+
+  const items: { id: ID; url: string }[] = [
+    ...session.refLibrary.map((r) => ({ id: r.id, url: r.dataUrl })),
+    ...session.tasks.flatMap((t) =>
+      t.iterations.flatMap((it) => it.images.map((img) => ({ id: img.id, url: img.url }))),
+    ),
+  ];
+
+  for (const item of items) {
+    if (have.has(item.id)) continue;
+    let blob: Blob;
+    try {
+      blob = await imageToBlob(item.url);
+    } catch {
+      return `Failed to read image ${item.id}.`;
+    }
+    const { error } = await sb.storage
+      .from(BUCKET)
+      .upload(`${prefix}/${item.id}`, blob, {
+        contentType: blob.type || 'application/octet-stream',
+        upsert: false,
+      });
+    if (error && !/already exists|duplicate/i.test(error.message)) {
+      return `Failed to upload image ${item.id}: ${error.message}`;
+    }
+  }
+  return null;
+}
+
+/** Maps each storage path to a freshly-minted signed URL (batched). */
+async function signedUrlMap(sb: SupabaseClient, paths: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (paths.length === 0) return map;
+  const { data } = await sb.storage.from(BUCKET).createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) map.set(item.path, item.signedUrl);
+  }
+  return map;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Adapter
+// ─────────────────────────────────────────────────────────────────────────
 
 export const supabaseAdapter: PersistenceAdapter = {
   async listSessions(): Promise<SessionMeta[]> {
@@ -307,18 +425,33 @@ export const supabaseAdapter: PersistenceAdapter = {
       sb.from('generated_images').select('*').eq('session_id', id),
     ]);
 
+    const refRows = (refs.data ?? []) as RefImageRow[];
+    const imgRows = (imgs.data ?? []) as GeneratedImageRow[];
+
+    // Mint signed URLs for every image object, then resolve each row's
+    // storage_path to a usable <img src> during reassembly.
+    const paths = [...refRows.map((r) => r.storage_path), ...imgRows.map((i) => i.storage_path)]
+      .filter((p): p is string => Boolean(p));
+    const urlByPath = await signedUrlMap(sb, paths);
+
     return rowsToSession(
       session as SessionRow,
-      (refs.data ?? []) as RefImageRow[],
+      refRows,
       (tasks.data ?? []) as TaskRow[],
       (iters.data ?? []) as IterationRow[],
-      (imgs.data ?? []) as GeneratedImageRow[],
+      imgRows,
+      (path) => urlByPath.get(path) ?? '',
     );
   },
 
   async saveSession(session: Session): Promise<Result<SessionMeta>> {
     const sb = getSupabaseClient();
-    const rows = sessionToRows(session);
+    const owner = await ownerId();
+    const rows = sessionToRows(session, owner);
+
+    // Upload image bytes to the bucket before writing rows that reference them.
+    const uploadError = await uploadSessionImages(sb, owner, session);
+    if (uploadError) return { ok: false, error: uploadError };
 
     const up = await sb.from('sessions').upsert(rows.session);
     if (up.error) return { ok: false, error: up.error.message };
@@ -353,8 +486,20 @@ export const supabaseAdapter: PersistenceAdapter = {
   },
 
   async deleteSession(id: ID): Promise<void> {
+    const sb = getSupabaseClient();
+    // Best-effort bucket cleanup for the session's objects; proceed to the row
+    // delete regardless (the rows are the source of truth for what's listable).
+    try {
+      const owner = await ownerId();
+      const prefix = `${owner}/${id}`;
+      const { data: objs } = await sb.storage.from(BUCKET).list(prefix, { limit: 1000 });
+      const paths = (objs ?? []).map((o) => `${prefix}/${o.name}`);
+      if (paths.length > 0) await sb.storage.from(BUCKET).remove(paths);
+    } catch {
+      // ignore — orphaned objects are harmless for a single-operator instance
+    }
     // Cascades to children; app_settings.active_session_id clears via ON DELETE SET NULL.
-    await getSupabaseClient().from('sessions').delete().eq('id', id);
+    await sb.from('sessions').delete().eq('id', id);
   },
 
   async getActiveSessionId(): Promise<ID | null> {
