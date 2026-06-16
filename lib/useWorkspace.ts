@@ -23,16 +23,12 @@ import {
   downloadManifestBundle,
   downloadReviewSheet,
   exportManifestToFolder,
-  listSessions,
-  loadActiveSession,
-  loadSession,
   parseTaskImport,
-  saveSession,
-  setActiveSessionId,
   slugify,
   supportsDirectoryPicker,
   type SessionMeta,
 } from './storage';
+import { persistence } from './persistence';
 import {
   addRefImage as addRefImageTo,
   addTask as addTaskTo,
@@ -157,20 +153,20 @@ export function useWorkspace(): UseWorkspace {
 
   // Mount-time load: restore the active session, or bootstrap + persist a default.
   useEffect(() => {
-    const existing = loadActiveSession();
+    const existing = persistence.loadActiveSession();
     if (existing) {
       setSession(existing);
-      setSessions(listSessions());
+      setSessions(persistence.listSessions());
       setActiveTaskId(existing.tasks[0]?.id ?? null);
       setReady(true);
       return;
     }
     const fresh = newSession(DEFAULT_SESSION_NAME);
-    const res = saveSession(fresh);
+    const res = persistence.saveSession(fresh);
     if (res.ok) {
-      setActiveSessionId(fresh.id);
+      persistence.setActiveSessionId(fresh.id);
       setSession(fresh);
-      setSessions(listSessions());
+      setSessions(persistence.listSessions());
     } else {
       // Storage unavailable: keep the session in memory so the UI still works.
       setSession(fresh);
@@ -181,7 +177,7 @@ export function useWorkspace(): UseWorkspace {
 
   /** Persists a mutated session and reflects it in state, or records the failure. */
   function commit(next: Session): void {
-    const res = saveSession(next);
+    const res = persistence.saveSession(next);
     if (!res.ok) {
       setError(res.error);
       return;
@@ -193,27 +189,27 @@ export function useWorkspace(): UseWorkspace {
     // drop all but the last batch.
     sessionRef.current = next;
     setSession(next);
-    setSessions(listSessions());
+    setSessions(persistence.listSessions());
   }
 
   function createSession(name: string): void {
     const fresh = newSession(name.trim() || DEFAULT_SESSION_NAME);
-    const res = saveSession(fresh);
+    const res = persistence.saveSession(fresh);
     if (!res.ok) {
       setError(res.error);
       return;
     }
-    setActiveSessionId(fresh.id);
+    persistence.setActiveSessionId(fresh.id);
     setError(null);
     setSession(fresh);
-    setSessions(listSessions());
+    setSessions(persistence.listSessions());
     setActiveTaskId(null);
   }
 
   function switchSession(id: ID): void {
-    const loaded = loadSession(id);
+    const loaded = persistence.loadSession(id);
     if (!loaded) return;
-    setActiveSessionId(id);
+    persistence.setActiveSessionId(id);
     setSession(loaded);
     setActiveTaskId(loaded.tasks[0]?.id ?? null);
   }
@@ -319,10 +315,10 @@ export function useWorkspace(): UseWorkspace {
       } else {
         // The user switched sessions mid-generate: persist the batch into the
         // originating stored session without flipping the UI back to it.
-        const origin = loadSession(session.id);
+        const origin = persistence.loadSession(session.id);
         if (origin) {
-          const res = saveSession(appendIterationTo(origin, taskId, draft));
-          if (res.ok) setSessions(listSessions());
+          const res = persistence.saveSession(appendIterationTo(origin, taskId, draft));
+          if (res.ok) setSessions(persistence.listSessions());
           else setError(res.error);
         }
       }
