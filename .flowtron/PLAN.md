@@ -20,15 +20,16 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Future Opportunities
 
-- [ ] **BI-EPIC-022** [heavy] | hosted-webapp — A hosted, cloud-persistent personal-use variation of blastimage: OAuth login + Supabase backend (Postgres/RLS/storage) behind a persistence-adapter seam, generation kept on Grok Build, deployed to Cloudflare Pages — so workspaces sync across devices. Additive to the local/submodule mode, not a replacement. Scoped via deep pre-pass ([[BI-022.1]]).
+- [ ] **BI-EPIC-022** [heavy] | hosted-webapp — A hosted, cloud-persistent personal-use variation of blastimage: OAuth login + Supabase backend (Postgres/RLS/storage) behind a persistence-adapter seam, generation kept on Grok Build (local mode; hosted-mode generation deferred to [[BI-022.9]]), deployed to Cloudflare Pages — so workspaces sync across devices. Additive to the local/submodule mode, not a replacement. Scoped via deep pre-pass ([[BI-022.1]]).
   - [x] **BI-022.1** [heavy] | discovery — Completed 2026-06-15.
   - [x] **BI-022.2** [heavy] | storage-adapter-seam — Completed 2026-06-15.
   - [x] **BI-022.3** [heavy] | supabase-auth-schema — Completed 2026-06-16.
   - [x] **BI-022.4** [heavy] | cloud-images-buckets — Completed 2026-06-16.
-  - [ ] **BI-022.5** [heavy] | grok-gen-cloudflare-deploy — Preserve Grok Build generation in hosted mode (wire the frontend onto Grok Build CLI auth so the provider seam resolves; spike-prone) + Cloudflare Pages (next-on-Cloudflare) + Supabase deploy/config. Blocked by [[BI-022.3]], [[BI-022.6]].
+  - [x] **BI-022.5** [heavy] | cloudflare-deploy — Completed 2026-06-16.
   - [x] **BI-022.6** [heavy] | oauth-login — Completed 2026-06-16.
   - [x] **BI-022.7** [heavy] | session-importer — Completed 2026-06-16.
-  - [ ] **BI-022.8** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed as the highest `.N` child.
+  - [ ] **BI-022.8** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line); closes the persistence+deploy cohort.
+  - [ ] **BI-022.9** [heavy] | grok-hosted-gen — Spike: how (if at all) Grok-Imagine generation works in the deployed browser (Grok Build sandbox + `__grokImagineProvider` absent); investigate xAI public image API / alternatives, then decide build vs defer. Split from [[BI-022.5]].
 
 ## Completed
 
