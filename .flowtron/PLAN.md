@@ -26,7 +26,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-022.3** [heavy] | supabase-auth-schema — Completed 2026-06-16.
   - [ ] **BI-022.4** [heavy] | cloud-images-migration — Generated/reference images to Supabase storage buckets (replacing localStorage data URLs in hosted mode); DB holds object refs + provenance; in-app importer lands an existing local export into the account. Blocked by [[BI-022.3]].
   - [ ] **BI-022.5** [heavy] | grok-gen-cloudflare-deploy — Preserve Grok Build generation in hosted mode (wire the frontend onto Grok Build CLI auth so the provider seam resolves; spike-prone) + Cloudflare Pages (next-on-Cloudflare) + Supabase deploy/config. Blocked by [[BI-022.3]], [[BI-022.6]].
-  - [ ] **BI-022.6** [heavy] | oauth-login — OAuth (Google/GitHub) login UI + Supabase session wiring on the BI-022.3 adapter, gated to hosted mode (local mode has no auth). Blocked by [[BI-022.3]].
+  - [x] **BI-022.6** [heavy] | oauth-login — Completed 2026-06-16.
   - [ ] **BI-022.7** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed as the highest `.N` child.
 
 ## Completed

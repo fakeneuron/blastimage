@@ -14,6 +14,7 @@ import { useRef } from 'react';
 
 import type { ID, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
+import AccountControl from '@/components/AccountControl';
 
 interface SidebarProps {
   session: Session;
@@ -210,6 +211,9 @@ export default function Sidebar({
           </ul>
         )}
       </nav>
+
+      {/* Hosted-mode account control (BI-022.6); renders null in local mode. */}
+      <AccountControl />
     </aside>
   );
 }
