@@ -13,7 +13,7 @@ via `NEXT_PUBLIC_BLASTIMAGE_MODE=hosted`.
 > the `image_gen` built-in — see [`docs/GROK-AGENT.md`](GROK-AGENT.md)), which
 > does not exist in a deployed browser. Generate in **local Grok Build mode**,
 > then push sessions to your cloud account with the Sidebar **Project → ↑ Import**
-> control. Resolving in-browser hosted generation is tracked as **BI-022.9**.
+> control. Resolving in-browser hosted generation is tracked as **BI-023**.
 
 ---
 
@@ -157,7 +157,7 @@ OAuth round-trip will be rejected.
    in the hosted instance, **Project → ↑ Import** — images re-host to the storage
    bucket automatically on save.
 5. Generation is intentionally unavailable in hosted mode (see the note at the
-   top; tracked as BI-022.9).
+   top; tracked as BI-023).
 
 ---
 
