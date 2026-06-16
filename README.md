@@ -18,7 +18,7 @@ npm run dev   # http://localhost:3003
 5. **Iterate** — click **Iterate →** on a kept image to open the refine modal, edit the prompt, and generate a new round seeded by that image as the primary reference.
 6. **Export** — approved images collect in the Gallery panel. **Folder** writes every approved image plus a `manifest.json` provenance file (full prompt history and reference metadata) into a directory you pick, in one step — falling back to individual downloads on browsers without folder access. **JSON** downloads the provenance manifest on its own. **Sheet** downloads a self-contained `review.html` (embedded thumbnails + prompt, rating, and provenance per image) for a repo-durable house-style/consistency pass.
 
-Sessions persist in `localStorage` — no backend required.
+Sessions persist in `localStorage` — no backend required. Use **↓ Export** / **↑ Import** in the Project section to back up a whole workspace to a `.json` file and restore it (Import lands it as a fresh copy), so a project can move between browsers or devices.
 
 ## Docs
 

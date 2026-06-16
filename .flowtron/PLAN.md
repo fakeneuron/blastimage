@@ -27,7 +27,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-022.4** [heavy] | cloud-images-buckets — Completed 2026-06-16.
   - [ ] **BI-022.5** [heavy] | grok-gen-cloudflare-deploy — Preserve Grok Build generation in hosted mode (wire the frontend onto Grok Build CLI auth so the provider seam resolves; spike-prone) + Cloudflare Pages (next-on-Cloudflare) + Supabase deploy/config. Blocked by [[BI-022.3]], [[BI-022.6]].
   - [x] **BI-022.6** [heavy] | oauth-login — Completed 2026-06-16.
-  - [ ] **BI-022.7** [heavy] | session-importer — In-app importer (hosted mode) landing an existing local blastimage session into the account: upload a full-session backup JSON, re-host its inline images to buckets, save as a cloud session. Includes the paired full-session export the local app currently lacks. Blocked by [[BI-022.3]], [[BI-022.4]].
+  - [x] **BI-022.7** [heavy] | session-importer — Completed 2026-06-16.
   - [ ] **BI-022.8** [heavy] | audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed as the highest `.N` child.
 
 ## Completed

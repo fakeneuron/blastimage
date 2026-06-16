@@ -109,6 +109,8 @@ export default function Workspace() {
             ws.createSession(name);
           }}
           onRenameSession={ws.renameSession}
+          onExportSession={ws.exportSession}
+          onImportSession={ws.importSessionBackup}
           onAddTask={ws.addTask}
           onOpenBuilder={() => setShowBuilder(true)}
           onImportTasks={ws.importTasks}

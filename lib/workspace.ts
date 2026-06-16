@@ -112,6 +112,54 @@ export function newGeneratedImage(url: string, prompt: string): GeneratedImage {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Session clone (BI-022.7 — import on-ramp)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Deep-clones a session with **fresh ids throughout** (session + refs + tasks +
+ * iterations + images), rewriting every internal reference so it stays
+ * consistent: `activeRefImageIds` / `refImageIds` (library refs) and
+ * `primaryRefImageId` (a library ref **or** a promoted generated-image id).
+ *
+ * Used by the import on-ramp ({@link import('./useWorkspace')}'s
+ * `importSessionBackup`): the DB primary keys are global uuids, so landing a
+ * backup as a *fresh copy* — rather than reusing its ids — is what lets a
+ * backup be imported without colliding with an account session that shares
+ * those ids. Content and timestamps are preserved verbatim; only ids change.
+ */
+export function cloneSessionWithNewIds(session: Session): Session {
+  const idMap = new Map<ID, ID>();
+  const remap = (id: ID): ID => {
+    const existing = idMap.get(id);
+    if (existing) return existing;
+    const fresh = newId();
+    idMap.set(id, fresh);
+    return fresh;
+  };
+  // Library refs first so task/iteration ref references resolve to fresh ids.
+  const refLibrary = session.refLibrary.map((r) => ({ ...r, id: remap(r.id) }));
+  const tasks = session.tasks.map((t) => ({
+    ...t,
+    id: remap(t.id),
+    activeRefImageIds: t.activeRefImageIds.map((id) => idMap.get(id) ?? id),
+    iterations: t.iterations.map((it) => {
+      // Map this round's images before its primaryRefImageId, so a primary that
+      // points at a same- or prior-round generated image resolves to the copy.
+      const images = it.images.map((img) => ({ ...img, id: remap(img.id) }));
+      return {
+        ...it,
+        id: remap(it.id),
+        images,
+        refImageIds: it.refImageIds.map((id) => idMap.get(id) ?? id),
+        primaryRefImageId:
+          it.primaryRefImageId != null ? (idMap.get(it.primaryRefImageId) ?? it.primaryRefImageId) : null,
+      };
+    }),
+  }));
+  return { ...session, id: newId(), refLibrary, tasks };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Session mutations (immutable; each bumps the session's updatedAt)
 // ─────────────────────────────────────────────────────────────────────────
 

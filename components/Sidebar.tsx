@@ -25,6 +25,10 @@ interface SidebarProps {
   onSwitchSession: (id: ID) => void;
   onCreateSession: (name: string) => void;
   onRenameSession: (name: string) => void;
+  /** Downloads the current session as a full-workspace backup JSON (BI-022.7). */
+  onExportSession: () => void;
+  /** Receives the raw text of a selected full-session backup JSON file (BI-022.7). */
+  onImportSession: (json: string) => void;
   onAddTask: (name: string) => void;
   /** Opens the in-app task-import builder modal (BI-021.3). */
   onOpenBuilder: () => void;
@@ -45,6 +49,8 @@ export default function Sidebar({
   onSwitchSession,
   onCreateSession,
   onRenameSession,
+  onExportSession,
+  onImportSession,
   onAddTask,
   onOpenBuilder,
   onImportTasks,
@@ -54,6 +60,7 @@ export default function Sidebar({
   onGenerateAll,
 }: SidebarProps) {
   const importInputRef = useRef<HTMLInputElement>(null);
+  const sessionImportInputRef = useRef<HTMLInputElement>(null);
 
   function handleNewSession() {
     const name = window.prompt('Name the new website project:');
@@ -110,6 +117,35 @@ export default function Sidebar({
           >
             Rename
           </button>
+        </div>
+        {/* Full-session backup export / import (BI-022.7); import lands a fresh
+            copy — in hosted mode its images re-host to storage buckets. */}
+        <div className="mt-2 flex gap-2">
+          <button
+            className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            title="Download this project as a full backup (.json)"
+            onClick={onExportSession}
+          >
+            ⤓ Export
+          </button>
+          <button
+            className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            title="Import a project backup (.json) as a new project"
+            onClick={() => sessionImportInputRef.current?.click()}
+          >
+            ⤒ Import
+          </button>
+          <input
+            ref={sessionImportInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void file.text().then(onImportSession);
+              e.target.value = ''; // allow re-selecting the same file
+            }}
+          />
         </div>
       </div>
 

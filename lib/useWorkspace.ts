@@ -22,7 +22,9 @@ import {
   downloadBlob,
   downloadManifestBundle,
   downloadReviewSheet,
+  downloadSession,
   exportManifestToFolder,
+  importSession,
   parseTaskImport,
   slugify,
   supportsDirectoryPicker,
@@ -35,6 +37,7 @@ import {
   appendIteration as appendIterationTo,
   buildApprovedImages,
   buildExportManifest,
+  cloneSessionWithNewIds,
   deleteTask as deleteTaskFrom,
   importTasks as importTasksInto,
   newGeneratedImage,
@@ -80,6 +83,15 @@ export interface UseWorkspace {
    * {@link UseWorkspace.error}. Selects the first imported task on success.
    */
   importTasks: (json: string) => void;
+  /**
+   * Imports a full-session backup JSON (BI-022.7) as a fresh copy: parse +
+   * validate via `importSession`, re-id the whole tree (`cloneSessionWithNewIds`)
+   * so it never collides with an existing session, persist it through the seam,
+   * and switch to it. In hosted mode the BI-022.4 adapter re-hosts the backup's
+   * inline images to storage buckets on save. Parse/validation failures surface
+   * via {@link UseWorkspace.error}.
+   */
+  importSessionBackup: (json: string) => void;
   renameTask: (taskId: ID, name: string) => void;
   deleteTask: (taskId: ID) => void;
   setTaskPrompt: (taskId: ID, basePrompt: string) => void;
@@ -118,6 +130,8 @@ export interface UseWorkspace {
   removeRefImage: (refId: ID) => void;
   toggleTaskRef: (taskId: ID, refId: ID) => void;
   dismissError: () => void;
+  /** Downloads the current session as a full-workspace backup `.json` (BI-022.7). */
+  exportSession: () => void;
   /** Downloads the full provenance manifest as a JSON file. */
   exportAll: () => void;
   /**
@@ -261,6 +275,31 @@ export function useWorkspace(): UseWorkspace {
     const firstImported = next.tasks[session.tasks.length];
     commit(next);
     if (firstImported) setActiveTaskId(firstImported.id);
+  }
+
+  function importSessionBackup(json: string): void {
+    const parsed = importSession(json);
+    if (!parsed.ok) {
+      setError(parsed.error);
+      return;
+    }
+    // Land a fresh copy (new ids throughout) so a re-import never collides with
+    // an existing session. Mirrors createSession's optimistic-then-persist shape;
+    // in hosted mode saveSession re-hosts the backup's images to buckets (BI-022.4).
+    const fresh = cloneSessionWithNewIds(parsed.value);
+    setError(null);
+    sessionRef.current = fresh;
+    setSession(fresh);
+    setActiveTaskId(fresh.tasks[0]?.id ?? null);
+    void (async () => {
+      const res = await persistence.saveSession(fresh);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      await persistence.setActiveSessionId(fresh.id);
+      setSessions(await persistence.listSessions());
+    })();
   }
 
   function renameTask(taskId: ID, name: string): void {
@@ -417,6 +456,11 @@ export function useWorkspace(): UseWorkspace {
   const activeTask = session?.tasks.find((t) => t.id === activeTaskId) ?? null;
   const approvedImages = session ? buildApprovedImages(session) : [];
 
+  function exportSession(): void {
+    if (!session) return;
+    downloadSession(session);
+  }
+
   function exportAll(): void {
     if (!session) return;
     const manifest = buildExportManifest(session);
@@ -481,6 +525,7 @@ export function useWorkspace(): UseWorkspace {
     renameSession,
     addTask,
     importTasks,
+    importSessionBackup,
     renameTask,
     deleteTask,
     setTaskPrompt,
@@ -494,6 +539,7 @@ export function useWorkspace(): UseWorkspace {
     removeRefImage,
     toggleTaskRef,
     dismissError,
+    exportSession,
     exportAll,
     exportToFolder,
     exportReviewSheet,

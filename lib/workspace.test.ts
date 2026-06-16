@@ -7,6 +7,7 @@ import {
   appendIteration,
   buildApprovedImages,
   buildExportManifest,
+  cloneSessionWithNewIds,
   countGeneratedImageBytes,
   deleteTask,
   importTasks,
@@ -441,5 +442,62 @@ describe('gallery derivations', () => {
     const m3 = buildExportManifest(s3);
     expect(m3.references).toHaveLength(1);
     expect(m3.references[0].id).toBe(ref.id);
+  });
+});
+
+describe('cloneSessionWithNewIds (BI-022.7)', () => {
+  /** A session with a library ref activated on a task, plus two iterations
+   *  where the 2nd is seeded by the 1st's generated image (primaryRefImageId). */
+  function sampleSession() {
+    const ref = newRefImage('logo.png', 'data:image/png;base64,AAA', 'image/png');
+    let s = addRefImage(newSession('Site'), ref);
+    const task = newTask('Hero');
+    s = addTask(s, task);
+    s = toggleTaskRefImage(s, task.id, ref.id); // activeRefImageIds = [ref.id]
+    const img0 = newGeneratedImage('data:image/png;base64,IMG0', 'p0');
+    s = appendIteration(s, task.id, {
+      prompt: 'p0',
+      refImageIds: [ref.id],
+      primaryRefImageId: null,
+      images: [img0],
+    });
+    s = appendIteration(s, task.id, {
+      prompt: 'p1',
+      refImageIds: [ref.id],
+      primaryRefImageId: img0.id, // promoted prior generated image
+      images: [newGeneratedImage('data:image/png;base64,IMG1', 'p1')],
+    });
+    return { s, refId: ref.id, taskId: task.id, img0Id: img0.id };
+  }
+
+  it('re-ids the whole tree and rewrites internal references consistently', () => {
+    const { s, refId, taskId, img0Id } = sampleSession();
+    const clone = cloneSessionWithNewIds(s);
+
+    // Every id is fresh.
+    expect(clone.id).not.toBe(s.id);
+    expect(clone.refLibrary[0].id).not.toBe(refId);
+    expect(clone.tasks[0].id).not.toBe(taskId);
+    expect(clone.tasks[0].iterations[0].images[0].id).not.toBe(img0Id);
+
+    // References point at the cloned ids, not the originals.
+    expect(clone.tasks[0].activeRefImageIds).toEqual([clone.refLibrary[0].id]);
+    expect(clone.tasks[0].iterations[0].refImageIds).toEqual([clone.refLibrary[0].id]);
+    // The 2nd iteration's promoted-image seed maps to the *cloned* 1st image.
+    expect(clone.tasks[0].iterations[1].primaryRefImageId).toBe(
+      clone.tasks[0].iterations[0].images[0].id,
+    );
+  });
+
+  it('preserves content and timestamps verbatim (only ids change)', () => {
+    const { s } = sampleSession();
+    const clone = cloneSessionWithNewIds(s);
+
+    expect(clone.name).toBe(s.name);
+    expect(clone.createdAt).toBe(s.createdAt);
+    expect(clone.updatedAt).toBe(s.updatedAt);
+    expect(clone.refLibrary[0].dataUrl).toBe(s.refLibrary[0].dataUrl);
+    expect(clone.tasks[0].iterations.map((it) => it.prompt)).toEqual(['p0', 'p1']);
+    expect(clone.tasks[0].iterations[1].images[0].url).toBe('data:image/png;base64,IMG1');
   });
 });

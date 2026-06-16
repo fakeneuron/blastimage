@@ -19,6 +19,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
 import { useWorkspace } from './useWorkspace';
 import { loadSession } from './storage';
+import { SCHEMA_VERSION } from './types';
 
 /** Installs a provider gated on a promise; `release()` lets the batch resolve. */
 function installDeferredProvider(): { release: () => void } {
@@ -173,5 +174,59 @@ describe('generateAll() (BI-015)', () => {
     expect(tasks.find((t) => t.id === goodId)!.iterations).toHaveLength(1);
     expect(tasks.find((t) => t.id === badId)!.iterations).toHaveLength(0);
     expect(result.current.error).toBe('Generation failed. Please try again.');
+  });
+});
+
+describe('importSessionBackup() (BI-022.7)', () => {
+  it('lands a backup as a fresh active session (new ids) with its tasks', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const backup = {
+      id: 'backup-sess-1',
+      name: 'Imported Site',
+      schemaVersion: SCHEMA_VERSION,
+      createdAt: '2026-06-16T00:00:00.000Z',
+      updatedAt: '2026-06-16T00:00:00.000Z',
+      refLibrary: [],
+      tasks: [
+        {
+          id: 'backup-task-1',
+          name: 'Hero',
+          basePrompt: 'a hero',
+          activeRefImageIds: [],
+          iterations: [],
+          createdAt: '2026-06-16T00:00:00.000Z',
+          updatedAt: '2026-06-16T00:00:00.000Z',
+        },
+      ],
+    };
+
+    await act(async () => result.current.importSessionBackup(JSON.stringify(backup)));
+
+    // Switched to the imported session — as a fresh copy (new ids), not the backup's.
+    expect(result.current.session!.name).toBe('Imported Site');
+    expect(result.current.session!.id).not.toBe('backup-sess-1');
+    expect(result.current.session!.tasks).toHaveLength(1);
+    expect(result.current.session!.tasks[0].name).toBe('Hero');
+    expect(result.current.session!.tasks[0].id).not.toBe('backup-task-1');
+    expect(result.current.activeTaskId).toBe(result.current.session!.tasks[0].id);
+
+    // Persisted to storage and listed.
+    await waitFor(() =>
+      expect(result.current.sessions.some((m) => m.id === result.current.session!.id)).toBe(true),
+    );
+    expect(loadSession(result.current.session!.id)!.name).toBe('Imported Site');
+  });
+
+  it('surfaces a validation error for an invalid backup and does not switch', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const before = result.current.session!.id;
+
+    await act(async () => result.current.importSessionBackup('not valid json'));
+
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.session!.id).toBe(before);
   });
 });
