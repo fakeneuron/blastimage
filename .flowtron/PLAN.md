@@ -20,10 +20,11 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Future Opportunities
 
-- [ ] **BI-023** [heavy] | grok-hosted-gen — Spike: how (if at all) Grok-Imagine generation works in the deployed browser (Grok Build sandbox + `__grokImagineProvider` absent); investigate xAI public image API / alternatives, then decide build vs defer. Split from [[BI-022.5]]; pulled out of [[BI-EPIC-022]] as a standalone task on 2026-06-16 (was BI-022.9).
+(none)
 
 ## Completed
 
+- [x] **BI-023** [heavy] | grok-hosted-gen — Completed 2026-06-16.
 - [x] **BI-EPIC-022** [heavy] | hosted-webapp — Completed 2026-06-16.
   - [x] **BI-022.1** [heavy] | discovery — Completed 2026-06-15.
   - [x] **BI-022.2** [heavy] | storage-adapter-seam — Completed 2026-06-15.

@@ -7,7 +7,7 @@ Local Next.js application for coordinated AI image generation workflows. Users d
 ## Stack
 
 - **Framework:** Next.js 15 (App Router, TypeScript)
-- **State:** localStorage by default (frontend-only; no accounts). An optional **hosted mode** (`NEXT_PUBLIC_BLASTIMAGE_MODE=hosted`, BI-EPIC-022) swaps in a Supabase backend (auth + owner-scoped Postgres/RLS + private image storage buckets) behind the `lib/persistence.ts` adapter seam; local mode is unaffected. OAuth login (BI-022.6) and the Cloudflare Pages + Supabase deploy story (BI-022.5, see `docs/DEPLOY.md`) are in; in-browser **hosted-mode generation** is deferred to BI-023 (the Grok Build sandbox the provider seam needs is absent in a deployed browser).
+- **State:** localStorage by default (frontend-only; no accounts). An optional **hosted mode** (`NEXT_PUBLIC_BLASTIMAGE_MODE=hosted`, BI-EPIC-022) swaps in a Supabase backend (auth + owner-scoped Postgres/RLS + private image storage buckets) behind the `lib/persistence.ts` adapter seam; local mode is unaffected. OAuth login (BI-022.6) and the Cloudflare Pages + Supabase deploy story (BI-022.5, see `docs/DEPLOY.md`) are in; in-browser **hosted-mode generation** stays **local-only** (BI-023 decision: the Grok Build sandbox the provider seam needs is absent in a deployed browser; the xAI public image API could fill it but requires browser-side keys or an edge proxy — both declined). Hosted mode is review/persist/import only; generate locally then import. See `docs/HOSTED-GENERATION.md`.
 - **Target API:** Grok Imagine via an agent-installed provider bridge (`globalThis.__grokImagineProvider`); see `docs/GROK-AGENT.md`
 - **Dev port:** `next dev -p 3003`
 
