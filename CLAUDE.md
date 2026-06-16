@@ -7,7 +7,7 @@ Local Next.js application for coordinated AI image generation workflows. Users d
 ## Stack
 
 - **Framework:** Next.js 15 (App Router, TypeScript)
-- **State:** localStorage (frontend-only; no accounts, no backend)
+- **State:** localStorage by default (frontend-only; no accounts). An optional **hosted mode** (`NEXT_PUBLIC_BLASTIMAGE_MODE=hosted`, BI-EPIC-022) swaps in a Supabase backend (auth + owner-scoped Postgres/RLS) behind the `lib/persistence.ts` adapter seam; local mode is unaffected. Login UI (BI-022.6) + deploy (BI-022.5) are still in progress.
 - **Target API:** Grok Imagine via an agent-installed provider bridge (`globalThis.__grokImagineProvider`); see `docs/GROK-AGENT.md`
 - **Dev port:** `next dev -p 3003`
 

@@ -1,17 +1,21 @@
 /**
- * blastimage — persistence seam (BI-022.2)
+ * blastimage — persistence seam (BI-022.2, async-widened in BI-022.3)
  *
  * Defines the {@link PersistenceAdapter} boundary: the session-persistence
  * surface (CRUD + active-session pointer) that {@link import('./useWorkspace')}
- * depends on, decoupled from any concrete backend. Today the only adapter is
- * {@link localStorageAdapter}, which delegates to the BI-002
- * {@link import('./storage')} functions — so local mode behaves identically.
+ * depends on, decoupled from any concrete backend. Two adapters implement it:
+ * {@link localStorageAdapter} (the default; delegates to the BI-002
+ * {@link import('./storage')} functions) and the Supabase adapter for hosted
+ * mode ({@link import('./supabaseAdapter')}).
  *
- * The hosted variation (BI-022.3) adds a Supabase adapter implementing this
- * same interface and makes the resolved {@link persistence} export
- * config-gated. That widening is also where the interface gains async
- * signatures; today it is synchronous to match localStorage and the existing
- * synchronous test suite.
+ * The interface is **async** (BI-022.3): a network backend (Supabase) cannot
+ * satisfy a synchronous contract. The localStorage adapter wraps its
+ * synchronous `storage.ts` calls in resolved promises, so local mode behaves
+ * identically — the hook awaits, but the work completes within a microtask.
+ *
+ * The resolved {@link persistence} export is **config-gated** ({@link isHostedMode}):
+ * a build with the hosted env unset resolves to localStorage and never
+ * constructs the Supabase client.
  *
  * The pure / browser-only helpers in `storage.ts` (serialize, slugify,
  * download, export-bundle, review-sheet, task-import parsing) are **not** part
@@ -32,46 +36,70 @@ import {
   type Result,
   type SessionMeta,
 } from './storage';
+import { isHostedMode } from './config';
+import { supabaseAdapter } from './supabaseAdapter';
 
 /**
  * The session-persistence boundary the workspace hook drives. A backend
- * (localStorage today, Supabase in the hosted variation) implements these and
+ * (localStorage by default, Supabase in hosted mode) implements these and
  * nothing else; everything above it is backend-agnostic.
  */
 export interface PersistenceAdapter {
   /** All known sessions as lightweight metadata. */
-  listSessions(): SessionMeta[];
+  listSessions(): Promise<SessionMeta[]>;
   /** Loads a full session by id, or `null` when absent / corrupt / version-mismatched. */
-  loadSession(id: ID): Session | null;
+  loadSession(id: ID): Promise<Session | null>;
   /** Persists a session and upserts its index entry; never throws. */
-  saveSession(session: Session): Result<SessionMeta>;
+  saveSession(session: Session): Promise<Result<SessionMeta>>;
   /** Removes a session, its index entry, and clears the active pointer if it pointed here. */
-  deleteSession(id: ID): void;
+  deleteSession(id: ID): Promise<void>;
   /** The active session's id, or `null`. */
-  getActiveSessionId(): ID | null;
+  getActiveSessionId(): Promise<ID | null>;
   /** Marks a session as active. */
-  setActiveSessionId(id: ID): void;
+  setActiveSessionId(id: ID): Promise<void>;
   /** Clears the active-session pointer. */
-  clearActiveSessionId(): void;
+  clearActiveSessionId(): Promise<void>;
   /** Convenience: loads the active session, or `null` when none is set / it fails the load guards. */
-  loadActiveSession(): Session | null;
+  loadActiveSession(): Promise<Session | null>;
 }
 
-/** localStorage-backed adapter — the default; delegates to the BI-002 `storage.ts` functions. */
+/**
+ * localStorage-backed adapter — the default; delegates to the BI-002
+ * `storage.ts` functions, wrapping their synchronous results in promises to
+ * satisfy the async interface.
+ */
 export const localStorageAdapter: PersistenceAdapter = {
-  listSessions,
-  loadSession,
-  saveSession,
-  deleteSession,
-  getActiveSessionId,
-  setActiveSessionId,
-  clearActiveSessionId,
-  loadActiveSession,
+  async listSessions() {
+    return listSessions();
+  },
+  async loadSession(id) {
+    return loadSession(id);
+  },
+  async saveSession(session) {
+    return saveSession(session);
+  },
+  async deleteSession(id) {
+    deleteSession(id);
+  },
+  async getActiveSessionId() {
+    return getActiveSessionId();
+  },
+  async setActiveSessionId(id) {
+    setActiveSessionId(id);
+  },
+  async clearActiveSessionId() {
+    clearActiveSessionId();
+  },
+  async loadActiveSession() {
+    return loadActiveSession();
+  },
 };
 
 /**
- * The active persistence adapter. Local/submodule mode resolves to
- * {@link localStorageAdapter}; the hosted variation (BI-022.3) makes this
- * config-gated to swap in a Supabase adapter without touching `useWorkspace`.
+ * The active persistence adapter, resolved once at module load: the Supabase
+ * adapter in hosted mode, localStorage otherwise. The gate keeps local /
+ * submodule builds byte-identical to the pre-hosted app.
  */
-export const persistence: PersistenceAdapter = localStorageAdapter;
+export const persistence: PersistenceAdapter = isHostedMode()
+  ? supabaseAdapter
+  : localStorageAdapter;

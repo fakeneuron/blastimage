@@ -1,5 +1,5 @@
 /**
- * useWorkspace race-fix tests (CORE-001.2).
+ * useWorkspace race-fix tests (CORE-001.2; async-seam update BI-022.3).
  *
  * generate() awaits the provider and then commits the batch; these tests pin
  * the post-await reconciliation: commits that land *during* the await must
@@ -8,6 +8,10 @@
  *
  * The provider seam is the real one — a deferred globalThis.__grokImagineProvider
  * — so the await window is held open deterministically.
+ *
+ * Since BI-022.3 the persistence seam is async: the mount-time load resolves a
+ * tick after render (tests wait for `ready`), and mutators commit optimistically
+ * then persist in the background (so `act` is async to flush those microtasks).
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -42,11 +46,11 @@ afterEach(() => {
 describe('generate() post-await reconciliation', () => {
   it('does not drop a commit that lands during the await (same session)', async () => {
     const { result } = renderHook(() => useWorkspace());
-    expect(result.current.ready).toBe(true);
+    await waitFor(() => expect(result.current.ready).toBe(true));
 
-    act(() => result.current.addTask('Hero'));
+    await act(async () => result.current.addTask('Hero'));
     const taskId = result.current.activeTaskId!;
-    act(() => result.current.setTaskPrompt(taskId, 'a hero image'));
+    await act(async () => result.current.setTaskPrompt(taskId, 'a hero image'));
 
     const { release } = installDeferredProvider();
     let generation!: Promise<void>;
@@ -55,7 +59,7 @@ describe('generate() post-await reconciliation', () => {
     });
 
     // A concurrent edit commits while the batch is still generating.
-    act(() => result.current.renameTask(taskId, 'Hero renamed'));
+    await act(async () => result.current.renameTask(taskId, 'Hero renamed'));
 
     release();
     await act(async () => {
@@ -70,12 +74,12 @@ describe('generate() post-await reconciliation', () => {
 
   it('persists the batch to the originating stored session on a mid-generate switch', async () => {
     const { result } = renderHook(() => useWorkspace());
-    expect(result.current.ready).toBe(true);
+    await waitFor(() => expect(result.current.ready).toBe(true));
 
     const originId = result.current.session!.id;
-    act(() => result.current.addTask('Hero'));
+    await act(async () => result.current.addTask('Hero'));
     const taskId = result.current.activeTaskId!;
-    act(() => result.current.setTaskPrompt(taskId, 'a hero image'));
+    await act(async () => result.current.setTaskPrompt(taskId, 'a hero image'));
 
     const { release } = installDeferredProvider();
     let generation!: Promise<void>;
@@ -84,7 +88,7 @@ describe('generate() post-await reconciliation', () => {
     });
 
     // The user switches to a fresh session while the batch is generating.
-    act(() => result.current.createSession('Other Site'));
+    await act(async () => result.current.createSession('Other Site'));
 
     release();
     await act(async () => {
@@ -96,25 +100,27 @@ describe('generate() post-await reconciliation', () => {
     expect(result.current.session!.tasks).toHaveLength(0);
 
     // The batch landed in the originating session in storage.
-    const origin = loadSession(originId)!;
-    const task = origin.tasks.find((t) => t.id === taskId)!;
-    expect(task.iterations).toHaveLength(1);
-    expect(task.iterations[0].images).toHaveLength(4);
+    await waitFor(() => {
+      const origin = loadSession(originId)!;
+      const task = origin.tasks.find((t) => t.id === taskId)!;
+      expect(task.iterations).toHaveLength(1);
+      expect(task.iterations[0].images).toHaveLength(4);
+    });
   });
 });
 
 describe('generateAll() (BI-015)', () => {
   it('fires only eligible tasks and lands every concurrent batch', async () => {
     const { result } = renderHook(() => useWorkspace());
-    expect(result.current.ready).toBe(true);
+    await waitFor(() => expect(result.current.ready).toBe(true));
 
-    act(() => result.current.addTask('Hero'));
+    await act(async () => result.current.addTask('Hero'));
     const heroId = result.current.activeTaskId!;
-    act(() => result.current.setTaskPrompt(heroId, 'a hero image'));
-    act(() => result.current.addTask('About'));
+    await act(async () => result.current.setTaskPrompt(heroId, 'a hero image'));
+    await act(async () => result.current.addTask('About'));
     const aboutId = result.current.activeTaskId!;
-    act(() => result.current.setTaskPrompt(aboutId, 'an about photo'));
-    act(() => result.current.addTask('Empty')); // ineligible — no prompt, no refs
+    await act(async () => result.current.setTaskPrompt(aboutId, 'an about photo'));
+    await act(async () => result.current.addTask('Empty')); // ineligible — no prompt, no refs
     const emptyId = result.current.activeTaskId!;
 
     const { release } = installDeferredProvider();
@@ -141,14 +147,14 @@ describe('generateAll() (BI-015)', () => {
 
   it('a failing task does not block the others', async () => {
     const { result } = renderHook(() => useWorkspace());
-    expect(result.current.ready).toBe(true);
+    await waitFor(() => expect(result.current.ready).toBe(true));
 
-    act(() => result.current.addTask('Good'));
+    await act(async () => result.current.addTask('Good'));
     const goodId = result.current.activeTaskId!;
-    act(() => result.current.setTaskPrompt(goodId, 'a good image'));
-    act(() => result.current.addTask('Bad'));
+    await act(async () => result.current.setTaskPrompt(goodId, 'a good image'));
+    await act(async () => result.current.addTask('Bad'));
     const badId = result.current.activeTaskId!;
-    act(() => result.current.setTaskPrompt(badId, 'bad'));
+    await act(async () => result.current.setTaskPrompt(badId, 'bad'));
 
     globalThis.__grokImagineProvider = async (req) => {
       if (req.prompt === 'bad') throw new Error('boom');

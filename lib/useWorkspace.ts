@@ -152,66 +152,90 @@ export function useWorkspace(): UseWorkspace {
   sessionRef.current = session;
 
   // Mount-time load: restore the active session, or bootstrap + persist a default.
+  // The persistence seam is async (BI-022.3); `cancelled` guards against a state
+  // update after unmount.
   useEffect(() => {
-    const existing = persistence.loadActiveSession();
-    if (existing) {
-      setSession(existing);
-      setSessions(persistence.listSessions());
-      setActiveTaskId(existing.tasks[0]?.id ?? null);
+    let cancelled = false;
+    void (async () => {
+      const existing = await persistence.loadActiveSession();
+      if (cancelled) return;
+      if (existing) {
+        setSession(existing);
+        setSessions(await persistence.listSessions());
+        if (cancelled) return;
+        setActiveTaskId(existing.tasks[0]?.id ?? null);
+        setReady(true);
+        return;
+      }
+      const fresh = newSession(DEFAULT_SESSION_NAME);
+      const res = await persistence.saveSession(fresh);
+      if (cancelled) return;
+      if (res.ok) {
+        await persistence.setActiveSessionId(fresh.id);
+        if (cancelled) return;
+        setSession(fresh);
+        setSessions(await persistence.listSessions());
+      } else {
+        // Storage unavailable: keep the session in memory so the UI still works.
+        setSession(fresh);
+        setError(res.error);
+      }
+      if (cancelled) return;
       setReady(true);
-      return;
-    }
-    const fresh = newSession(DEFAULT_SESSION_NAME);
-    const res = persistence.saveSession(fresh);
-    if (res.ok) {
-      persistence.setActiveSessionId(fresh.id);
-      setSession(fresh);
-      setSessions(persistence.listSessions());
-    } else {
-      // Storage unavailable: keep the session in memory so the UI still works.
-      setSession(fresh);
-      setError(res.error);
-    }
-    setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  /** Persists a mutated session and reflects it in state, or records the failure. */
+  /**
+   * Reflects a mutated session in state immediately (optimistic), then persists
+   * it through the async seam (BI-022.3) in the background, surfacing a save
+   * failure via {@link UseWorkspace.error}. Reflecting synchronously keeps
+   * local-mode behaviour identical and keeps `sessionRef` current before any
+   * await — concurrent generate() commits (BI-015 fires all tasks at once)
+   * chain off the latest session instead of silently dropping all but the last.
+   */
   function commit(next: Session): void {
-    const res = persistence.saveSession(next);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
     setError(null);
-    // Keep the latest-session ref current synchronously: the render-time
-    // assignment alone lags when several generates' post-await commits land
-    // in the same tick (BI-015 fires all tasks at once), which would silently
-    // drop all but the last batch.
     sessionRef.current = next;
     setSession(next);
-    setSessions(persistence.listSessions());
+    void (async () => {
+      const res = await persistence.saveSession(next);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setSessions(await persistence.listSessions());
+    })();
   }
 
   function createSession(name: string): void {
     const fresh = newSession(name.trim() || DEFAULT_SESSION_NAME);
-    const res = persistence.saveSession(fresh);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-    persistence.setActiveSessionId(fresh.id);
     setError(null);
+    sessionRef.current = fresh;
     setSession(fresh);
-    setSessions(persistence.listSessions());
     setActiveTaskId(null);
+    void (async () => {
+      const res = await persistence.saveSession(fresh);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      await persistence.setActiveSessionId(fresh.id);
+      setSessions(await persistence.listSessions());
+    })();
   }
 
   function switchSession(id: ID): void {
-    const loaded = persistence.loadSession(id);
-    if (!loaded) return;
-    persistence.setActiveSessionId(id);
-    setSession(loaded);
-    setActiveTaskId(loaded.tasks[0]?.id ?? null);
+    void (async () => {
+      const loaded = await persistence.loadSession(id);
+      if (!loaded) return;
+      await persistence.setActiveSessionId(id);
+      sessionRef.current = loaded;
+      setSession(loaded);
+      setActiveTaskId(loaded.tasks[0]?.id ?? null);
+    })();
   }
 
   function renameSession(name: string): void {
@@ -315,10 +339,10 @@ export function useWorkspace(): UseWorkspace {
       } else {
         // The user switched sessions mid-generate: persist the batch into the
         // originating stored session without flipping the UI back to it.
-        const origin = persistence.loadSession(session.id);
+        const origin = await persistence.loadSession(session.id);
         if (origin) {
-          const res = persistence.saveSession(appendIterationTo(origin, taskId, draft));
-          if (res.ok) setSessions(persistence.listSessions());
+          const res = await persistence.saveSession(appendIterationTo(origin, taskId, draft));
+          if (res.ok) setSessions(await persistence.listSessions());
           else setError(res.error);
         }
       }
