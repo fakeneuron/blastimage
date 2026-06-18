@@ -7,8 +7,8 @@ never a generator. It exists because in-browser generation is unavailable
 (`lib/generate.ts` `generateBatch` needs `globalThis.__grokImagineProvider`, absent
 in a plain browser — see [`HOSTED-GENERATION.md`](HOSTED-GENERATION.md), BI-023).
 
-Status: **design / planned** (BI-EPIC-024). The frontend half is mostly built; the
-two file-handoff seams (§4) are the new work.
+Status: **shipped** (BI-EPIC-024, 2026-06-18). Both file-handoff seams (§4) are
+implemented; terminal skills ship in `.grok/skills/`.
 
 ---
 
@@ -107,17 +107,18 @@ never embedded as base64 in the JSON (see §5).
 
 ---
 
-## 4. The new frontend seams (BI-EPIC-024)
+## 4. Frontend seams (BI-EPIC-024 — shipped)
 
-The viewer/selector already exists (keep/approve/discard, rating, `IterateModal`'s
-keeper→reference + `base + "Refine: <delta>"` composition). Two seams are missing:
+The viewer/selector already existed (keep/approve/discard, rating, `IterateModal`'s
+keeper→reference + `base + "Refine: <delta>"` composition). Two seams now wire the
+terminal loop:
 
-1. **Load a round** — read `rounds/r<N>/batch.json` + its images through the
-   **File System Access folder seam already built in BI-021** (the `🔗 imagegen` export),
-   and present each task's images as a review batch. Images stay as folder paths/URLs.
-2. **Emit a next-round request** — replace the iterate modal's in-browser `generateBatch`
-   call with a write of `selection.json` (keepers + `promptMode` + `nextPrompt`). This is
-   the one behavioural change to existing code.
+1. **Load a round** (BI-024.1) — Sidebar **🔗 Link imagegen** + **↻ Load round** read
+   `rounds/r<N>/batch.json` + images through the File System Access folder seam (BI-021).
+   Images stay as `imagegen:` path URLs — never embedded in `localStorage`.
+2. **Emit a next-round request** (BI-024.2) — the iterate modal writes
+   `selection.json` (keepers + `promptMode` + `nextPrompt`) instead of calling
+   `generateBatch`. Approve promotes keepers to `imagegen/approved/`.
 
 ---
 
