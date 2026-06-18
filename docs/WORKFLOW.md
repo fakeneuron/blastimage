@@ -9,10 +9,13 @@ It complements the other docs rather than repeating them:
 - [`README.md`](../README.md) — the 6-step feature overview (quick scan).
 - [`docs/USAGE.md`](USAGE.md) — prompt-writing and reference-image **craft**.
 - [`docs/ADOPT.md`](ADOPT.md) — submodule **setup** and the `imagegen/` repo layout.
+- [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) — terminal-generate / frontend-review loop (adopter SSOT).
 - **This doc** — the **sequence** that ties those together.
 
-Assumes blastimage is installed and (for real generation) Grok Imagine is
-wired — see [`docs/ADOPT.md`](ADOPT.md) §1–5.
+Assumes blastimage is installed as a submodule and terminal skills are wired —
+see [`docs/ADOPT.md`](ADOPT.md) §1–5 and §5.1. Generation runs in a Grok Build
+terminal session; the browser is viewer/selector only (see
+[`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md)).
 
 ---
 
@@ -56,23 +59,36 @@ per task. Resolution, sizing, framing, and naming guidance:
 
 ### 5. Generate
 
-**Generate** fires a batch for the active task. **⚡ Generate All** fires a batch
-for every eligible task at once and opens a stacked bulk-review view — the
-fastest path through a multi-task set.
+In a **Grok Build terminal session**, run **`/blast-generate`**. The skill reads
+`imagegen/tasks.json` and optional 1:1 refs from `imagegen/refs/`, runs
+`image_gen` per task, and writes `imagegen/rounds/r<N>/` images plus
+`batch.json`. Install and invoke details: [`docs/ADOPT.md`](ADOPT.md) §5.1; full
+loop diagram and file contracts: [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1–§3.
+
+Back in blastimage, **🔗 Link imagegen** (once per host repo) then **↻ Load round**
+to ingest the batch into the review UI. Images stay on disk as path references —
+never embedded in `localStorage` (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §5).
 
 ### 6. Review
 
 For each candidate: **keep**, **discard**, or **approve**. Add a star rating and
 feedback notes. Toggle **Use as reference** on a keeper to seed it into the next
 round. Approved images auto-collect in the Gallery panel with full provenance.
+The browser **views and selects** — it does not generate (see
+[`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §2).
 
 ### 7. Iterate
 
 **Iterate →** on a kept image opens the refine modal seeded by that image as the
-primary reference. Edit the prompt to steer what changes and generate a new
-round. Iteration-prompt craft (preserve vs. change):
-[`docs/USAGE.md`](USAGE.md#iteration-prompts). Loop back to step 6 until the task
-has an image worth approving.
+primary reference. Edit the prompt to steer what changes; confirming writes
+`imagegen/rounds/r<N>/selection.json` (keepers + `nextPrompt`) instead of
+calling in-browser generation. Iteration-prompt craft (append vs. overhaul):
+[`docs/USAGE.md`](USAGE.md#iteration-prompts) and
+[`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §6.
+
+In the terminal, run **`/blast-iterate`** to read `selection.json` and write the
+next round under `imagegen/rounds/r<N+1>/`. **↻ Load round** again in blastimage,
+then loop back to step 6 until the task has an image worth approving.
 
 ### 8. Export
 

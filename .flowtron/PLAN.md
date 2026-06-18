@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-025** [light] | workflow-terminal-xref — Completed 2026-06-18.
 - [x] **BI-EPIC-024** [heavy] | review-loop — Completed 2026-06-18.
   - [x] **BI-024.1** [heavy] | load-round-ingest — Completed 2026-06-18.
   - [x] **BI-024.2** [heavy] | next-round-request — Completed 2026-06-18.
