@@ -9,7 +9,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 - [ ] **BI-EPIC-024** [heavy] | review-loop — Make blastimage a viewer/selector for terminal-generated batches: generation runs in a Grok Build terminal session, the frontend reviews/selects/edits prompts, iteration bounces back via file handoffs. Design SSOT: `docs/REVIEW-LOOP.md`. Unblocks adopter use (spinalcord/fakeneuron) past the in-browser generation wall ([[BI-023]]).
-  - [ ] **BI-024.3** [heavy] | gen-iterate-skills — Ship `/blast-generate` + `/blast-iterate` terminal skills (read prompts/refs/selection, run image_gen, write rounds) + the round-0 ref-bootstrap pass. Adopter-installable.
   - [ ] **BI-024.4** [heavy] | audit — Epic audit + doc-drift sweep; verify the loop end-to-end in an adopter.
 
 ## Medium
@@ -26,6 +25,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-024.3** [heavy] | gen-iterate-skills — Completed 2026-06-18.
 - [x] **BI-024.2** [heavy] | next-round-request — Completed 2026-06-18.
 - [x] **BI-024.1** [heavy] | load-round-ingest — Completed 2026-06-18.
 - [x] **BI-023** [heavy] | grok-hosted-gen — Completed 2026-06-16.

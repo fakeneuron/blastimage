@@ -66,6 +66,31 @@ Port **3003** is dedicated; it doesn't conflict with common project ports (Next.
 
 For real image generation inside a Grok Build session, follow [`docs/GROK-AGENT.md`](GROK-AGENT.md). The integration contract: install a provider function on `globalThis.__grokImagineProvider` before the user triggers generation. All other app logic (review, iterate, export) is already wired and requires no changes.
 
+### 5.1 Terminal generation skills (review loop)
+
+When generation runs in a **Grok Build terminal session** and blastimage is only
+the viewer/selector (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md)), install the
+bundled terminal skills from the submodule into your **host repo**:
+
+```bash
+# From the host project root (sibling to blastimage/)
+mkdir -p .grok/skills
+ln -sf ../blastimage/.grok/skills/blast-generate .grok/skills/blast-generate
+ln -sf ../blastimage/.grok/skills/blast-iterate .grok/skills/blast-iterate
+```
+
+Copy instead of symlink if your tooling does not follow symlinks. Skills appear
+in the slash menu within a few seconds.
+
+| Skill | Purpose |
+|---|---|
+| `/blast-generate` | Read `imagegen/tasks.json` + `refs/`, run `image_gen`/`image_edit`, write `rounds/r<N>/` + `batch.json`. Includes round-0 ref bootstrap when `refs/` is empty. |
+| `/blast-iterate` | Read `rounds/r<N>/selection.json`, generate the next round from keeper + edited prompt. |
+
+**Operating loop:** `/blast-generate` → blastimage review (🔗 Link imagegen, ↻ Load
+round) → iterate selections write `selection.json` → `/blast-iterate` → repeat.
+Pure planning helpers live in `blastimage/lib/terminalRound.ts`.
+
 ## 6. Stage prompt tasks from the parent project
 
 Instead of creating tasks and pasting prompts one at a time, stage a batch from
@@ -106,7 +131,12 @@ imagegen/
 ├─ prompts/
 │  └─ <task-name>.txt  ← prompt source, one file per task
 ├─ refs/
-│  └─ *.jpg|png        ← reference images, staged for in-app upload
+│  └─ <slug>.<ext>     ← 1:1 reference per task (terminal skills + in-app upload)
+├─ rounds/
+│  └─ r<N>/
+│     ├─ batch.json    ← written by /blast-generate or /blast-iterate
+│     ├─ selection.json← written by blastimage after review
+│     └─ <slug>-NNN.<ext>
 └─ approved/
    ├─ manifest.json    ← export provenance manifest
    ├─ review.html      ← self-contained house-style review sheet
