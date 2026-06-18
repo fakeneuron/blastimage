@@ -39,6 +39,13 @@ interface SidebarProps {
   onDeleteTask: (id: ID) => void;
   /** Fires generation for every eligible task and opens bulk review (BI-015). */
   onGenerateAll: () => void;
+  /** True when the repo's `imagegen/` folder is linked via the File System Access API. */
+  imagegenLinked: boolean;
+  /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
+  availableRounds: number[];
+  onLinkImagegen: () => void;
+  /** Loads a terminal-generated round; omit `round` for the latest. */
+  onLoadRound: (round?: number) => void;
 }
 
 export default function Sidebar({
@@ -58,7 +65,12 @@ export default function Sidebar({
   onRenameTask,
   onDeleteTask,
   onGenerateAll,
+  imagegenLinked,
+  availableRounds,
+  onLinkImagegen,
+  onLoadRound,
 }: SidebarProps) {
+  const latestRound = availableRounds.length ? availableRounds[availableRounds.length - 1] : undefined;
   const importInputRef = useRef<HTMLInputElement>(null);
   const sessionImportInputRef = useRef<HTMLInputElement>(null);
 
@@ -147,6 +159,48 @@ export default function Sidebar({
             }}
           />
         </div>
+        {/* Terminal round ingest (BI-024.1): link the repo's imagegen/ folder, then load batches. */}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            className={`rounded border px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 ${
+              imagegenLinked
+                ? 'border-green-500/50 text-green-700 dark:text-green-400'
+                : 'border-black/15 dark:border-white/15'
+            }`}
+            title="Link your repo's imagegen/ folder (standard location per ADOPT.md §7)"
+            onClick={onLinkImagegen}
+          >
+            {imagegenLinked ? '🔗 imagegen linked' : '🔗 Link imagegen'}
+          </button>
+          <button
+            disabled={!imagegenLinked || availableRounds.length === 0}
+            className="rounded border border-black/15 px-2 py-1 text-xs enabled:hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:enabled:hover:bg-white/10"
+            title={
+              imagegenLinked
+                ? latestRound !== undefined
+                  ? `Load rounds/r${latestRound}/batch.json into the review UI`
+                  : 'No rounds found yet — run /blast-generate in a terminal session'
+                : 'Link imagegen first'
+            }
+            onClick={() => onLoadRound()}
+          >
+            ↻ Load round{latestRound !== undefined ? ` r${latestRound}` : ''}
+          </button>
+        </div>
+        {imagegenLinked && availableRounds.length > 1 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {availableRounds.map((n) => (
+              <button
+                key={n}
+                className="rounded border border-black/15 px-1.5 py-0.5 text-[10px] hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+                title={`Load rounds/r${n}/batch.json`}
+                onClick={() => onLoadRound(n)}
+              >
+                r{n}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Task list */}

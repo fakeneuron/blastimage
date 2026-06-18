@@ -12,6 +12,7 @@
  * callback).
  */
 
+import ResolvedImage from '@/components/ResolvedImage';
 import type { GeneratedImage, ID, Iteration, ReviewDecision, StarRating } from '@/lib/types';
 
 interface ReviewGridProps {
@@ -83,8 +84,7 @@ function ReviewCard({ image, onSetDecision, onSetRating, onFeedback, onIterate }
     >
       {/* Image (dimmed when discarded, but still visible) */}
       <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <ResolvedImage
           src={image.url}
           alt={image.prompt || 'generated image'}
           className={`aspect-[3/2] w-full object-cover transition-opacity ${

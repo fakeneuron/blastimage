@@ -12,6 +12,8 @@
  * unit-testable without a component-render dependency.
  */
 
+import type { RoundBatch } from './roundBatch';
+import { slugify } from './storage';
 import {
   SCHEMA_VERSION,
   type ApprovedImage,
@@ -190,6 +192,42 @@ export function importTasks(
 ): Session {
   const tasks = drafts.map((d) => ({ ...newTask(d.name), basePrompt: d.basePrompt }));
   return { ...touch(session), tasks: [...session.tasks, ...tasks] };
+}
+
+/**
+ * Ingests a terminal-generated round (`batch.json` + on-disk images) into the
+ * session: matches tasks by {@link slugify}(name) === batch slug and appends an
+ * iteration; mints a new task for unknown slugs. Image URLs are caller-supplied
+ * path references (typically `imagegen:rounds/r<N>/…`) — never inline bytes.
+ */
+export function ingestRoundBatch(
+  session: Session,
+  batch: RoundBatch,
+  imageUrlFor: (filename: string) => string,
+): Session {
+  let next = session;
+  for (const entry of batch.tasks) {
+    const images = entry.images.map((f) => newGeneratedImage(imageUrlFor(f), entry.prompt));
+    const draft: IterationDraft = {
+      prompt: entry.prompt,
+      refImageIds: [],
+      primaryRefImageId: null,
+      images,
+    };
+    const existing = next.tasks.find((t) => slugify(t.name) === entry.slug);
+    if (existing) {
+      next = appendIteration(next, existing.id, draft);
+      if (!existing.basePrompt.trim()) {
+        next = setTaskPrompt(next, existing.id, entry.prompt);
+      }
+    } else {
+      const task: PromptTask = { ...newTask(entry.name), basePrompt: entry.prompt };
+      next = addTask(next, task);
+      const added = next.tasks[next.tasks.length - 1]!;
+      next = appendIteration(next, added.id, draft);
+    }
+  }
+  return next;
 }
 
 /** Removes a task by id (no-op if the id is unknown). */

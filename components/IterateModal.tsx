@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from 'react';
 
+import ResolvedImage from '@/components/ResolvedImage';
 import type { GeneratedImage } from '@/lib/types';
 
 interface IterateModalProps {
@@ -67,8 +68,7 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <ResolvedImage
             src={image.url}
             alt={image.prompt || 'kept image'}
             className="aspect-[3/2] w-32 shrink-0 rounded object-cover"

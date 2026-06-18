@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { roundImageUrl } from './imagegenUrl';
+import type { RoundBatch } from './roundBatch';
 import { SCHEMA_VERSION } from './types';
 import {
   addRefImage,
@@ -11,6 +13,7 @@ import {
   countGeneratedImageBytes,
   deleteTask,
   importTasks,
+  ingestRoundBatch,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
   newRefImage,
@@ -499,5 +502,41 @@ describe('cloneSessionWithNewIds (BI-022.7)', () => {
     expect(clone.refLibrary[0].dataUrl).toBe(s.refLibrary[0].dataUrl);
     expect(clone.tasks[0].iterations.map((it) => it.prompt)).toEqual(['p0', 'p1']);
     expect(clone.tasks[0].iterations[1].images[0].url).toBe('data:image/png;base64,IMG1');
+  });
+});
+
+describe('ingestRoundBatch', () => {
+  const batch: RoundBatch = {
+    schemaVersion: 1,
+    round: 2,
+    generatedAt: '2026-06-18T00:00:00Z',
+    tasks: [
+      {
+        slug: 'hero-banner',
+        name: 'Hero banner',
+        prompt: 'Warm hero shot',
+        images: ['hero-banner-001.jpg', 'hero-banner-002.jpg'],
+      },
+    ],
+  };
+
+  it('appends an iteration when a task slug already exists', () => {
+    let s = importTasks(newSession('S'), [{ name: 'Hero banner', basePrompt: 'old' }]);
+    s = ingestRoundBatch(s, batch, (f) => roundImageUrl(batch.round, f));
+    expect(s.tasks).toHaveLength(1);
+    expect(s.tasks[0]!.iterations).toHaveLength(1);
+    expect(s.tasks[0]!.iterations[0]!.images).toHaveLength(2);
+    expect(s.tasks[0]!.iterations[0]!.images[0]!.url).toBe(
+      roundImageUrl(2, 'hero-banner-001.jpg'),
+    );
+    expect(s.tasks[0]!.basePrompt).toBe('old');
+  });
+
+  it('mints a new task for an unknown slug', () => {
+    const s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));
+    expect(s.tasks).toHaveLength(1);
+    expect(s.tasks[0]!.name).toBe('Hero banner');
+    expect(s.tasks[0]!.basePrompt).toBe('Warm hero shot');
+    expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Warm hero shot');
   });
 });

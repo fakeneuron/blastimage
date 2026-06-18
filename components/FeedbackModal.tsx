@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from 'react';
 
+import ResolvedImage from '@/components/ResolvedImage';
 import type { GeneratedImage } from '@/lib/types';
 
 /** What the submit buttons map to; `save` persists feedback only. */
@@ -54,8 +55,7 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <ResolvedImage
             src={image.url}
             alt={image.prompt || 'generated image'}
             className="aspect-[3/2] w-32 shrink-0 rounded object-cover"

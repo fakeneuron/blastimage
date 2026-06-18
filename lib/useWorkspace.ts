@@ -17,6 +17,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import type { ImagegenApi } from './ImagegenContext';
+import type { LinkImagegenResult } from './imagegenFs';
+import { roundImageUrl } from './imagegenUrl';
 import type { ApprovedImage, ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
 import {
   downloadBlob,
@@ -40,6 +43,7 @@ import {
   cloneSessionWithNewIds,
   deleteTask as deleteTaskFrom,
   importTasks as importTasksInto,
+  ingestRoundBatch,
   newGeneratedImage,
   newSession,
   newTask,
@@ -59,6 +63,18 @@ const DEFAULT_SESSION_NAME = 'My Website';
 const DEFAULT_TASK_NAME = 'Untitled task';
 /** Batch size used by `generate()`; also drives TaskDetail's generating skeleton. */
 export const DEFAULT_BATCH_SIZE: BatchSize = 4;
+
+/** Stand-in when the hook runs outside {@link ImagegenProvider} (unit tests). */
+const NOOP_IMAGEGEN: ImagegenApi = {
+  linked: false,
+  linkFolder: async () => ({
+    status: 'error',
+    error: 'Imagegen folder linking is unavailable.',
+  }) as LinkImagegenResult,
+  listRounds: async () => [],
+  readRound: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  resolveDisplayUrl: async (url) => url,
+};
 
 export interface UseWorkspace {
   /** False until the mount-time load completes (render a neutral shell while false). */
@@ -150,20 +166,51 @@ export interface UseWorkspace {
    * {@link UseWorkspace.error}.
    */
   exportReviewSheet: () => Promise<void>;
+  /** True when an `imagegen/` folder handle is linked (persisted FSA permission). */
+  imagegenLinked: boolean;
+  /** Prompts a directory picker for the repo's `imagegen/` folder and persists it. */
+  linkImagegenFolder: () => Promise<void>;
+  /**
+   * Loads `rounds/r<N>/batch.json` into the session as review batches. Defaults
+   * to the highest available round when `round` is omitted.
+   */
+  /** Resolves to the ingested task ids on success, or `null` on failure/cancel. */
+  loadRound: (round?: number) => Promise<ID[] | null>;
+  /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
+  availableRounds: number[];
+  /** Refreshes {@link UseWorkspace.availableRounds} from the linked folder. */
+  refreshAvailableRounds: () => Promise<void>;
 }
 
-export function useWorkspace(): UseWorkspace {
+export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspace {
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<ID | null>(null);
   const [generatingTaskIds, setGeneratingTaskIds] = useState<ID[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [availableRounds, setAvailableRounds] = useState<number[]>([]);
 
   // Latest-session ref so async callbacks (generate's post-await commit) can
   // see commits that landed after they captured `session` from a render.
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
+
+  // Discover loadable rounds when the imagegen folder link becomes available.
+  useEffect(() => {
+    if (!imagegen.linked) {
+      setAvailableRounds([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const rounds = await imagegen.listRounds();
+      if (!cancelled) setAvailableRounds(rounds);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [imagegen, imagegen.linked]);
 
   // Mount-time load: restore the active session, or bootstrap + persist a default.
   // The persistence seam is async (BI-022.3); `cancelled` guards against a state
@@ -511,6 +558,58 @@ export function useWorkspace(): UseWorkspace {
     setError(null);
   }
 
+  async function linkImagegenFolder(): Promise<void> {
+    const result = await imagegen.linkFolder();
+    if (result.status === 'cancelled') return;
+    if (result.status === 'error') {
+      setError(result.error);
+      return;
+    }
+    const rounds = await imagegen.listRounds();
+    setAvailableRounds(rounds);
+    setError(null);
+  }
+
+  async function refreshAvailableRounds(): Promise<void> {
+    if (!imagegen.linked) {
+      setAvailableRounds([]);
+      return;
+    }
+    setAvailableRounds(await imagegen.listRounds());
+  }
+
+  async function loadRound(round?: number): Promise<ID[] | null> {
+    if (!session) return null;
+    if (!imagegen.linked) {
+      setError('Link your imagegen folder first (🔗 in the sidebar).');
+      return null;
+    }
+    let target = round;
+    if (target === undefined) {
+      const rounds = availableRounds.length ? availableRounds : await imagegen.listRounds();
+      if (!rounds.length) {
+        setError('No rounds found under imagegen/rounds/ — run /blast-generate in a terminal session first.');
+        return null;
+      }
+      target = rounds[rounds.length - 1]!;
+      setAvailableRounds(rounds);
+    }
+    const parsed = await imagegen.readRound(target);
+    if (!parsed.ok) {
+      setError(parsed.error);
+      return null;
+    }
+    const batch = parsed.value;
+    const next = ingestRoundBatch(session, batch, (filename) => roundImageUrl(batch.round, filename));
+    commit(next);
+    const loadedIds = batch.tasks
+      .map((entry) => next.tasks.find((t) => slugify(t.name) === entry.slug)?.id)
+      .filter((id): id is ID => !!id);
+    if (loadedIds[0]) setActiveTaskId(loadedIds[0]);
+    setError(null);
+    return loadedIds;
+  }
+
   return {
     ready,
     session,
@@ -543,5 +642,10 @@ export function useWorkspace(): UseWorkspace {
     exportAll,
     exportToFolder,
     exportReviewSheet,
+    imagegenLinked: imagegen.linked,
+    linkImagegenFolder,
+    loadRound,
+    availableRounds,
+    refreshAvailableRounds,
   };
 }

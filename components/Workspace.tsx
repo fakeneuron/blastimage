@@ -12,6 +12,7 @@
 import { useState } from 'react';
 
 import type { ID } from '@/lib/types';
+import { ImagegenProvider, useImagegen } from '@/lib/ImagegenContext';
 import { useWorkspace } from '@/lib/useWorkspace';
 import { countGeneratedImageBytes, GENERATED_QUOTA_WARN_BYTES } from '@/lib/workspace';
 import Sidebar from '@/components/Sidebar';
@@ -23,7 +24,16 @@ import IterateModal from '@/components/IterateModal';
 import ImportBuilder from '@/components/ImportBuilder';
 
 export default function Workspace() {
-  const ws = useWorkspace();
+  return (
+    <ImagegenProvider>
+      <WorkspaceInner />
+    </ImagegenProvider>
+  );
+}
+
+function WorkspaceInner() {
+  const imagegen = useImagegen();
+  const ws = useWorkspace(imagegen);
   const [quotaWarningDismissed, setQuotaWarningDismissed] = useState(false);
   // Which image the feedback modal is open for (BI-006), or null when closed.
   const [feedbackFor, setFeedbackFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
@@ -123,6 +133,13 @@ export default function Workspace() {
           onGenerateAll={() => {
             const fired = ws.generateAll();
             if (fired.length > 0) setBulkTaskIds(fired);
+          }}
+          imagegenLinked={ws.imagegenLinked}
+          availableRounds={ws.availableRounds}
+          onLinkImagegen={ws.linkImagegenFolder}
+          onLoadRound={async (round) => {
+            const loaded = await ws.loadRound(round);
+            if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
           }}
         />
         {bulkTasks ? (

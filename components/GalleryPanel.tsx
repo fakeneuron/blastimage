@@ -8,6 +8,7 @@
  * Top: "Export all" downloads the JSON provenance manifest.
  */
 
+import ResolvedImage from '@/components/ResolvedImage';
 import type { ApprovedImage, StarRating } from '@/lib/types';
 import { downloadBlob, imageExtension, slugify } from '@/lib/storage';
 
@@ -93,8 +94,7 @@ export default function GalleryPanel({
           <ul className="flex flex-col gap-3">
             {approved.map((item) => (
               <li key={item.imageId} className="flex flex-col gap-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <ResolvedImage
                   src={item.url}
                   alt={item.finalPrompt}
                   className="w-full rounded object-cover"
