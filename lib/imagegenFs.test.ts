@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { listAvailableRounds, readRoundBatch } from './imagegenFs';
+import {
+  listAvailableRounds,
+  promoteKeeperToApproved,
+  readRoundBatch,
+  writeRoundSelection,
+} from './imagegenFs';
 import { ROUND_BATCH_SCHEMA_VERSION } from './roundBatch';
+import { buildIterateSelectionTask, parseRoundSelection } from './roundSelection';
 
 /** Minimal fake FSA tree for unit tests. */
 function fakeDir(
@@ -28,13 +34,55 @@ function fakeDir(
   } as unknown as FileSystemDirectoryHandle;
 }
 
-function fakeFile(name: string, contents: string): FileSystemFileHandle {
-  const file = new File([contents], name, { type: 'application/json' });
+function fakeFile(name: string, contents: string, mime = 'application/json'): FileSystemFileHandle {
+  let data = contents;
   return {
     kind: 'file',
     name,
-    getFile: async () => file,
+    getFile: async () => new File([data], name, { type: mime }),
+    createWritable: async () => ({
+      write: async (chunk: BlobPart) => {
+        if (typeof chunk === 'string') data = chunk;
+        else if (chunk instanceof ArrayBuffer) data = new TextDecoder().decode(chunk);
+        else if (ArrayBuffer.isView(chunk)) data = new TextDecoder().decode(chunk);
+        else data = await new Response(chunk as Blob).text();
+      },
+      close: async () => {},
+    }),
   } as unknown as FileSystemFileHandle;
+}
+
+function fakeWritableDir(
+  entries: Record<string, FileSystemHandle>,
+): FileSystemDirectoryHandle {
+  const dir = fakeDir(entries);
+  const base = dir as ImagegenDirectoryHandle & FileSystemDirectoryHandle;
+  base.queryPermission = async () => 'granted';
+  base.requestPermission = async () => 'granted';
+  base.getDirectoryHandle = async (name: string, opts?: { create?: boolean }) => {
+    if (entries[name]) return entries[name] as FileSystemDirectoryHandle;
+    if (opts?.create) {
+      const created = fakeWritableDir({});
+      entries[name] = created;
+      return created;
+    }
+    throw new DOMException('NotFound');
+  };
+  base.getFileHandle = async (name: string, opts?: { create?: boolean }) => {
+    if (entries[name]) return entries[name] as FileSystemFileHandle;
+    if (opts?.create) {
+      const created = fakeFile(name, '');
+      entries[name] = created;
+      return created;
+    }
+    throw new DOMException('NotFound');
+  };
+  return base;
+}
+
+interface ImagegenDirectoryHandle extends FileSystemDirectoryHandle {
+  queryPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
+  requestPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
 }
 
 describe('imagegenFs round reads', () => {
@@ -97,5 +145,59 @@ describe('imagegenFs round reads', () => {
 
     const out = await readRoundBatch(root, 2);
     expect(out.ok).toBe(false);
+  });
+});
+
+describe('imagegenFs selection writes', () => {
+  beforeEach(() => {
+    vi.stubGlobal('indexedDB', undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('writes selection.json and merges by slug on subsequent writes', async () => {
+    const keeper = fakeFile('hero-001.jpg', 'bytes', 'image/jpeg');
+    const roundDir = fakeWritableDir({ 'hero-001.jpg': keeper });
+    const rounds = fakeWritableDir({ r1: roundDir });
+    const root = fakeWritableDir({ rounds });
+
+    const entry = buildIterateSelectionTask('hero', 'hero-001.jpg', 'base', 'base\n\nRefine: crop');
+    const first = await writeRoundSelection(root, 1, [entry], '2026-06-18T00:00:00Z');
+    expect(first.ok).toBe(true);
+
+    const selHandle = await roundDir.getFileHandle('selection.json');
+    const firstText = await selHandle.getFile().then((f) => f.text());
+    const parsed = parseRoundSelection(firstText);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(parsed.value.tasks).toHaveLength(1);
+
+    const second = await writeRoundSelection(
+      root,
+      1,
+      [{ slug: 'other', decision: 'approve', keeper: 'other-001.jpg' }],
+      '2026-06-18T00:05:00Z',
+    );
+    expect(second.ok).toBe(true);
+    const mergedText = await selHandle.getFile().then((f) => f.text());
+    const merged = parseRoundSelection(mergedText);
+    expect(merged.ok).toBe(true);
+    if (merged.ok) expect(merged.value.tasks).toHaveLength(2);
+  });
+
+  it('promotes a keeper image into approved/', async () => {
+    const keeper = fakeFile('hero-001.jpg', 'img-bytes', 'image/jpeg');
+    const roundDir = fakeWritableDir({ 'hero-001.jpg': keeper });
+    const rounds = fakeWritableDir({ r2: roundDir });
+    const root = fakeWritableDir({ rounds });
+
+    const out = await promoteKeeperToApproved(root, 2, 'hero-001.jpg');
+    expect(out.ok).toBe(true);
+
+    const approvedDir = await root.getDirectoryHandle('approved');
+    const promoted = await approvedDir.getFileHandle('hero-001.jpg');
+    const text = await promoted.getFile().then((f) => f.text());
+    expect(text).toBe('img-bytes');
   });
 });

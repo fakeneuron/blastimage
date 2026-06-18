@@ -19,8 +19,21 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ImagegenApi } from './ImagegenContext';
 import type { LinkImagegenResult } from './imagegenFs';
-import { roundImageUrl } from './imagegenUrl';
-import type { ApprovedImage, ID, PromptTask, RefImage, ReviewDecision, Session, StarRating } from './types';
+import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
+import {
+  buildApproveSelectionTask,
+  buildIterateSelectionTask,
+} from './roundSelection';
+import type {
+  ApprovedImage,
+  GeneratedImage,
+  ID,
+  PromptTask,
+  RefImage,
+  ReviewDecision,
+  Session,
+  StarRating,
+} from './types';
 import {
   downloadBlob,
   downloadManifestBundle,
@@ -73,6 +86,8 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   }) as LinkImagegenResult,
   listRounds: async () => [],
   readRound: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  writeSelection: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  promoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   resolveDisplayUrl: async (url) => url,
 };
 
@@ -176,6 +191,13 @@ export interface UseWorkspace {
    */
   /** Resolves to the ingested task ids on success, or `null` on failure/cancel. */
   loadRound: (round?: number) => Promise<ID[] | null>;
+  /** The round number last loaded via {@link UseWorkspace.loadRound}, if any. */
+  loadedRound: number | null;
+  /**
+   * Writes `rounds/r<N>/selection.json` for an iterate-from-keeper request
+   * (replaces the iterate modal's in-browser `generateBatch` call).
+   */
+  requestNextRound: (taskId: ID, imageId: ID, nextPrompt: string) => Promise<void>;
   /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
   availableRounds: number[];
   /** Refreshes {@link UseWorkspace.availableRounds} from the linked folder. */
@@ -190,6 +212,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   const [generatingTaskIds, setGeneratingTaskIds] = useState<ID[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [availableRounds, setAvailableRounds] = useState<number[]>([]);
+  const [loadedRound, setLoadedRound] = useState<number | null>(null);
 
   // Latest-session ref so async callbacks (generate's post-await commit) can
   // see commits that landed after they captured `session` from a render.
@@ -457,9 +480,47 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     setActiveTaskId(taskId);
   }
 
+  function findGeneratedImage(
+    sess: Session,
+    taskId: ID,
+    imageId: ID,
+  ): { task: PromptTask; image: GeneratedImage } | null {
+    const task = sess.tasks.find((t) => t.id === taskId);
+    if (!task) return null;
+    for (const it of task.iterations) {
+      const image = it.images.find((img) => img.id === imageId);
+      if (image) return { task, image };
+    }
+    return null;
+  }
+
+  async function handleImagegenApprove(taskId: ID, imageId: ID): Promise<void> {
+    if (!session || !imagegen.linked) return;
+    const hit = findGeneratedImage(session, taskId, imageId);
+    if (!hit) return;
+    const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
+    const keeper = roundImageFilenameFromUrl(hit.image.url);
+    if (round === null || !keeper) return;
+    const slug = slugify(hit.task.name);
+    const selectedAt = new Date().toISOString();
+    const promote = await imagegen.promoteApproved(round, keeper);
+    if (!promote.ok) {
+      setError(promote.error);
+      return;
+    }
+    const sel = await imagegen.writeSelection(
+      round,
+      [buildApproveSelectionTask(slug, keeper)],
+      selectedAt,
+    );
+    if (!sel.ok) setError(sel.error);
+    else setError(null);
+  }
+
   function setImageDecision(taskId: ID, imageId: ID, decision: ReviewDecision): void {
     if (!session) return;
     commit(setImageDecisionOn(session, taskId, imageId, decision));
+    if (decision === 'approved') void handleImagegenApprove(taskId, imageId);
   }
 
   function setImageRating(taskId: ID, imageId: ID, rating: StarRating): void {
@@ -479,6 +540,30 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (action === 'keep') next = setImageDecisionOn(next, taskId, imageId, 'kept');
     else if (action === 'approve') next = setImageDecisionOn(next, taskId, imageId, 'approved');
     commit(next);
+    if (action === 'approve') void handleImagegenApprove(taskId, imageId);
+  }
+
+  async function requestNextRound(taskId: ID, imageId: ID, nextPrompt: string): Promise<void> {
+    if (!session) return;
+    if (!imagegen.linked) {
+      setError('Link your imagegen folder first (🔗 in the sidebar).');
+      return;
+    }
+    const hit = findGeneratedImage(session, taskId, imageId);
+    if (!hit) return;
+    const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
+    const keeper = roundImageFilenameFromUrl(hit.image.url);
+    if (round === null || !keeper) {
+      setError('This image is not from a terminal round — load a round from imagegen first.');
+      return;
+    }
+    const trimmed = nextPrompt.trim();
+    if (!trimmed) return;
+    const slug = slugify(hit.task.name);
+    const entry = buildIterateSelectionTask(slug, keeper, hit.task.basePrompt, trimmed);
+    const result = await imagegen.writeSelection(round, [entry], new Date().toISOString());
+    if (!result.ok) setError(result.error);
+    else setError(null);
   }
 
   function addRefImage(ref: RefImage): void {
@@ -606,6 +691,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       .map((entry) => next.tasks.find((t) => slugify(t.name) === entry.slug)?.id)
       .filter((id): id is ID => !!id);
     if (loadedIds[0]) setActiveTaskId(loadedIds[0]);
+    setLoadedRound(batch.round);
     setError(null);
     return loadedIds;
   }
@@ -645,6 +731,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     imagegenLinked: imagegen.linked,
     linkImagegenFolder,
     loadRound,
+    loadedRound,
+    requestNextRound,
     availableRounds,
     refreshAvailableRounds,
   };

@@ -8,10 +8,10 @@
  * round's primary reference, and the refined prompt is pre-filled from the task's
  * base prompt plus the image's saved feedback. The prompt is fully editable, so
  * the user can keep the combined base+feedback prompt or replace it outright
- * (either composition approach). Presentational only — the actual generation +
- * iteration append live in `lib/useWorkspace.ts` (`generate`); here it is a
- * callback. Mirrors the {@link FeedbackModal} idiom (Esc/backdrop/Cancel dismiss
- * without generating).
+ * (either composition approach). Presentational only — submit writes
+ * `selection.json` via `lib/useWorkspace.ts` (`requestNextRound`) for
+ * `/blast-iterate`. Mirrors the {@link FeedbackModal} idiom (Esc/backdrop/Cancel
+ * dismiss without writing).
  */
 
 import { useEffect, useState } from 'react';
@@ -25,7 +25,7 @@ interface IterateModalProps {
   /** The task's base prompt, used to seed the refined-prompt prefill. */
   basePrompt: string;
   onClose: () => void;
-  /** Generates the next round with the (possibly edited) refined prompt. */
+  /** Writes a next-round request with the (possibly edited) refined prompt. */
   onSubmit: (prompt: string) => void;
 }
 
@@ -53,7 +53,7 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const canGenerate = !!prompt.trim();
+  const canSubmit = !!prompt.trim();
 
   return (
     <div
@@ -77,7 +77,7 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
             <h2 className="text-sm font-semibold">Iterate from this keeper</h2>
             <p className="mt-1 text-xs opacity-60">
               This image seeds the next round as its primary reference. Edit the
-              prompt below — keep the combined version or replace it.
+              prompt below, then save a selection request for /blast-iterate.
             </p>
           </div>
         </div>
@@ -107,11 +107,11 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
           </button>
           <button
             type="button"
-            disabled={!canGenerate}
+            disabled={!canSubmit}
             onClick={() => onSubmit(prompt.trim())}
             className="rounded bg-foreground px-3 py-1.5 text-sm font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Generate next round
+            Save selection request
           </button>
         </div>
       </div>

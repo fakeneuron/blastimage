@@ -21,21 +21,30 @@ import {
 import {
   listAvailableRounds,
   pickAndLinkImagegenFolder,
+  promoteKeeperToApproved,
   readImagegenFile,
   readRoundBatch,
   restoreLinkedImagegenFolder,
+  writeRoundSelection,
   type LinkImagegenResult,
 } from './imagegenFs';
 import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
+import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
 
-/** FSA surface consumed by {@link useWorkspace} for round ingest. */
+/** FSA surface consumed by {@link useWorkspace} for round ingest + selection writes. */
 export interface ImagegenApi {
   linked: boolean;
   linkFolder: () => Promise<LinkImagegenResult>;
   listRounds: () => Promise<number[]>;
   readRound: (round: number) => Promise<Result<RoundBatch>>;
+  writeSelection: (
+    round: number,
+    tasks: RoundSelectionTask[],
+    selectedAt: string,
+  ) => Promise<Result<void>>;
+  promoteApproved: (round: number, keeperFilename: string) => Promise<Result<void>>;
   resolveDisplayUrl: (url: string) => Promise<string>;
 }
 
@@ -87,6 +96,32 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     return readRoundBatch(root, round);
   }, []);
 
+  const writeSelection = useCallback(
+    async (
+      round: number,
+      tasks: RoundSelectionTask[],
+      selectedAt: string,
+    ): Promise<Result<void>> => {
+      const root = handleRef.current;
+      if (!root) {
+        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
+      }
+      return writeRoundSelection(root, round, tasks, selectedAt);
+    },
+    [],
+  );
+
+  const promoteApproved = useCallback(
+    async (round: number, keeperFilename: string): Promise<Result<void>> => {
+      const root = handleRef.current;
+      if (!root) {
+        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
+      }
+      return promoteKeeperToApproved(root, round, keeperFilename);
+    },
+    [],
+  );
+
   const resolveDisplayUrl = useCallback(async (url: string): Promise<string> => {
     if (!isImagegenUrl(url)) return url;
     const cached = blobCacheRef.current.get(url);
@@ -108,6 +143,8 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     linkFolder,
     listRounds,
     readRound,
+    writeSelection,
+    promoteApproved,
     resolveDisplayUrl,
   };
 

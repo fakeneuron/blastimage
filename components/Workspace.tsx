@@ -191,7 +191,7 @@ function WorkspaceInner() {
           basePrompt={iterateTask?.basePrompt ?? ''}
           onClose={() => setIterateFor(null)}
           onSubmit={(prompt) => {
-            ws.generate(iterateFor.taskId, { prompt, primaryRefImageId: iterateFor.imageId });
+            void ws.requestNextRound(iterateFor.taskId, iterateFor.imageId, prompt);
             setIterateFor(null);
           }}
         />

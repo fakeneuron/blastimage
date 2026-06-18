@@ -29,3 +29,17 @@ export function imagegenPathFromUrl(url: string): string {
 export function roundImageUrl(round: number, filename: string): string {
   return toImagegenUrl(`rounds/r${round}/${filename}`);
 }
+
+/** Extracts the round number from an `imagegen:rounds/r<N>/…` URL, or `null`. */
+export function roundNumberFromImageUrl(url: string): number | null {
+  if (!isImagegenUrl(url)) return null;
+  const m = /^rounds\/r(\d+)\//.exec(imagegenPathFromUrl(url));
+  return m ? Number(m[1]) : null;
+}
+
+/** Extracts the filename (relative to `rounds/r<N>/`) from a round image URL. */
+export function roundImageFilenameFromUrl(url: string): string | null {
+  if (!isImagegenUrl(url)) return null;
+  const m = /^rounds\/r\d+\/(.+)$/.exec(imagegenPathFromUrl(url));
+  return m ? m[1]! : null;
+}
