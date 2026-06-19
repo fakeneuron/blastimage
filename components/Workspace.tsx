@@ -9,7 +9,7 @@
  * mount-time load completes, and a dismissible banner on a save failure.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ID } from '@/lib/types';
 import { ImagegenProvider, useImagegen } from '@/lib/ImagegenContext';
@@ -44,6 +44,25 @@ function WorkspaceInner() {
   const [bulkTaskIds, setBulkTaskIds] = useState<ID[] | null>(null);
   // Open state for the in-app task-import builder modal (BI-021.3).
   const [showBuilder, setShowBuilder] = useState(false);
+
+  // Auto-load the latest round once the imagegen folder link and round list
+  // resolve, so a linked session shows its images without a manual "↻ Load round"
+  // click (BI-026). One-shot per mount, and only when nothing has been loaded
+  // yet — a manual load or an explicit round switch keeps precedence. Mirrors the
+  // Sidebar onLoadRound handler (opens bulk review for multi-task rounds).
+  const autoLoadedRef = useRef(false);
+  const { ready, imagegenLinked, loadedRound, availableRounds, loadRound } = ws;
+  useEffect(() => {
+    if (autoLoadedRef.current) return;
+    if (!ready || !imagegenLinked) return;
+    if (loadedRound !== null) return;
+    if (availableRounds.length === 0) return;
+    autoLoadedRef.current = true;
+    void (async () => {
+      const loaded = await loadRound();
+      if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
+    })();
+  }, [ready, imagegenLinked, loadedRound, availableRounds, loadRound]);
 
   // Resolve the open image from current session state so it reflects live edits.
   const feedbackImage = feedbackFor
