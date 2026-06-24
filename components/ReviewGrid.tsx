@@ -12,6 +12,9 @@
  * callback).
  */
 
+import { useState } from 'react';
+
+import Lightbox from '@/components/Lightbox';
 import ResolvedImage from '@/components/ResolvedImage';
 import type { GeneratedImage, ID, Iteration, ReviewDecision, StarRating } from '@/lib/types';
 
@@ -52,45 +55,72 @@ export default function ReviewGrid({
   onFeedback,
   onIterate,
 }: ReviewGridProps) {
+  // Index of the image shown full-size in the lightbox; null when closed (BI-027).
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxImages = iteration.images.map((img) => ({
+    src: img.url,
+    alt: img.prompt || 'generated image',
+  }));
+
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {iteration.images.map((img) => (
-        <ReviewCard
-          key={img.id}
-          image={img}
-          onSetDecision={onSetDecision}
-          onSetRating={onSetRating}
-          onFeedback={onFeedback}
-          onIterate={onIterate}
+    <>
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {iteration.images.map((img, i) => (
+          <ReviewCard
+            key={img.id}
+            image={img}
+            onOpen={() => setLightboxIndex(i)}
+            onSetDecision={onSetDecision}
+            onSetRating={onSetRating}
+            onFeedback={onFeedback}
+            onIterate={onIterate}
+          />
+        ))}
+      </ul>
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={lightboxImages}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
         />
-      ))}
-    </ul>
+      )}
+    </>
   );
 }
 
 interface ReviewCardProps {
   image: GeneratedImage;
+  /** Opens this image full-size in the lightbox (BI-027). */
+  onOpen: () => void;
   onSetDecision: (imageId: ID, decision: ReviewDecision) => void;
   onSetRating: (imageId: ID, rating: StarRating) => void;
   onFeedback: (imageId: ID) => void;
   onIterate: (imageId: ID) => void;
 }
 
-function ReviewCard({ image, onSetDecision, onSetRating, onFeedback, onIterate }: ReviewCardProps) {
+function ReviewCard({ image, onOpen, onSetDecision, onSetRating, onFeedback, onIterate }: ReviewCardProps) {
   const badge = STATE_BADGE[image.decision];
   return (
     <li
       className={`flex flex-col overflow-hidden rounded-lg border-2 transition ${STATE_RING[image.decision]}`}
     >
-      {/* Image (dimmed when discarded, but still visible) */}
+      {/* Image (dimmed when discarded, but still visible) — click to enlarge. */}
       <div className="relative">
-        <ResolvedImage
-          src={image.url}
-          alt={image.prompt || 'generated image'}
-          className={`aspect-[3/2] w-full object-cover transition-opacity ${
-            image.decision === 'discarded' ? 'opacity-40' : ''
-          }`}
-        />
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label="View full size"
+          className="block w-full cursor-zoom-in"
+        >
+          <ResolvedImage
+            src={image.url}
+            alt={image.prompt || 'generated image'}
+            className={`aspect-[3/2] w-full object-cover transition-opacity ${
+              image.decision === 'discarded' ? 'opacity-40' : ''
+            }`}
+          />
+        </button>
         {badge && (
           <span
             className={`pointer-events-none absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${badge.cls}`}

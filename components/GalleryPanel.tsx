@@ -8,6 +8,9 @@
  * Top: "Export all" downloads the JSON provenance manifest.
  */
 
+import { useState } from 'react';
+
+import Lightbox from '@/components/Lightbox';
 import ResolvedImage from '@/components/ResolvedImage';
 import type { ApprovedImage, StarRating } from '@/lib/types';
 import { downloadBlob, imageExtension, slugify } from '@/lib/storage';
@@ -45,6 +48,10 @@ export default function GalleryPanel({
   onExportToFolder,
   onExportReviewSheet,
 }: GalleryPanelProps) {
+  // Index of the approved image shown full-size in the lightbox; null when closed (BI-027).
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxImages = approved.map((item) => ({ src: item.url, alt: item.finalPrompt }));
+
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-l border-black/10 bg-black/[.02] dark:border-white/10 dark:bg-white/[.02]">
       <div className="flex items-center justify-between border-b border-black/10 px-3 py-2.5 dark:border-white/10">
@@ -92,14 +99,21 @@ export default function GalleryPanel({
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {approved.map((item) => (
+            {approved.map((item, i) => (
               <li key={item.imageId} className="flex flex-col gap-1">
-                <ResolvedImage
-                  src={item.url}
-                  alt={item.finalPrompt}
-                  className="w-full rounded object-cover"
-                  style={{ aspectRatio: '3/2' }}
-                />
+                <button
+                  type="button"
+                  onClick={() => setLightboxIndex(i)}
+                  aria-label="View full size"
+                  className="block w-full cursor-zoom-in"
+                >
+                  <ResolvedImage
+                    src={item.url}
+                    alt={item.finalPrompt}
+                    className="w-full rounded object-cover"
+                    style={{ aspectRatio: '3/2' }}
+                  />
+                </button>
                 <div className="flex items-start justify-between gap-1 px-0.5">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium">{item.taskName}</p>
@@ -123,6 +137,15 @@ export default function GalleryPanel({
           </ul>
         )}
       </div>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={lightboxImages}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+        />
+      )}
     </aside>
   );
 }
