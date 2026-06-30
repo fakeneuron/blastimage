@@ -27,6 +27,10 @@ test:
 lint:
     npm run lint
 
+# type-check (tsc --noEmit)
+typecheck:
+    npm run typecheck
+
 # build for production (next build)
 build:
     npm run build
