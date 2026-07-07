@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-028** [medium] | supabase-to-r2-neon — Completed 2026-07-07.
 - [x] **BI-027** [light] | image-lightbox — Completed 2026-06-24.
 - [x] **BI-026** [light] | autoload-round — Completed 2026-06-18.
 - [x] **BI-025** [light] | workflow-terminal-xref — Completed 2026-06-18.

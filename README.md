@@ -47,7 +47,5 @@ Sessions persist in `localStorage` — no backend required. Use **↓ Export** /
 - [`docs/USAGE.md`](docs/USAGE.md) — prompt-writing conventions and reference image preparation
 - [`docs/ADOPT.md`](docs/ADOPT.md) — how to add blastimage as a git submodule in another project
 - [`docs/GROK-AGENT.md`](docs/GROK-AGENT.md) — Grok Build integration guide for wiring real Grok Imagine
-- [`docs/DEPLOY.md`](docs/DEPLOY.md) — hosted-mode deploy runbook (Cloudflare Pages + Supabase)
-- [`docs/HOSTED-GENERATION.md`](docs/HOSTED-GENERATION.md) — why hosted-mode generation stays local-only (BI-023 spike findings + decision)
 - [`CLAUDE.md`](CLAUDE.md) — coding standards and AI workflow
 - [`.flowtron/PLAN.md`](.flowtron/PLAN.md) — task plan and status

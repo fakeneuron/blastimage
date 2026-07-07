@@ -14,7 +14,6 @@ import { useRef } from 'react';
 
 import type { ID, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
-import AccountControl from '@/components/AccountControl';
 
 interface SidebarProps {
   session: Session;
@@ -130,8 +129,7 @@ export default function Sidebar({
             Rename
           </button>
         </div>
-        {/* Full-session backup export / import (BI-022.7); import lands a fresh
-            copy — in hosted mode its images re-host to storage buckets. */}
+        {/* Full-session backup export / import (BI-022.7); import lands a fresh copy. */}
         <div className="mt-2 flex gap-2">
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
@@ -301,9 +299,6 @@ export default function Sidebar({
           </ul>
         )}
       </nav>
-
-      {/* Hosted-mode account control (BI-022.6); renders null in local mode. */}
-      <AccountControl />
     </aside>
   );
 }

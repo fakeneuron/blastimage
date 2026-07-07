@@ -118,9 +118,8 @@ export interface UseWorkspace {
    * Imports a full-session backup JSON (BI-022.7) as a fresh copy: parse +
    * validate via `importSession`, re-id the whole tree (`cloneSessionWithNewIds`)
    * so it never collides with an existing session, persist it through the seam,
-   * and switch to it. In hosted mode the BI-022.4 adapter re-hosts the backup's
-   * inline images to storage buckets on save. Parse/validation failures surface
-   * via {@link UseWorkspace.error}.
+   * and switch to it. Parse/validation failures surface via
+   * {@link UseWorkspace.error}.
    */
   importSessionBackup: (json: string) => void;
   renameTask: (taskId: ID, name: string) => void;
@@ -354,8 +353,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       return;
     }
     // Land a fresh copy (new ids throughout) so a re-import never collides with
-    // an existing session. Mirrors createSession's optimistic-then-persist shape;
-    // in hosted mode saveSession re-hosts the backup's images to buckets (BI-022.4).
+    // an existing session. Mirrors createSession's optimistic-then-persist shape.
     const fresh = cloneSessionWithNewIds(parsed.value);
     setError(null);
     sessionRef.current = fresh;

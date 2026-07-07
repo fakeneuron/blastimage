@@ -3,9 +3,9 @@
 This is the SSOT for blastimage's **adopter generation workflow**: generation runs
 in a **terminal Grok Build session** (where `image_gen` and the provider bridge
 exist), and the blastimage frontend is a **viewer / selector / prompt-editor** —
-never a generator. It exists because in-browser generation is unavailable
-(`lib/generate.ts` `generateBatch` needs `globalThis.__grokImagineProvider`, absent
-in a plain browser — see [`HOSTED-GENERATION.md`](HOSTED-GENERATION.md), BI-023).
+never a generator. It exists because in-browser generation depends on the
+Grok Build provider bridge (`lib/generate.ts` `generateBatch` needs
+`globalThis.__grokImagineProvider`), which is absent in a plain browser.
 
 Status: **shipped** (BI-EPIC-024, 2026-06-18). Both file-handoff seams (§4) are
 implemented; terminal skills ship in `.grok/skills/`.
@@ -148,7 +148,6 @@ composition and house-style continuity. Therefore:
 
 ## 7. References
 
-- [`HOSTED-GENERATION.md`](HOSTED-GENERATION.md) — why generation can't run in the browser (BI-023)
 - [`GROK-AGENT.md`](GROK-AGENT.md) — the `generateBatch` seam contract the terminal skills satisfy
 - [`ADOPT.md`](ADOPT.md) §6–§7 — the `imagegen/` layout + `tasks.json` import contract
 - `lib/workspace.ts` · `lib/useWorkspace.ts` (`generate`) · `components/IterateModal.tsx` — the existing review/iterate model
