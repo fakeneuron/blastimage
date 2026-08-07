@@ -9,7 +9,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 - [ ] **TEST-EPIC-001** [heavy]🧠 | test-gate-coverage — the vitest include glob (`lib/**/*.test.ts`) matches neither `.tsx` nor anything outside `lib/`, so a component test added today silently would not run. Fix the gate before the milestones that depend on it. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: Coverage stops at the lib boundary)
-  - [ ] **TEST-001.2** [light]🔧 | vitest-include-tsx — widen `vitest.config.ts` include to `{lib,components}/**/*.test.{ts,tsx}`; add one smoke component test proving the path runs.
+  - [x] **TEST-001.2** [light]🔧 | vitest-include-tsx — Completed 2026-08-06.
   - [ ] **TEST-001.3** [medium]🧩 | workspace-autoload-test — cover `Workspace.tsx`'s auto-load-round effect (BI-026), the highest-logic component behaviour.
   - [ ] **TEST-001.N** [light]🔧 | audit
 
