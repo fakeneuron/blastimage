@@ -10,7 +10,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **TEST-EPIC-001** [heavy]🧠 | test-gate-coverage — the vitest include glob (`lib/**/*.test.ts`) matches neither `.tsx` nor anything outside `lib/`, so a component test added today silently would not run. Fix the gate before the milestones that depend on it. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: Coverage stops at the lib boundary)
   - [x] **TEST-001.2** [light]🔧 | vitest-include-tsx — Completed 2026-08-06.
-  - [ ] **TEST-001.3** [medium]🧩 | workspace-autoload-test — cover `Workspace.tsx`'s auto-load-round effect (BI-026), the highest-logic component behaviour.
+  - [x] **TEST-001.3** [medium]🧩 | workspace-autoload-test — Completed 2026-08-06.
   - [ ] **TEST-001.N** [light]🔧 | audit
 
 - [ ] **BI-EPIC-029** [heavy]🧠 | imagegen-byte-resolution — folder export, review sheet, and per-image download all call bare `fetch()` on `imagegen:` URLs, which cannot resolve. In adopter mode the documented Folder export (`docs/ADOPT.md` §"approved/") lands `manifest.json` and zero images. Every *render* site already resolves correctly via `ResolvedImage`; only the byte-consuming paths were missed. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: `imagegen:` is first-class except where bytes are needed)
