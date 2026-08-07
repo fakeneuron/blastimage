@@ -8,11 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **TEST-EPIC-001** [heavy]🧠 | test-gate-coverage — the vitest include glob (`lib/**/*.test.ts`) matches neither `.tsx` nor anything outside `lib/`, so a component test added today silently would not run. Fix the gate before the milestones that depend on it. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: Coverage stops at the lib boundary)
-  - [x] **TEST-001.2** [light]🔧 | vitest-include-tsx — Completed 2026-08-06.
-  - [x] **TEST-001.3** [medium]🧩 | workspace-autoload-test — Completed 2026-08-06.
-  - [ ] **TEST-001.N** [light]🔧 | audit
-
 - [ ] **BI-EPIC-029** [heavy]🧠 | imagegen-byte-resolution — folder export, review sheet, and per-image download all call bare `fetch()` on `imagegen:` URLs, which cannot resolve. In adopter mode the documented Folder export (`docs/ADOPT.md` §"approved/") lands `manifest.json` and zero images. Every *render* site already resolves correctly via `ResolvedImage`; only the byte-consuming paths were missed. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: `imagegen:` is first-class except where bytes are needed)
   - [ ] **BI-029.2** [heavy]🧠 | resolve-image-blob-seam — single `resolveImageBlob(url)` helper as the sole URL→bytes path; route `gatherExportFiles`, `gatherReviewImages` (lib/storage.ts) and `GalleryPanel.downloadImage` through it.
   - [ ] **BI-029.3** [medium]🧩 | export-imagegen-regression — export + review sheet with `imagegen:` URLs report zero failures. Existing tests stub `fetch` globally and never feed it the custom scheme, which is why the gap was invisible.
@@ -43,6 +38,10 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **TEST-EPIC-001** [heavy] | test-gate-coverage — Completed 2026-08-07.
+  - [x] **TEST-001.2** [light] | vitest-include-tsx — Completed 2026-08-06.
+  - [x] **TEST-001.3** [medium] | workspace-autoload-test — Completed 2026-08-06.
+  - [x] **TEST-001.N** [light] | audit — Completed 2026-08-07.
 - [x] **BI-028** [medium] | supabase-to-r2-neon — Completed 2026-07-07.
 - [x] **BI-027** [light] | image-lightbox — Completed 2026-06-24.
 - [x] **BI-026** [light] | autoload-round — Completed 2026-06-18.
