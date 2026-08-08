@@ -16,7 +16,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-031.2** [light]🔧 | provider-absent-ux — Completed 2026-08-08.
   - [x] **BI-031.3** [light]🔧 | readme-mode-labels — Completed 2026-08-08.
   - [x] **BI-031.4** [light]🔧 | orphan-config-cleanup — Completed 2026-08-08.
-  - [ ] **BI-031.N** [light]🔧 | audit
+  - [ ] **BI-031.5** [light]🔧 | generate-comment-drift — `lib/generate.ts`'s comments still narrate the BI-013 one-off live test as the present mode — `:57`, `:64`, `:92`, and `:110-114` ("the /ft-task driver is expected to pre-produce real images…"). BI-031.4 scoped them out as dev-facing notes; comment-only rewrite. Surfaced by BI-031.N audit 2026-08-08.
+  - [x] **BI-031.N** [light]🔧 | audit — Completed 2026-08-08.
 
 - [ ] **BI-032** [medium]🧩 | approved-collision-guard — `promoteKeeperToApproved` (`lib/imagegenFs.ts:343`) opens the destination with `create: true` under a flat `approved/` namespace, so approving `hero-001.jpg` from r2 silently overwrites the r1 file of the same name. BI-030.2 guarded only its undo against this collision. Surfaced by BI-030.N audit 2026-08-08.
 - [ ] **BI-033** [medium]🧩 | delete-slug-guard — `deleteTask` (`lib/useWorkspace.ts:461`) has no `renameSlugBreak` equivalent, so deleting a task carrying `imagegen:rounds/` images orphans its on-disk round silently. `Sidebar.tsx:97` already confirms deletion but never mentions the join. BI-030.3 scoped this out (assumption 2). Surfaced by BI-030.N audit 2026-08-08.
