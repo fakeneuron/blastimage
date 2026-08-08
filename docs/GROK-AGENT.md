@@ -202,6 +202,13 @@ globalThis.__grokImagineProvider = async (req) => {
 };
 ```
 
+**The UI gates on the bridge (BI-031.2).** Until the provider is installed, the
+Generate and ⚡ Generate All buttons render disabled with the reason stated, so a
+plain browser never offers a button that can only fail. The workspace re-probes
+`isGenerationAvailable()` every 1.5s while the bridge is absent, so installing it
+after page load enables the buttons on its own — no reload needed. Any error the
+provider throws now reaches the user's error banner verbatim.
+
 ### FS path → data URL
 
 Grok Imagine's `image_gen` typically writes results to the **filesystem** and hands

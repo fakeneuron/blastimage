@@ -67,18 +67,38 @@ declare global {
   var __grokImagineProvider: GrokImagineProvider | undefined;
 }
 
+/** The single read of the bridge global — shared by the capability check and the call path. */
+function resolveProvider(): GrokImagineProvider | undefined {
+  const provider = globalThis.__grokImagineProvider;
+  return typeof provider === 'function' ? provider : undefined;
+}
+
+/**
+ * Whether in-app generation can run right now — i.e. whether the Grok Imagine
+ * bridge is installed. {@link generateBatch} gates on the same read, and the UI
+ * gates its Generate controls on this (BI-031.2) so a browser without the
+ * bridge says so instead of offering a button that can only fail.
+ *
+ * The agent installs the provider at an arbitrary moment (BI-013 installs it
+ * *before* triggering generate), so callers must re-read this rather than
+ * snapshot it once.
+ */
+export function isGenerationAvailable(): boolean {
+  return resolveProvider() !== undefined;
+}
+
 /**
  * Generates one batch of candidates by delegating to the installed Grok Imagine
  * provider (real path) or falling back to a clear error (so the UI surfaces the
  * need for the agent bridge during a pure-client test run).
  *
  * Must return exactly `req.batchSize` items. Throw on any failure — the caller
- * (useWorkspace.generate) catches and shows a non-fatal "Generation failed".
+ * (useWorkspace.generate) catches and surfaces the message in the error banner.
  */
 export async function generateBatch(req: GenerationRequest): Promise<GeneratedCandidate[]> {
-  const provider = globalThis.__grokImagineProvider;
+  const provider = resolveProvider();
 
-  if (provider && typeof provider === 'function') {
+  if (provider) {
     const results = await provider(req);
     if (!Array.isArray(results) || results.length !== req.batchSize) {
       throw new Error(`Grok Imagine provider returned ${results?.length ?? 0} candidates, expected ${req.batchSize}`);

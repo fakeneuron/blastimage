@@ -178,7 +178,30 @@ describe('generateAll() (BI-015)', () => {
     const tasks = result.current.session!.tasks;
     expect(tasks.find((t) => t.id === goodId)!.iterations).toHaveLength(1);
     expect(tasks.find((t) => t.id === badId)!.iterations).toHaveLength(0);
-    expect(result.current.error).toBe('Generation failed. Please try again.');
+    // The thrown message is surfaced verbatim, not collapsed into a fixed
+    // sentence (BI-031.2).
+    expect(result.current.error).toBe('boom');
+  });
+});
+
+describe('generationAvailable (BI-031.2)', () => {
+  it('is false while no Grok Imagine bridge is installed', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    expect(result.current.generationAvailable).toBe(false);
+  });
+
+  it('flips true when the bridge is installed after mount', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(result.current.generationAvailable).toBe(false);
+
+    // The agent installs the bridge mid-session (BI-013 installs it before
+    // triggering generate); the hook re-probes on a 1.5s interval, so allow
+    // more than one probe period here.
+    installDeferredProvider();
+    await waitFor(() => expect(result.current.generationAvailable).toBe(true), { timeout: 4000 });
   });
 });
 

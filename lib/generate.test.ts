@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { generateBatch, type GenerationRequest } from './generate';
+import { generateBatch, isGenerationAvailable, type GenerationRequest } from './generate';
 
 /**
  * Test-only provider that reproduces the original BI-007 mock behavior (picsum
@@ -108,5 +108,24 @@ describe('generateBatch (provider-backed seam)', () => {
     const a = await run({ prompt: 'logo', batchSize: 3 });
     const b = await run({ prompt: 'logo', batchSize: 3, referenceImages: ['data:ref-1'] });
     expect(a.map((c) => c.url)).not.toEqual(b.map((c) => c.url));
+  });
+});
+
+describe('isGenerationAvailable (BI-031.2)', () => {
+  afterEach(uninstallTestMockProvider);
+
+  it('is false with no bridge installed', () => {
+    expect(isGenerationAvailable()).toBe(false);
+  });
+
+  it('is true once a provider is installed', () => {
+    installTestMockProvider();
+    expect(isGenerationAvailable()).toBe(true);
+  });
+
+  it('is false for a non-function value on the global', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).__grokImagineProvider = 'not a provider';
+    expect(isGenerationAvailable()).toBe(false);
   });
 });

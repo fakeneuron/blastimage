@@ -21,6 +21,12 @@ interface TaskDetailProps {
   library: RefImage[];
   /** True while this task's batch is generating (disables the button, shows skeletons). */
   generating: boolean;
+  /**
+   * True when the Grok Imagine bridge is installed (BI-031.2). False in a plain
+   * browser / adopter mode, where generation runs in the terminal loop instead —
+   * the button is disabled and says so rather than failing on click.
+   */
+  generationAvailable: boolean;
   /** Returns whether the rename was applied — `false` when the user declined the slug-break warning (BI-030.3). */
   onRenameTask: (id: ID, name: string) => boolean;
   onSetPrompt: (id: ID, basePrompt: string) => void;
@@ -38,6 +44,7 @@ export default function TaskDetail({
   task,
   library,
   generating,
+  generationAvailable,
   onRenameTask,
   onSetPrompt,
   onAddRefImage,
@@ -66,7 +73,23 @@ export default function TaskDetail({
   }
 
   // References are optional — a round needs a prompt or at least one reference.
-  const canGenerate = !!promptDraft.trim() || task.activeRefImageIds.length > 0;
+  const hasSignal = !!promptDraft.trim() || task.activeRefImageIds.length > 0;
+  // Why Generate is unavailable, or `null` when it can fire. The missing-bridge
+  // reason outranks the missing-signal one: no prompt will help a browser that
+  // cannot generate at all (BI-031.2).
+  const generateHint = !generationAvailable
+    ? {
+        note: 'In-app generation is Grok-Build-only — generate rounds from the terminal loop.',
+        title:
+          'The Grok Imagine provider bridge is not installed in this browser. Generate rounds from the terminal loop (see docs/REVIEW-LOOP.md); this view keeps working for review and selection.',
+      }
+    : !hasSignal
+      ? {
+          note: 'Add a prompt or a reference to generate.',
+          title: 'Add a prompt or a reference first',
+        }
+      : null;
+  const canGenerate = generateHint === null;
   const latest = task.iterations.at(-1) ?? null;
 
   // Persist the live draft and generate from it, so the round always uses what's
@@ -121,13 +144,11 @@ export default function TaskDetail({
           disabled={generating || !canGenerate}
           onClick={handleGenerate}
           className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          title={canGenerate ? 'Generate a batch' : 'Add a prompt or a reference first'}
+          title={generateHint?.title ?? 'Generate a batch'}
         >
           {generating ? 'Generating…' : 'Generate'}
         </button>
-        {!canGenerate && (
-          <span className="text-xs opacity-50">Add a prompt or a reference to generate.</span>
-        )}
+        {generateHint && <span className="text-xs opacity-50">{generateHint.note}</span>}
       </div>
 
       {/* Latest batch — the review grid (BI-005) */}

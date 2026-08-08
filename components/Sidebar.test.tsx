@@ -58,6 +58,7 @@ function makeProps(
     sessions: [{ id: session.id, name: session.name, updatedAt: session.updatedAt }],
     activeTaskId: null,
     canGenerateAll: false,
+    generationAvailable: true,
     onSwitchSession: () => {},
     onCreateSession: () => {},
     onRenameSession: () => {},
@@ -107,6 +108,21 @@ describe('Sidebar (component-test harness smoke)', () => {
     render(<Sidebar {...makeProps({ canGenerateAll: true })} />);
     expect(screen.getByRole('button', { name: /Generate All/ }).hasAttribute('disabled')).toBe(
       false,
+    );
+  });
+
+  it('states the missing-bridge reason instead of the eligibility one (BI-031.2)', () => {
+    const { unmount } = render(
+      <Sidebar {...makeProps({ canGenerateAll: false, generationAvailable: false })} />,
+    );
+    const disabled = screen.getByRole('button', { name: /Generate All/ });
+    expect(disabled.hasAttribute('disabled')).toBe(true);
+    expect(disabled.getAttribute('title')).toContain('Grok-Build-only');
+
+    unmount();
+    render(<Sidebar {...makeProps({ canGenerateAll: false, generationAvailable: true })} />);
+    expect(screen.getByRole('button', { name: /Generate All/ }).getAttribute('title')).toContain(
+      'No eligible tasks',
     );
   });
 });

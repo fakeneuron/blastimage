@@ -107,6 +107,7 @@ function makeWorkspace(overrides: Partial<UseWorkspace> = {}): UseWorkspace {
     exportAll: () => {},
     exportToFolder: async () => {},
     exportReviewSheet: async () => {},
+    generationAvailable: false,
     imagegenLinked: true,
     linkImagegenFolder: async () => {},
     loadRound: async () => null,

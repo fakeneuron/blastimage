@@ -19,8 +19,14 @@ interface SidebarProps {
   session: Session;
   sessions: SessionMeta[];
   activeTaskId: ID | null;
-  /** True when Generate All can fire (≥1 eligible task, nothing in flight). */
+  /** True when Generate All can fire (bridge installed, ≥1 eligible task, nothing in flight). */
   canGenerateAll: boolean;
+  /**
+   * True when the Grok Imagine bridge is installed (BI-031.2). Distinguishes
+   * "nothing eligible" from "this browser cannot generate at all" in the
+   * disabled button's reason.
+   */
+  generationAvailable: boolean;
   onSwitchSession: (id: ID) => void;
   onCreateSession: (name: string) => void;
   onRenameSession: (name: string) => void;
@@ -52,6 +58,7 @@ export default function Sidebar({
   sessions,
   activeTaskId,
   canGenerateAll,
+  generationAvailable,
   onSwitchSession,
   onCreateSession,
   onRenameSession,
@@ -246,9 +253,11 @@ export default function Sidebar({
           onClick={onGenerateAll}
           className="w-full rounded bg-foreground px-2 py-1.5 text-xs font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           title={
-            canGenerateAll
-              ? 'Generate a batch for every task with a prompt or reference'
-              : 'No eligible tasks (add a prompt or reference), or a run is in flight'
+            !generationAvailable
+              ? 'In-app generation is Grok-Build-only — the provider bridge is not installed in this browser. Generate rounds from the terminal loop (see docs/REVIEW-LOOP.md).'
+              : canGenerateAll
+                ? 'Generate a batch for every task with a prompt or reference'
+                : 'No eligible tasks (add a prompt or reference), or a run is in flight'
           }
         >
           ⚡ Generate All

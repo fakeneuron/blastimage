@@ -75,13 +75,15 @@ import {
   setTaskPrompt as setTaskPromptOn,
   toggleTaskRefImage as toggleTaskRefImageOn,
 } from './workspace';
-import { generateBatch } from './generate';
+import { generateBatch, isGenerationAvailable } from './generate';
 import type { BatchSize } from './types';
 
 const DEFAULT_SESSION_NAME = 'My Website';
 const DEFAULT_TASK_NAME = 'Untitled task';
 /** Batch size used by `generate()`; also drives TaskDetail's generating skeleton. */
 export const DEFAULT_BATCH_SIZE: BatchSize = 4;
+/** How often to re-check for the Grok Imagine bridge while it is absent (BI-031.2). */
+const PROVIDER_PROBE_MS = 1500;
 
 /** Stand-in when the hook runs outside {@link ImagegenProvider} (unit tests). */
 const NOOP_IMAGEGEN: ImagegenApi = {
@@ -241,6 +243,13 @@ export interface UseWorkspace {
    * {@link UseWorkspace.error}.
    */
   exportReviewSheet: () => Promise<void>;
+  /**
+   * True when the Grok Imagine bridge is installed, i.e. in-app generation can
+   * actually run (BI-031.2). False in a plain browser and in adopter/viewer
+   * mode; the UI disables its Generate controls and states the reason instead
+   * of letting the user discover the mode by failing.
+   */
+  generationAvailable: boolean;
   /** True when an `imagegen/` folder handle is linked (persisted FSA permission). */
   imagegenLinked: boolean;
   /** Prompts a directory picker for the repo's `imagegen/` folder and persists it. */
@@ -273,11 +282,28 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   const [error, setError] = useState<string | null>(null);
   const [availableRounds, setAvailableRounds] = useState<number[]>([]);
   const [loadedRound, setLoadedRound] = useState<number | null>(null);
+  const [generationAvailable, setGenerationAvailable] = useState(false);
 
   // Latest-session ref so async callbacks (generate's post-await commit) can
   // see commits that landed after they captured `session` from a render.
   const sessionRef = useRef<Session | null>(null);
   sessionRef.current = session;
+
+  // Probe for the Grok Imagine bridge (BI-031.2). The agent installs it at an
+  // arbitrary moment — BI-013 installs it *before* triggering generate, often
+  // after the page has loaded — so a mount-only snapshot would leave the
+  // Generate controls disabled for the whole session. Starts `false` (never
+  // read during render, so SSR and hydration agree) and stops polling for good
+  // once the bridge appears; the bridge is never uninstalled mid-session.
+  useEffect(() => {
+    if (generationAvailable) return;
+    const probe = () => {
+      if (isGenerationAvailable()) setGenerationAvailable(true);
+    };
+    probe();
+    const timer = setInterval(probe, PROVIDER_PROBE_MS);
+    return () => clearInterval(timer);
+  }, [generationAvailable]);
 
   // Discover loadable rounds when the imagegen folder link becomes available.
   useEffect(() => {
@@ -536,8 +562,11 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
           else setError(res.error);
         }
       }
-    } catch {
-      setError('Generation failed. Please try again.');
+    } catch (e) {
+      // Surface what actually failed (BI-031.2). `generateBatch` throws named
+      // errors — a missing bridge, a short batch — and collapsing them all into
+      // one sentence hid the single diagnostic that explains the mode.
+      setError(e instanceof Error ? e.message : 'Generation failed. Please try again.');
     } finally {
       setGeneratingTaskIds((prev) => prev.filter((id) => id !== taskId));
     }
@@ -865,6 +894,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     exportAll,
     exportToFolder,
     exportReviewSheet,
+    generationAvailable,
     imagegenLinked: imagegen.linked,
     linkImagegenFolder,
     loadRound,

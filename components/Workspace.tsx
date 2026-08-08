@@ -92,8 +92,10 @@ function WorkspaceInner() {
 
   const genBytes = ws.session ? countGeneratedImageBytes(ws.session) : 0;
 
-  // Eligibility mirrors generate()'s guard; disabled while any batch is in flight.
+  // Eligibility mirrors generate()'s guard; disabled while any batch is in
+  // flight, and while the Grok Imagine bridge is absent (BI-031.2).
   const canGenerateAll =
+    ws.generationAvailable &&
     ws.generatingTaskIds.length === 0 &&
     ws.session.tasks.some((t) => t.basePrompt.trim() !== '' || t.activeRefImageIds.length > 0);
 
@@ -129,6 +131,7 @@ function WorkspaceInner() {
           sessions={ws.sessions}
           activeTaskId={ws.activeTaskId}
           canGenerateAll={canGenerateAll}
+          generationAvailable={ws.generationAvailable}
           onSwitchSession={(id) => {
             setBulkTaskIds(null);
             ws.switchSession(id);
@@ -175,6 +178,7 @@ function WorkspaceInner() {
             task={ws.activeTask}
             library={ws.session.refLibrary}
             generating={ws.activeTaskId !== null && ws.generatingTaskIds.includes(ws.activeTaskId)}
+            generationAvailable={ws.generationAvailable}
             onRenameTask={ws.renameTask}
             onSetPrompt={ws.setTaskPrompt}
             onAddRefImage={ws.addRefImage}
