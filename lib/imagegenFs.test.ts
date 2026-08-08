@@ -4,6 +4,7 @@ import {
   listAvailableRounds,
   promoteKeeperToApproved,
   readRoundBatch,
+  removeApprovedFile,
   writeRoundSelection,
 } from './imagegenFs';
 import { ROUND_BATCH_SCHEMA_VERSION } from './roundBatch';
@@ -77,12 +78,18 @@ function fakeWritableDir(
     }
     throw new DOMException('NotFound');
   };
+  base.removeEntry = async (name: string) => {
+    // Mirrors the FSA contract: removing an absent entry throws NotFoundError.
+    if (!entries[name]) throw new DOMException('NotFound', 'NotFoundError');
+    delete entries[name];
+  };
   return base;
 }
 
 interface ImagegenDirectoryHandle extends FileSystemDirectoryHandle {
   queryPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
   requestPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
+  removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
 }
 
 describe('imagegenFs round reads', () => {
@@ -199,5 +206,63 @@ describe('imagegenFs selection writes', () => {
     const promoted = await approvedDir.getFileHandle('hero-001.jpg');
     const text = await promoted.getFile().then((f) => f.text());
     expect(text).toBe('img-bytes');
+  });
+});
+
+describe('imagegenFs approve removal (BI-030.2)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('indexedDB', undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('removes a previously promoted keeper from approved/', async () => {
+    const keeper = fakeFile('hero-001.jpg', 'img-bytes', 'image/jpeg');
+    const roundDir = fakeWritableDir({ 'hero-001.jpg': keeper });
+    const rounds = fakeWritableDir({ r2: roundDir });
+    const root = fakeWritableDir({ rounds });
+
+    expect((await promoteKeeperToApproved(root, 2, 'hero-001.jpg')).ok).toBe(true);
+    const approvedDir = await root.getDirectoryHandle('approved');
+    await expect(approvedDir.getFileHandle('hero-001.jpg')).resolves.toBeDefined();
+
+    const out = await removeApprovedFile(root, 'hero-001.jpg');
+    expect(out.ok).toBe(true);
+    await expect(approvedDir.getFileHandle('hero-001.jpg')).rejects.toThrow();
+  });
+
+  it('leaves sibling approved files untouched', async () => {
+    const roundDir = fakeWritableDir({
+      'hero-001.jpg': fakeFile('hero-001.jpg', 'a', 'image/jpeg'),
+      'hero-002.jpg': fakeFile('hero-002.jpg', 'b', 'image/jpeg'),
+    });
+    const rounds = fakeWritableDir({ r1: roundDir });
+    const root = fakeWritableDir({ rounds });
+    await promoteKeeperToApproved(root, 1, 'hero-001.jpg');
+    await promoteKeeperToApproved(root, 1, 'hero-002.jpg');
+
+    expect((await removeApprovedFile(root, 'hero-001.jpg')).ok).toBe(true);
+
+    const approvedDir = await root.getDirectoryHandle('approved');
+    await expect(approvedDir.getFileHandle('hero-001.jpg')).rejects.toThrow();
+    const survivor = await approvedDir.getFileHandle('hero-002.jpg');
+    expect(await survivor.getFile().then((f) => f.text())).toBe('b');
+  });
+
+  it('succeeds when the file is already gone (repeated clear)', async () => {
+    const roundDir = fakeWritableDir({ 'hero-001.jpg': fakeFile('hero-001.jpg', 'a', 'image/jpeg') });
+    const rounds = fakeWritableDir({ r1: roundDir });
+    const root = fakeWritableDir({ rounds });
+    await promoteKeeperToApproved(root, 1, 'hero-001.jpg');
+
+    expect((await removeApprovedFile(root, 'hero-001.jpg')).ok).toBe(true);
+    expect((await removeApprovedFile(root, 'hero-001.jpg')).ok).toBe(true);
+  });
+
+  it('succeeds when approved/ does not exist at all', async () => {
+    const root = fakeWritableDir({ rounds: fakeWritableDir({}) });
+    expect((await removeApprovedFile(root, 'hero-001.jpg')).ok).toBe(true);
   });
 });

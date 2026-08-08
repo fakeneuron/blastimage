@@ -18,6 +18,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
 import { useWorkspace } from './useWorkspace';
+import type { ImagegenApi } from './ImagegenContext';
+import { ROUND_BATCH_SCHEMA_VERSION, type RoundBatch } from './roundBatch';
+import type { RoundSelectionTask } from './roundSelection';
 import { loadSession } from './storage';
 import { SCHEMA_VERSION } from './types';
 
@@ -228,5 +231,170 @@ describe('importSessionBackup() (BI-022.7)', () => {
 
     expect(result.current.error).toBeTruthy();
     expect(result.current.session!.id).toBe(before);
+  });
+});
+
+/**
+ * Reversible approve (BI-030.2).
+ *
+ * Clearing an `approved` decision must undo both halves of the approve write:
+ * the copy into `imagegen/approved/` and the task's `selection.json` entry. The
+ * imagegen seam is injected (the hook's own `ImagegenApi` parameter), so these
+ * pin the orchestration + sibling-approval guards, not the FSA layer.
+ */
+function recordingImagegen(batches: Record<number, RoundBatch>): {
+  api: ImagegenApi;
+  unpromoted: string[];
+  selections: Array<{ round: number; tasks: RoundSelectionTask[] }>;
+} {
+  const unpromoted: string[] = [];
+  const selections: Array<{ round: number; tasks: RoundSelectionTask[] }> = [];
+  const api: ImagegenApi = {
+    linked: true,
+    linkFolder: async () => ({ status: 'cancelled' }),
+    listRounds: async () => Object.keys(batches).map(Number),
+    readRound: async (round) =>
+      batches[round]
+        ? { ok: true, value: batches[round]! }
+        : { ok: false, error: `no round ${round}` },
+    writeSelection: async (round, tasks) => {
+      selections.push({ round, tasks });
+      return { ok: true, value: undefined };
+    },
+    promoteApproved: async () => ({ ok: true, value: undefined }),
+    unpromoteApproved: async (keeperFilename) => {
+      unpromoted.push(keeperFilename);
+      return { ok: true, value: undefined };
+    },
+    resolveDisplayUrl: async (url) => url,
+    resolveBlob: async () => new Blob(['x']),
+  };
+  return { api, unpromoted, selections };
+}
+
+function roundBatch(round: number, images: string[]): RoundBatch {
+  return {
+    schemaVersion: ROUND_BATCH_SCHEMA_VERSION,
+    round,
+    generatedAt: '2026-08-08T00:00:00Z',
+    tasks: [{ slug: 'hero', name: 'Hero', prompt: 'a hero image', images }],
+  };
+}
+
+/** Loads `round` and returns the hero task id plus its image ids for that round. */
+async function loadHero(
+  result: { current: ReturnType<typeof useWorkspace> },
+  round: number,
+): Promise<{ taskId: string; imageIds: string[] }> {
+  await act(async () => {
+    await result.current.loadRound(round);
+  });
+  const task = result.current.session!.tasks.find((t) => t.name === 'Hero')!;
+  const iteration = task.iterations[task.iterations.length - 1]!;
+  return { taskId: task.id, imageIds: iteration.images.map((img) => img.id) };
+}
+
+describe('reversible approve (BI-030.2)', () => {
+  it('clearing an approve removes the file and rewrites the entry to skip', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg', 'hero-002.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(1));
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'undecided'));
+
+    await waitFor(() => expect(unpromoted).toEqual(['hero-001.jpg']));
+    await waitFor(() => expect(selections).toHaveLength(2));
+    expect(selections[1]).toEqual({ round: 1, tasks: [{ slug: 'hero', decision: 'skip' }] });
+  });
+
+  it('switching approve → kept also clears, via submitFeedback', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(1));
+
+    await act(async () =>
+      result.current.submitFeedback(
+        taskId,
+        imageIds[0]!,
+        { text: 'not quite', useAsReference: false },
+        'keep',
+      ),
+    );
+
+    await waitFor(() => expect(unpromoted).toEqual(['hero-001.jpg']));
+    await waitFor(() => expect(selections).toHaveLength(2));
+    expect(selections[1]!.tasks).toEqual([{ slug: 'hero', decision: 'skip' }]);
+  });
+
+  it('does not rewrite the entry while a sibling image of the task stays approved', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg', 'hero-002.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await act(async () => result.current.setImageDecision(taskId, imageIds[1]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(2));
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'undecided'));
+
+    // Its own file goes, but hero-002 still owns the slug's approve entry.
+    await waitFor(() => expect(unpromoted).toEqual(['hero-001.jpg']));
+    expect(selections).toHaveLength(2);
+    expect(selections.some((s) => s.tasks[0]!.decision === 'skip')).toBe(false);
+  });
+
+  it('is a silent no-op when the imagegen folder is not linked', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const state = { api };
+    const { result, rerender } = renderHook(() => useWorkspace(state.api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(1));
+
+    // The user unlinks the folder, then clears the approve.
+    state.api = { ...api, linked: false };
+    rerender();
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'undecided'));
+
+    expect(unpromoted).toEqual([]);
+    expect(selections).toHaveLength(1);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('keeps the approved/ file when another round approved the same filename', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+      2: roundBatch(2, ['hero-001.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const r1 = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(r1.taskId, r1.imageIds[0]!, 'approved'));
+    const r2 = await loadHero(result, 2);
+    await act(async () => result.current.setImageDecision(r2.taskId, r2.imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(2));
+
+    await act(async () => result.current.setImageDecision(r2.taskId, r2.imageIds[0]!, 'undecided'));
+
+    // approved/hero-001.jpg is still the round-1 approval's file — leave it.
+    await waitFor(() => expect(selections).toHaveLength(3));
+    expect(unpromoted).toEqual([]);
+    expect(selections[2]).toEqual({ round: 2, tasks: [{ slug: 'hero', decision: 'skip' }] });
   });
 });

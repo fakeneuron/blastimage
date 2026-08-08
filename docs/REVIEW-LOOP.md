@@ -105,6 +105,13 @@ never embedded as base64 in the JSON (see §5).
 - `promptMode`: `append` (default — base prompt unchanged + a `Refine:` delta) or `overhaul`
   (prompt rewritten; the carried reference is dropped so they don't fight). See §6.
 
+**Approve is reversible (BI-030.2).** Clearing an `approved` decision in the frontend deletes
+the keeper from `imagegen/approved/` and rewrites the task's entry to `{ slug, decision: "skip" }`
+— so a mis-click never leaves an orphan file in the host repo. Two guards keep the undo from
+clobbering a sibling approval: the entry is only rewritten when no other image of that task is
+still approved in that round, and the file is only deleted when no other still-approved image
+maps to the same (flat, filename-keyed) `approved/` name.
+
 ---
 
 ## 4. Frontend seams (BI-EPIC-024 — shipped)
@@ -118,7 +125,8 @@ terminal loop:
    Images stay as `imagegen:` path URLs — never embedded in `localStorage`.
 2. **Emit a next-round request** (BI-024.2) — the iterate modal writes
    `selection.json` (keepers + `promptMode` + `nextPrompt`) instead of calling
-   `generateBatch`. Approve promotes keepers to `imagegen/approved/`.
+   `generateBatch`. Approve promotes keepers to `imagegen/approved/`; clearing an approve
+   undoes both halves of that write (BI-030.2 — see §3).
 
 ---
 

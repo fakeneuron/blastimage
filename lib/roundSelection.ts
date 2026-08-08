@@ -69,6 +69,15 @@ export function buildApproveSelectionTask(slug: string, keeperFilename: string):
 }
 
 /**
+ * Builds one `skip` task entry for selection.json — the "leave this task
+ * untouched this round" value (BI-030.2). Merged by slug, it clears a prior
+ * `approve`/`iterate` entry's keeper and prompt without removing the task.
+ */
+export function buildSkipSelectionTask(slug: string): RoundSelectionTask {
+  return { slug, decision: 'skip' };
+}
+
+/**
  * Merges `incoming` into `existing` by slug (incoming wins). Returns a fresh
  * selection object with a new `selectedAt` timestamp.
  */

@@ -24,6 +24,7 @@ import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } fro
 import {
   buildApproveSelectionTask,
   buildIterateSelectionTask,
+  buildSkipSelectionTask,
 } from './roundSelection';
 import type {
   ApprovedImage,
@@ -89,6 +90,7 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   readRound: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   writeSelection: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   promoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  unpromoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   resolveDisplayUrl: async (url) => url,
   // No linked root: `data:`/`https:` still resolve, `imagegen:` rejects (BI-029.2).
   resolveBlob: (url) => resolveImageBlob(url, null),
@@ -518,10 +520,62 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     else setError(null);
   }
 
+  /**
+   * Undoes {@link handleImagegenApprove} when an approve decision is cleared
+   * (BI-030.2): deletes the keeper from `approved/` and rewrites the task's
+   * `selection.json` entry to `skip`.
+   *
+   * Nothing enforces one approved image per task, but `selection.json` holds one
+   * entry per slug and `approved/` is a flat filename namespace — so both writes
+   * are guarded against a sibling approval that still needs them. `session` here
+   * is the pre-commit state, so excluding `imageId` yields exactly the set that
+   * remains approved after the clear.
+   */
+  async function handleImagegenUnapprove(taskId: ID, imageId: ID): Promise<void> {
+    if (!session || !imagegen.linked) return;
+    const hit = findGeneratedImage(session, taskId, imageId);
+    if (!hit) return;
+    const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
+    const keeper = roundImageFilenameFromUrl(hit.image.url);
+    if (round === null || !keeper) return;
+    const remaining = buildApprovedImages(session).filter((a) => a.imageId !== imageId);
+
+    // Another approved image of this round maps to the same flat approved/ name.
+    const filenameStillUsed = remaining.some(
+      (a) => roundImageFilenameFromUrl(a.url) === keeper,
+    );
+    if (!filenameStillUsed) {
+      const removed = await imagegen.unpromoteApproved(keeper);
+      if (!removed.ok) {
+        setError(removed.error);
+        return;
+      }
+    }
+
+    // Another approved image of this task still owns the slug's approve entry.
+    const slugStillApproved = remaining.some(
+      (a) => a.taskId === taskId && roundNumberFromImageUrl(a.url) === round,
+    );
+    if (slugStillApproved) {
+      setError(null);
+      return;
+    }
+    const slug = slugify(hit.task.name);
+    const sel = await imagegen.writeSelection(
+      round,
+      [buildSkipSelectionTask(slug)],
+      new Date().toISOString(),
+    );
+    if (!sel.ok) setError(sel.error);
+    else setError(null);
+  }
+
   function setImageDecision(taskId: ID, imageId: ID, decision: ReviewDecision): void {
     if (!session) return;
+    const previous = findGeneratedImage(session, taskId, imageId)?.image.decision;
     commit(setImageDecisionOn(session, taskId, imageId, decision));
     if (decision === 'approved') void handleImagegenApprove(taskId, imageId);
+    else if (previous === 'approved') void handleImagegenUnapprove(taskId, imageId);
   }
 
   function setImageRating(taskId: ID, imageId: ID, rating: StarRating): void {
@@ -536,12 +590,16 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     action: 'save' | 'keep' | 'approve',
   ): void {
     if (!session) return;
+    const previous = findGeneratedImage(session, taskId, imageId)?.image.decision;
     // Compose on the fresh session so feedback + decision land in one commit.
     let next = setImageFeedbackOn(session, taskId, imageId, feedback);
     if (action === 'keep') next = setImageDecisionOn(next, taskId, imageId, 'kept');
     else if (action === 'approve') next = setImageDecisionOn(next, taskId, imageId, 'approved');
     commit(next);
     if (action === 'approve') void handleImagegenApprove(taskId, imageId);
+    else if (action === 'keep' && previous === 'approved') {
+      void handleImagegenUnapprove(taskId, imageId);
+    }
   }
 
   async function requestNextRound(taskId: ID, imageId: ID, nextPrompt: string): Promise<void> {

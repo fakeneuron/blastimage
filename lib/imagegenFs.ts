@@ -4,7 +4,7 @@
  * Links the host repo's canonical `imagegen/` directory via the File System
  * Access API, persists the directory handle in IndexedDB for refresh survival,
  * reads `rounds/r<N>/batch.json` plus on-disk images, and writes
- * `selection.json` + approve promotions into `approved/`.
+ * `selection.json` + approve promotions into (and removals out of) `approved/`.
  */
 
 import {
@@ -41,6 +41,7 @@ interface ImagegenDirectoryHandle extends FileSystemDirectoryHandle {
   queryPermission(descriptor: { mode: FsaMode }): Promise<PermissionState>;
   requestPermission(descriptor: { mode: FsaMode }): Promise<PermissionState>;
   entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+  removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
 }
 
 interface ImagegenFileHandle extends FileSystemFileHandle {
@@ -348,6 +349,37 @@ export async function promoteKeeperToApproved(
     return { ok: true, value: undefined };
   } catch {
     return { ok: false, error: `Could not promote ${keeperFilename} to approved/.` };
+  }
+}
+
+/**
+ * Deletes a previously promoted keeper from `imagegen/approved/` — the inverse
+ * of {@link promoteKeeperToApproved}, so clearing an approve decision is not a
+ * one-way write into the user's repo (BI-030.2). Idempotent: an absent file or
+ * an absent `approved/` directory both count as success.
+ */
+export async function removeApprovedFile(
+  root: FileSystemDirectoryHandle,
+  keeperFilename: string,
+): Promise<Result<void>> {
+  if (!(await ensureWritePermission(root))) {
+    return { ok: false, error: 'Write permission denied for the linked imagegen folder.' };
+  }
+  let approvedDir: ImagegenDirectoryHandle;
+  try {
+    approvedDir = (await root.getDirectoryHandle('approved')) as ImagegenDirectoryHandle;
+  } catch {
+    // No approved/ at all — nothing to undo.
+    return { ok: true, value: undefined };
+  }
+  try {
+    await approvedDir.removeEntry(keeperFilename);
+    return { ok: true, value: undefined };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'NotFoundError') {
+      return { ok: true, value: undefined };
+    }
+    return { ok: false, error: `Could not remove ${keeperFilename} from approved/.` };
   }
 }
 
