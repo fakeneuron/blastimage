@@ -64,6 +64,8 @@ import {
   newTask,
   removeRefImage as removeRefImageFrom,
   renameSession as renameSessionName,
+  renameSlugBreak,
+  type RenameSlugBreak,
   renameTask as renameTaskName,
   setImageDecision as setImageDecisionOn,
   setImageFeedback as setImageFeedbackOn,
@@ -96,6 +98,31 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   resolveBlob: (url) => resolveImageBlob(url, null),
 };
 
+/**
+ * Blocking confirm for a rename that would orphan a task from the round files
+ * already on disk (BI-030.3). Deliberately does not consult `imagegen.linked`:
+ * the rounds exist on disk whether or not this browser session has re-linked
+ * the folder, so the join is broken either way. Proceeds without asking where
+ * `window.confirm` is unavailable (SSR), mirroring `storage.downloadBlob`'s
+ * no-DOM guard.
+ */
+function confirmSlugBreak(
+  previousName: string,
+  nextName: string,
+  risk: RenameSlugBreak,
+): boolean {
+  if (typeof window === 'undefined' || typeof window.confirm !== 'function') return true;
+  const rounds = risk.rounds.map((r) => `r${r}`).join(', ');
+  return window.confirm(
+    `Rename “${previousName}” → “${nextName}”?\n\n` +
+      `This task is joined to imagegen ${risk.rounds.length > 1 ? 'rounds' : 'round'} ` +
+      `${rounds} by the slug “${risk.currentSlug}”. Renaming changes its slug to ` +
+      `“${risk.nextSlug}”, so the next ↻ Load round will mint a duplicate task and ` +
+      `⟳ Iterate will write a slug /blast-iterate won't match.\n\n` +
+      `Rename imagegen/tasks.json to match, or keep the old name.`,
+  );
+}
+
 export interface UseWorkspace {
   /** False until the mount-time load completes (render a neutral shell while false). */
   ready: boolean;
@@ -127,7 +154,13 @@ export interface UseWorkspace {
    * {@link UseWorkspace.error}.
    */
   importSessionBackup: (json: string) => void;
-  renameTask: (taskId: ID, name: string) => void;
+  /**
+   * Renames a task. When the rename would change `slugify(name)` and thereby
+   * orphan the task from the terminal rounds on disk, it first raises a
+   * blocking confirm (BI-030.3). Returns whether the rename was applied, so
+   * an uncontrolled name field can reset itself when the user declines.
+   */
+  renameTask: (taskId: ID, name: string) => boolean;
   deleteTask: (taskId: ID) => void;
   setTaskPrompt: (taskId: ID, basePrompt: string) => void;
   /**
@@ -375,11 +408,17 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     })();
   }
 
-  function renameTask(taskId: ID, name: string): void {
-    if (!session) return;
+  function renameTask(taskId: ID, name: string): boolean {
+    if (!session) return false;
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed) return false;
+    // A rename changes slugify(name), which is the only thing joining this task
+    // to the round files on disk — warn before orphaning it (BI-030.3).
+    const previousName = session.tasks.find((t) => t.id === taskId)?.name ?? '';
+    const risk = renameSlugBreak(session, taskId, trimmed);
+    if (risk && !confirmSlugBreak(previousName, trimmed, risk)) return false;
     commit(renameTaskName(session, taskId, trimmed));
+    return true;
   }
 
   function deleteTask(taskId: ID): void {

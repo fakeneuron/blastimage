@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { roundImageUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
-import { SCHEMA_VERSION } from './types';
+import { SCHEMA_VERSION, type Session } from './types';
 import {
   addRefImage,
   addTask,
@@ -21,6 +21,7 @@ import {
   newTask,
   removeRefImage,
   renameSession,
+  renameSlugBreak,
   renameTask,
   setImageDecision,
   setImageFeedback,
@@ -538,5 +539,60 @@ describe('ingestRoundBatch', () => {
     expect(s.tasks[0]!.name).toBe('Hero banner');
     expect(s.tasks[0]!.basePrompt).toBe('Warm hero shot');
     expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Warm hero shot');
+  });
+});
+
+describe('renameSlugBreak (BI-030.3)', () => {
+  /** Session with one task holding round-`round` images, per ingestRoundBatch. */
+  function withRound(round: number, base = newSession('S')): Session {
+    const b: RoundBatch = {
+      schemaVersion: 1,
+      round,
+      generatedAt: '2026-06-18T00:00:00Z',
+      tasks: [
+        {
+          slug: 'hero-banner',
+          name: 'Hero banner',
+          prompt: 'Warm hero shot',
+          images: [`hero-banner-001.jpg`],
+        },
+      ],
+    };
+    return ingestRoundBatch(base, b, (f) => roundImageUrl(round, f));
+  }
+
+  it('reports the stale slug, the new slug, and the joined round', () => {
+    const s = withRound(2);
+    const id = s.tasks[0]!.id;
+    expect(renameSlugBreak(s, id, 'Hero image')).toEqual({
+      currentSlug: 'hero-banner',
+      nextSlug: 'hero-image',
+      rounds: [2],
+    });
+  });
+
+  it('is silent for a slug-preserving rename', () => {
+    const s = withRound(2);
+    expect(renameSlugBreak(s, s.tasks[0]!.id, 'hero banner!')).toBeNull();
+  });
+
+  it('is silent for a task with no on-disk round images', () => {
+    const t = newTask('Hero banner');
+    const s = appendIteration(addTask(newSession('S'), t), t.id, {
+      prompt: 'p',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [newGeneratedImage('data:image/png;base64,xx', 'p')],
+    });
+    expect(renameSlugBreak(s, t.id, 'Hero image')).toBeNull();
+  });
+
+  it('collects every joined round, deduped and ascending', () => {
+    const s = withRound(3, withRound(10, withRound(3)));
+    expect(renameSlugBreak(s, s.tasks[0]!.id, 'Hero image')?.rounds).toEqual([3, 10]);
+  });
+
+  it('is silent for an unknown task id', () => {
+    expect(renameSlugBreak(withRound(2), 'nope', 'Anything')).toBeNull();
   });
 });

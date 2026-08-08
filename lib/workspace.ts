@@ -12,6 +12,7 @@
  * unit-testable without a component-render dependency.
  */
 
+import { roundNumberFromImageUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import { slugify } from './storage';
 import {
@@ -251,6 +252,50 @@ function updateTask(session: Session, taskId: ID, patch: Partial<PromptTask>): S
 /** Renames a task. */
 export function renameTask(session: Session, taskId: ID, name: string): Session {
   return updateTask(session, taskId, { name });
+}
+
+/** A rename that would orphan a task from the terminal rounds already on disk. */
+export interface RenameSlugBreak {
+  /** The slug the on-disk round files and `imagegen/tasks.json` still use. */
+  currentSlug: string;
+  /** The slug the rename would produce. */
+  nextSlug: string;
+  /** Round numbers this task's images came from, ascending. */
+  rounds: number[];
+}
+
+/**
+ * Reports whether renaming a task would break the `slugify(name)` join to the
+ * terminal rounds on disk, or `null` when the rename is safe.
+ *
+ * The disk side of that join never comes from app state — `/blast-generate`
+ * derives slugs from the host repo's `imagegen/tasks.json` and `/blast-iterate`
+ * carries them forward from the prior `batch.json` (see `docs/REVIEW-LOOP.md`
+ * §2) — so a rename here moves one end and nothing reconciles it:
+ * {@link ingestRoundBatch} stops matching and mints a duplicate task, and the
+ * slug `useWorkspace.requestNextRound` writes into `selection.json` no longer
+ * resolves. Slug-preserving renames (`Hero Banner` → `hero banner!`) are safe
+ * and report `null`; so do tasks with no on-disk round images.
+ */
+export function renameSlugBreak(
+  session: Session,
+  taskId: ID,
+  name: string,
+): RenameSlugBreak | null {
+  const task = session.tasks.find((t) => t.id === taskId);
+  if (!task) return null;
+  const currentSlug = slugify(task.name);
+  const nextSlug = slugify(name);
+  if (nextSlug === currentSlug) return null;
+  const rounds = [
+    ...new Set(
+      task.iterations
+        .flatMap((it) => it.images)
+        .map((img) => roundNumberFromImageUrl(img.url))
+        .filter((r): r is number => r !== null),
+    ),
+  ].sort((a, b) => a - b);
+  return rounds.length ? { currentSlug, nextSlug, rounds } : null;
 }
 
 /** Sets a task's editable base prompt. */

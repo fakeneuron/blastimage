@@ -20,7 +20,7 @@ blastimage is the viewer/selector — the browser never generates. Full contract
 1. **Stage** — `imagegen/tasks.json` + optional `refs/` in the host repo (see [`docs/ADOPT.md`](docs/ADOPT.md) §7).
 2. **Generate** — `/blast-generate` in a terminal session writes `imagegen/rounds/r<N>/` + `batch.json`.
 3. **Link & load** — in blastimage, **🔗 Link imagegen** then **↻ Load round** to ingest the batch into the review UI.
-4. **Review & iterate** — keep/approve/discard, rate, edit prompts; iterate writes `selection.json` (not in-browser generation). Click any thumbnail to view it full-size (← / → step through the round).
+4. **Review & iterate** — keep/approve/discard, rate, edit prompts; iterate writes `selection.json` (not in-browser generation). Click any thumbnail to view it full-size (← / → step through the round). Renaming a loaded task changes the `slug` joining it to the files on disk, so the app confirms first — keep `imagegen/tasks.json` in step if you accept.
 5. **Next round** — `/blast-iterate` reads `selection.json` and writes the next round; repeat until satisfied.
 6. **Export** — approved images land in `imagegen/approved/`; promote to your site assets.
 

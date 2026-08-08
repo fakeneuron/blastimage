@@ -80,6 +80,16 @@ never embedded as base64 in the JSON (see §5).
 }
 ```
 
+**`slug` is the join, and only one side of it is app state (BI-030.3).** `/blast-generate`
+derives each slug from `imagegen/tasks.json` and `/blast-iterate` carries it forward from the
+prior `batch.json`; the frontend re-derives it as `slugify(task.name)` to match tasks on load
+and to address them in `selection.json`. Renaming a task in the app therefore moves one end of
+the join and nothing reconciles it — the next **↻ Load round** mints a duplicate task, and
+**⟳ Iterate** writes a slug `/blast-iterate` won't match. The frontend now raises a blocking
+confirm before any rename that would change a joined task's slug; **keep `imagegen/tasks.json`
+in step** when you accept one. Slug-preserving renames (`Hero Banner` → `hero banner!`) are safe
+and pass silently.
+
 ### `rounds/r<N>/selection.json` — written by the frontend, read by `/blast-iterate`
 
 ```json

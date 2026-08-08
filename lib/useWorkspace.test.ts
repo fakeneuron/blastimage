@@ -14,7 +14,7 @@
  * then persist in the background (so `act` is async to flush those microtasks).
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
 import { useWorkspace } from './useWorkspace';
@@ -396,5 +396,93 @@ describe('reversible approve (BI-030.2)', () => {
     await waitFor(() => expect(selections).toHaveLength(3));
     expect(unpromoted).toEqual([]);
     expect(selections[2]).toEqual({ round: 2, tasks: [{ slug: 'hero', decision: 'skip' }] });
+  });
+});
+
+/**
+ * Rename slug guard (BI-030.3).
+ *
+ * `slugify(task.name)` is the only thing joining a task to the round files on
+ * disk, and the disk side of that join comes from the host repo's tasks.json —
+ * so a rename orphans the task. These pin the hook's confirm orchestration; the
+ * pure decision is covered in `workspace.test.ts`. `confirm` is stubbed as a
+ * real global rather than mocked away, per the project's seam preference.
+ */
+describe('rename slug guard (BI-030.3)', () => {
+  /** Stubs window.confirm with a fixed answer; returns the prompts it received. */
+  function stubConfirm(answer: boolean): string[] {
+    const asked: string[] = [];
+    vi.stubGlobal('confirm', (message?: string) => {
+      asked.push(message ?? '');
+      return answer;
+    });
+    return asked;
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('warns before a rename that would orphan the task, and reverts on decline', async () => {
+    const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId } = await loadHero(result, 1);
+    const asked = stubConfirm(false);
+
+    let applied!: boolean;
+    await act(async () => {
+      applied = result.current.renameTask(taskId, 'Hero image');
+    });
+
+    expect(applied).toBe(false);
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)!.name).toBe('Hero');
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toContain('“hero”');
+    expect(asked[0]).toContain('“hero-image”');
+    expect(asked[0]).toContain('round r1');
+  });
+
+  it('applies the rename when the warning is accepted', async () => {
+    const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId } = await loadHero(result, 1);
+    const asked = stubConfirm(true);
+
+    let applied!: boolean;
+    await act(async () => {
+      applied = result.current.renameTask(taskId, 'Hero image');
+    });
+
+    expect(applied).toBe(true);
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)!.name).toBe('Hero image');
+    expect(asked).toHaveLength(1);
+  });
+
+  it('does not warn for a slug-preserving rename', async () => {
+    const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId } = await loadHero(result, 1);
+    const asked = stubConfirm(false);
+
+    await act(async () => result.current.renameTask(taskId, 'HERO!'));
+
+    expect(asked).toEqual([]);
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)!.name).toBe('HERO!');
+  });
+
+  it('does not warn for a task with no on-disk round images', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => result.current.addTask('Hero'));
+    const taskId = result.current.activeTaskId!;
+    const asked = stubConfirm(false);
+
+    await act(async () => result.current.renameTask(taskId, 'Hero image'));
+
+    expect(asked).toEqual([]);
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)!.name).toBe('Hero image');
   });
 });

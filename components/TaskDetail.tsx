@@ -21,7 +21,8 @@ interface TaskDetailProps {
   library: RefImage[];
   /** True while this task's batch is generating (disables the button, shows skeletons). */
   generating: boolean;
-  onRenameTask: (id: ID, name: string) => void;
+  /** Returns whether the rename was applied — `false` when the user declined the slug-break warning (BI-030.3). */
+  onRenameTask: (id: ID, name: string) => boolean;
   onSetPrompt: (id: ID, basePrompt: string) => void;
   onAddRefImage: (ref: RefImage) => void;
   onRemoveRefImage: (refId: ID) => void;
@@ -85,7 +86,10 @@ export default function TaskDetail({
         className="w-full border-b border-transparent bg-transparent text-xl font-semibold focus:border-black/20 focus:outline-none dark:focus:border-white/20"
         onBlur={(e) => {
           const v = e.target.value.trim();
-          if (v && v !== task.name) onRenameTask(task.id, v);
+          if (!v || v === task.name) return;
+          // The field is uncontrolled, so a declined rename would leave it
+          // showing a name the session never took — put it back (BI-030.3).
+          if (!onRenameTask(task.id, v)) e.target.value = task.name;
         }}
       />
 
