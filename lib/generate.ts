@@ -54,16 +54,16 @@ export interface GeneratedCandidate {
  * refs, and render directly.
  *
  * The provider receives the full request (including referenceImages when present).
- * For this live test the agent orchestrates the real image_gen calls (multiple
- * for batch distinctness), converts the filesystem results to data: URLs, then
+ * The agent orchestrates the real image_gen calls (multiple for batch
+ * distinctness), converts the filesystem results to data: URLs, then
  * installs/replaces the provider before the generate action runs.
  */
 type GrokImagineProvider = (req: GenerationRequest) => Promise<GeneratedCandidate[]>;
 
 declare global {
-  // Agent-installed bridge for real Grok Imagine during BI-013 live test (and future
-  // transparent runs inside Grok Build). The provider returns exactly batchSize
-  // candidates with renderable urls (data: or http) and the original prompt.
+  // Agent-installed bridge for real Grok Imagine inside a Grok Build session.
+  // The provider returns exactly batchSize candidates with renderable urls
+  // (data: or http) and the original prompt.
   var __grokImagineProvider: GrokImagineProvider | undefined;
 }
 
@@ -89,8 +89,8 @@ export function isGenerationAvailable(): boolean {
 
 /**
  * Generates one batch of candidates by delegating to the installed Grok Imagine
- * provider (real path) or falling back to a clear error (so the UI surfaces the
- * need for the agent bridge during a pure-client test run).
+ * provider, or throwing a clear error when the bridge isn't installed (so the
+ * UI can surface the need for it).
  *
  * Must return exactly `req.batchSize` items. Throw on any failure — the caller
  * (useWorkspace.generate) catches and surfaces the message in the error banner.
@@ -107,11 +107,9 @@ export async function generateBatch(req: GenerationRequest): Promise<GeneratedCa
     return results.map((c) => ({ url: c.url, prompt: c.prompt ?? req.prompt }));
   }
 
-  // No provider installed. In a normal SuperGrok/Grok Build host the page would
-  // have a built-in. During this agent-driven live test the caller (the /ft-task
-  // driver) is expected to pre-produce real images via the available image_gen
-  // tool, convert them to data URLs, install a provider that returns them, then
-  // trigger the generate action (or inject state directly).
+  // No provider installed — blastimage isn't running inside a Grok Build
+  // session with the Grok Imagine bridge (see docs/GROK-AGENT.md). Surface an
+  // actionable error rather than silently no-op.
   throw new Error(
     "Image generation isn't available in this browser. In-app generation requires blastimage to be running inside a Grok Build session with the Grok Imagine provider installed — see docs/GROK-AGENT.md."
   );
