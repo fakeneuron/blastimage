@@ -6,8 +6,11 @@
  * Session switcher (switch / new / rename) above the prompt-task list
  * (select / add / rename / delete / import-from-JSON). Naming prompts use
  * native dialogs to keep the shell minimal; richer inline editing can replace
- * them later if needed. The import file-read (DOM concern) lives here, per
- * the ReferenceLibrary precedent; parse/validate/merge live in lib (BI-019).
+ * them later if needed. Delete is the exception — it routes to
+ * {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on disk
+ * does not fit a `window.confirm` (BI-033). The import file-read (DOM concern)
+ * lives here, per the ReferenceLibrary precedent; parse/validate/merge live in
+ * lib (BI-019).
  */
 
 import { useRef } from 'react';
@@ -41,6 +44,7 @@ interface SidebarProps {
   onImportTasks: (json: string) => void;
   onSelectTask: (id: ID) => void;
   onRenameTask: (id: ID, name: string) => void;
+  /** Opens the delete-task modal (BI-033) — the confirmation is not this component's. */
   onDeleteTask: (id: ID) => void;
   /** Fires generation for every eligible task and opens bulk review (BI-015). */
   onGenerateAll: () => void;
@@ -98,10 +102,6 @@ export default function Sidebar({
   function handleRenameTask(id: ID, current: string) {
     const name = window.prompt('Rename task:', current);
     if (name && name.trim()) onRenameTask(id, name);
-  }
-
-  function handleDeleteTask(id: ID, name: string) {
-    if (window.confirm(`Delete task “${name}”? This cannot be undone.`)) onDeleteTask(id);
   }
 
   return (
@@ -297,7 +297,7 @@ export default function Sidebar({
                     <button
                       className="opacity-0 transition-opacity group-hover:opacity-70 hover:!opacity-100"
                       title="Delete task"
-                      onClick={() => handleDeleteTask(task.id, task.name)}
+                      onClick={() => onDeleteTask(task.id)}
                     >
                       🗑
                     </button>

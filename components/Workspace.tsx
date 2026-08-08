@@ -14,10 +14,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { ID } from '@/lib/types';
 import { ImagegenProvider, useImagegen } from '@/lib/ImagegenContext';
 import { useWorkspace } from '@/lib/useWorkspace';
-import { countGeneratedImageBytes, GENERATED_QUOTA_WARN_BYTES } from '@/lib/workspace';
+import {
+  countGeneratedImageBytes,
+  deleteSlugBreak,
+  GENERATED_QUOTA_WARN_BYTES,
+} from '@/lib/workspace';
 import Sidebar from '@/components/Sidebar';
 import TaskDetail from '@/components/TaskDetail';
 import BulkReviewPane from '@/components/BulkReviewPane';
+import DeleteTaskModal from '@/components/DeleteTaskModal';
 import FeedbackModal from '@/components/FeedbackModal';
 import GalleryPanel from '@/components/GalleryPanel';
 import IterateModal from '@/components/IterateModal';
@@ -39,6 +44,8 @@ function WorkspaceInner() {
   const [feedbackFor, setFeedbackFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
   // Which keeper the iterate modal is open for (BI-009), or null when closed.
   const [iterateFor, setIterateFor] = useState<{ taskId: ID; imageId: ID } | null>(null);
+  // Which task the delete modal is open for (BI-033), or null when closed.
+  const [deleteFor, setDeleteFor] = useState<ID | null>(null);
   // Tasks fired by Generate All — non-null renders the bulk-review pane (BI-015);
   // selecting a task or switching sessions exits back to TaskDetail.
   const [bulkTaskIds, setBulkTaskIds] = useState<ID[] | null>(null);
@@ -71,6 +78,11 @@ function WorkspaceInner() {
         ?.iterations.flatMap((it) => it.images)
         .find((img) => img.id === feedbackFor.imageId) ?? null)
     : null;
+
+  // Resolve the doomed task + what its delete would sever on disk (BI-033).
+  const deleteTask = deleteFor ? (ws.session?.tasks.find((t) => t.id === deleteFor) ?? null) : null;
+  const deleteRisk =
+    ws.session && deleteFor ? deleteSlugBreak(ws.session, deleteFor) : null;
 
   // Resolve the keeper + its task's base prompt for the iterate modal prefill.
   const iterateTask = iterateFor
@@ -151,7 +163,7 @@ function WorkspaceInner() {
             ws.selectTask(id);
           }}
           onRenameTask={ws.renameTask}
-          onDeleteTask={ws.deleteTask}
+          onDeleteTask={setDeleteFor}
           onGenerateAll={() => {
             const fired = ws.generateAll();
             if (fired.length > 0) setBulkTaskIds(fired);
@@ -216,6 +228,18 @@ function WorkspaceInner() {
           onSubmit={(prompt) => {
             void ws.requestNextRound(iterateFor.taskId, iterateFor.imageId, prompt);
             setIterateFor(null);
+          }}
+        />
+      )}
+      {deleteFor && deleteTask && (
+        <DeleteTaskModal
+          taskName={deleteTask.name}
+          risk={deleteRisk}
+          imagegenLinked={ws.imagegenLinked}
+          onClose={() => setDeleteFor(null)}
+          onConfirm={({ removeApproved }) => {
+            ws.deleteTask(deleteFor, { removeApproved });
+            setDeleteFor(null);
           }}
         />
       )}

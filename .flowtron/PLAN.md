@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-033** [medium]🧩 | delete-slug-guard — `deleteTask` (`lib/useWorkspace.ts:461`) has no `renameSlugBreak` equivalent, so deleting a task carrying `imagegen:rounds/` images orphans its on-disk round silently. `Sidebar.tsx:97` already confirms deletion but never mentions the join. BI-030.3 scoped this out (assumption 2). Surfaced by BI-030.N audit 2026-08-08.
+(none)
 
 ## Low
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-033** [medium]🧩 | delete-slug-guard — Completed 2026-08-08.
 - [x] **BI-032** [medium]🧩 | approved-collision-guard — Completed 2026-08-08.
 - [x] **BI-EPIC-031** [medium]🧩 | generation-mode-clarity — Completed 2026-08-08.
   - [x] **BI-031.2** [light]🔧 | provider-absent-ux — Completed 2026-08-08.

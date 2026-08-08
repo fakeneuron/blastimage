@@ -58,6 +58,8 @@ import {
   buildApprovedImages,
   buildExportManifest,
   cloneSessionWithNewIds,
+  deleteSlugBreak,
+  type DeleteSlugBreak,
   deleteTask as deleteTaskFrom,
   importTasks as importTasksInto,
   ingestRoundBatch,
@@ -150,6 +152,27 @@ function confirmApprovedOverwrite(keeperFilename: string, priorRound: number | n
 }
 
 /**
+ * The subset of a doomed task's `approved/` filenames that no *other* task's
+ * approval still needs (BI-033). `approved/` is a flat filename namespace, so
+ * two tasks sharing a slug share a name in it — this is
+ * `handleImagegenUnapprove`'s `filenameStillUsed` guard (BI-030.2) widened from
+ * one cleared image to a whole task. `session` must be the pre-delete state.
+ */
+function orphanedApprovedFilenames(
+  session: Session,
+  taskId: ID,
+  retract: DeleteSlugBreak,
+): string[] {
+  const stillNeeded = new Set(
+    buildApprovedImages(session)
+      .filter((a) => a.taskId !== taskId)
+      .map((a) => roundImageFilenameFromUrl(a.url))
+      .filter((f): f is string => f !== null),
+  );
+  return retract.approvedFilenames.filter((f) => !stillNeeded.has(f));
+}
+
+/**
  * User-facing reason a stored session could not be opened, or `null` when the
  * load is a non-event (`ok`, or `absent` — first run, no pointer, or storage
  * unavailable). Callers append the consequence, since bootstrapping over the
@@ -208,7 +231,15 @@ export interface UseWorkspace {
    * an uncontrolled name field can reset itself when the user declines.
    */
   renameTask: (taskId: ID, name: string) => boolean;
-  deleteTask: (taskId: ID) => void;
+  /**
+   * Removes a task from the session. Callers own the confirmation — see
+   * `components/DeleteTaskModal.tsx`, which surfaces what the delete severs on
+   * disk via {@link deleteSlugBreak}. With `opts.removeApproved` (opt-in, and a
+   * no-op while the imagegen folder is unlinked) it also retracts the task's
+   * `approved/` copies and `selection.json` entries; the `rounds/r<N>/` source
+   * files are never touched (BI-033).
+   */
+  deleteTask: (taskId: ID, opts?: { removeApproved?: boolean }) => void;
   setTaskPrompt: (taskId: ID, basePrompt: string) => void;
   /**
    * Generates a batch for a task and appends it as a new iteration. `opts.prompt`
@@ -506,11 +537,68 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     return true;
   }
 
-  function deleteTask(taskId: ID): void {
+  /**
+   * Removes a task, optionally retracting what it promoted into the host repo
+   * (BI-033). `removeApproved` is opt-in from the delete modal — the delete
+   * itself never writes to disk, since the files belong to the user's repo.
+   *
+   * The retraction plan is read from the *pre*-delete session: `buildApprovedImages`
+   * derives from `session.tasks`, so once the task is gone there is nothing left
+   * to retract. (The deliberate mirror of {@link handleImagegenApprove}, which
+   * reads the *post*-commit `sessionRef.current` for its rollback — each path
+   * needs the state that makes its own work correct.)
+   */
+  function deleteTask(taskId: ID, opts?: { removeApproved?: boolean }): void {
     if (!session) return;
+    const retract = opts?.removeApproved && imagegen.linked ? deleteSlugBreak(session, taskId) : null;
+    const orphaned = retract ? orphanedApprovedFilenames(session, taskId, retract) : [];
+
     const next = deleteTaskFrom(session, taskId);
     commit(next);
     if (activeTaskId === taskId) setActiveTaskId(next.tasks[0]?.id ?? null);
+
+    if (retract) void retractDeletedTask(retract, orphaned);
+  }
+
+  /**
+   * Removes what a deleted task promoted into the host repo: its orphaned
+   * `approved/` copies, plus a `skip` entry in every round it appeared in so
+   * `selection.json` stops instructing `/blast-iterate` for a task that no
+   * longer exists. `skip` (rather than a removal) is the "leave this task
+   * untouched" value BI-030.2 introduced, and merging by slug clears a prior
+   * `approve` or `iterate` entry's keeper and prompt in one write.
+   *
+   * The `rounds/r<N>/…` source files are deliberately untouched — the app does
+   * not own them, and `↻ Load round` re-mints the task from `batch.json`, which
+   * is the only way back from a mistaken delete.
+   *
+   * Runs after the session commit, so a failure surfaces in the error banner
+   * rather than blocking the delete the user already confirmed.
+   */
+  async function retractDeletedTask(
+    retract: DeleteSlugBreak,
+    orphanedFilenames: string[],
+  ): Promise<void> {
+    for (const filename of orphanedFilenames) {
+      const removed = await imagegen.unpromoteApproved(filename);
+      if (!removed.ok) {
+        setError(removed.error);
+        return;
+      }
+    }
+    const selectedAt = new Date().toISOString();
+    for (const round of retract.rounds) {
+      const sel = await imagegen.writeSelection(
+        round,
+        [buildSkipSelectionTask(retract.slug)],
+        selectedAt,
+      );
+      if (!sel.ok) {
+        setError(sel.error);
+        return;
+      }
+    }
+    setError(null);
   }
 
   function setTaskPrompt(taskId: ID, basePrompt: string): void {

@@ -729,3 +729,126 @@ describe('rename slug guard (BI-030.3)', () => {
     expect(result.current.session!.tasks.find((t) => t.id === taskId)!.name).toBe('Hero image');
   });
 });
+
+/**
+ * Delete-task retraction (BI-033).
+ *
+ * Deleting a task severs the slug join `renameSlugBreak` guards from the other
+ * side. The delete itself never writes to disk; the cleanup is opt-in from the
+ * modal, so these pin that the opt-in is honoured in both directions and that
+ * the flat-`approved/` guard survives the widening from one image to a whole
+ * task. The imagegen seam is injected, as in the BI-030.2 / BI-032 blocks above.
+ */
+describe('delete-task retraction (BI-033)', () => {
+  it('removes the approved copies and clears the selection entry when opted in', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg', 'hero-002.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(1));
+
+    await act(async () => result.current.deleteTask(taskId, { removeApproved: true }));
+
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)).toBeUndefined();
+    await waitFor(() => expect(unpromoted).toEqual(['hero-001.jpg']));
+    await waitFor(() => expect(selections).toHaveLength(2));
+    expect(selections[1]).toEqual({ round: 1, tasks: [{ slug: 'hero', decision: 'skip' }] });
+  });
+
+  it('writes nothing to disk when the cleanup is not opted into', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(1));
+
+    await act(async () => result.current.deleteTask(taskId));
+
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)).toBeUndefined();
+    expect(unpromoted).toEqual([]);
+    expect(selections).toHaveLength(1); // still just the approve write
+  });
+
+  it('clears the selection entry for every round the task appeared in', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+      2: roundBatch(2, ['hero-001.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await loadHero(result, 1);
+    const { taskId } = await loadHero(result, 2);
+
+    // Nothing approved: the entries to retract are iterate/approve leftovers,
+    // which a `skip` per round clears by slug merge.
+    await act(async () => result.current.deleteTask(taskId, { removeApproved: true }));
+
+    await waitFor(() => expect(selections).toHaveLength(2));
+    expect(selections.map((s) => s.round)).toEqual([1, 2]);
+    expect(selections.every((s) => s.tasks[0]!.decision === 'skip')).toBe(true);
+    expect(unpromoted).toEqual([]); // no approved copies to remove
+  });
+
+  it('keeps an approved/ file another task’s approval still needs', async () => {
+    // Two tasks whose round images land on the same flat approved/ name — the
+    // BI-030.2 collision, widened from one cleared image to a whole task.
+    const batch: RoundBatch = {
+      schemaVersion: ROUND_BATCH_SCHEMA_VERSION,
+      round: 1,
+      generatedAt: '2026-08-08T00:00:00Z',
+      tasks: [
+        { slug: 'hero', name: 'Hero', prompt: 'a hero image', images: ['shared-001.jpg'] },
+        { slug: 'other', name: 'Other', prompt: 'another image', images: ['shared-001.jpg'] },
+      ],
+    };
+    const { api, unpromoted } = recordingImagegen({ 1: batch });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => {
+      await result.current.loadRound(1);
+    });
+
+    const tasks = result.current.session!.tasks;
+    const hero = tasks.find((t) => t.name === 'Hero')!;
+    const other = tasks.find((t) => t.name === 'Other')!;
+    const approveFirst = (t: typeof hero) =>
+      result.current.setImageDecision(t.id, t.iterations[0]!.images[0]!.id, 'approved');
+    await act(async () => approveFirst(hero));
+    await act(async () => approveFirst(other));
+
+    await act(async () => result.current.deleteTask(hero.id, { removeApproved: true }));
+
+    // Other still holds an approval on shared-001.jpg, so the file stays.
+    expect(unpromoted).toEqual([]);
+  });
+
+  it('is a session-only delete while the imagegen folder is unlinked', async () => {
+    const { api, unpromoted, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await waitFor(() => expect(selections).toHaveLength(1));
+
+    // The folder goes away, as in a browser session that never re-linked.
+    // Mutating the injected seam mirrors the `conflicts` list above — the hook
+    // reads `imagegen.linked` at call time, off this same object.
+    api.linked = false;
+
+    await act(async () => result.current.deleteTask(taskId, { removeApproved: true }));
+
+    expect(result.current.session!.tasks.find((t) => t.id === taskId)).toBeUndefined();
+    expect(unpromoted).toEqual([]);
+    expect(selections).toHaveLength(1);
+  });
+});

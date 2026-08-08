@@ -12,7 +12,7 @@
  * unit-testable without a component-render dependency.
  */
 
-import { roundNumberFromImageUrl } from './imagegenUrl';
+import { roundImageFilenameFromUrl, roundNumberFromImageUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import { slugify } from './storage';
 import {
@@ -287,7 +287,13 @@ export function renameSlugBreak(
   const currentSlug = slugify(task.name);
   const nextSlug = slugify(name);
   if (nextSlug === currentSlug) return null;
-  const rounds = [
+  const rounds = taskRoundNumbers(task);
+  return rounds.length ? { currentSlug, nextSlug, rounds } : null;
+}
+
+/** Round numbers a task's images came from, deduped and ascending. */
+function taskRoundNumbers(task: PromptTask): number[] {
+  return [
     ...new Set(
       task.iterations
         .flatMap((it) => it.images)
@@ -295,7 +301,55 @@ export function renameSlugBreak(
         .filter((r): r is number => r !== null),
     ),
   ].sort((a, b) => a - b);
-  return rounds.length ? { currentSlug, nextSlug, rounds } : null;
+}
+
+/** A delete that would sever a task from the round state it owns on disk. */
+export interface DeleteSlugBreak {
+  /** The slug the round files, `selection.json`, and `imagegen/tasks.json` still use. */
+  slug: string;
+  /** Round numbers this task's images came from, ascending. */
+  rounds: number[];
+  /** Filenames this task promoted into the flat `approved/` namespace, ascending. */
+  approvedFilenames: string[];
+}
+
+/**
+ * Reports what deleting a task would sever on disk, or `null` when the delete
+ * touches nothing outside the session.
+ *
+ * Delete is the other half of the join {@link renameSlugBreak} guards — a rename
+ * moves one end, a delete removes it — and leaves three things behind, in
+ * increasing order of recoverability:
+ *
+ * 1. **`approved/<keeper>` copies**, promoted by `useWorkspace.handleImagegenApprove`.
+ *    One-way: {@link buildApprovedImages} is the only record of them, so the undo
+ *    path (`handleImagegenUnapprove`, BI-030.2) dies with the task and the files
+ *    stay in the host repo with no UI able to reach them.
+ * 2. **The task's `selection.json` entry**, which keeps instructing
+ *    `/blast-iterate` for a task that no longer exists.
+ * 3. **The `rounds/r<N>/…` files**, which are recoverable — {@link ingestRoundBatch}
+ *    re-mints the task by slug on the next load — though per-image decisions,
+ *    ratings, and feedback do not come back, leaving the session reading
+ *    "nothing approved" while `approved/` still holds the promoted copy.
+ *
+ * Tasks with no on-disk round images report `null`; nothing outside localStorage
+ * is at stake for them.
+ */
+export function deleteSlugBreak(session: Session, taskId: ID): DeleteSlugBreak | null {
+  const task = session.tasks.find((t) => t.id === taskId);
+  if (!task) return null;
+  const rounds = taskRoundNumbers(task);
+  if (!rounds.length) return null;
+  const approvedFilenames = [
+    ...new Set(
+      task.iterations
+        .flatMap((it) => it.images)
+        .filter((img) => img.decision === 'approved')
+        .map((img) => roundImageFilenameFromUrl(img.url))
+        .filter((f): f is string => f !== null),
+    ),
+  ].sort();
+  return { slug: slugify(task.name), rounds, approvedFilenames };
 }
 
 /** Sets a task's editable base prompt. */

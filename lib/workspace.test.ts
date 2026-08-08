@@ -11,6 +11,7 @@ import {
   buildExportManifest,
   cloneSessionWithNewIds,
   countGeneratedImageBytes,
+  deleteSlugBreak,
   deleteTask,
   importTasks,
   ingestRoundBatch,
@@ -594,5 +595,75 @@ describe('renameSlugBreak (BI-030.3)', () => {
 
   it('is silent for an unknown task id', () => {
     expect(renameSlugBreak(withRound(2), 'nope', 'Anything')).toBeNull();
+  });
+});
+
+describe('deleteSlugBreak (BI-033)', () => {
+  /** Session with one task holding `images` from round `round`, per ingestRoundBatch. */
+  function withRound(
+    round: number,
+    images: string[] = ['hero-banner-001.jpg'],
+    base = newSession('S'),
+  ): Session {
+    const b: RoundBatch = {
+      schemaVersion: 1,
+      round,
+      generatedAt: '2026-06-18T00:00:00Z',
+      tasks: [{ slug: 'hero-banner', name: 'Hero banner', prompt: 'Warm hero shot', images }],
+    };
+    return ingestRoundBatch(base, b, (f) => roundImageUrl(round, f));
+  }
+
+  /** Marks the nth image of the session's first task approved. */
+  function approveNth(s: Session, n: number): Session {
+    const task = s.tasks[0]!;
+    const img = task.iterations.flatMap((it) => it.images)[n]!;
+    return setImageDecision(s, task.id, img.id, 'approved');
+  }
+
+  it('reports the slug and joined rounds when nothing is approved', () => {
+    const s = withRound(2);
+    expect(deleteSlugBreak(s, s.tasks[0]!.id)).toEqual({
+      slug: 'hero-banner',
+      rounds: [2],
+      approvedFilenames: [],
+    });
+  });
+
+  it('names the approved/ copies the delete would strand', () => {
+    const s = approveNth(withRound(2, ['hero-banner-001.jpg', 'hero-banner-002.jpg']), 1);
+    expect(deleteSlugBreak(s, s.tasks[0]!.id)?.approvedFilenames).toEqual([
+      'hero-banner-002.jpg',
+    ]);
+  });
+
+  it('collects every joined round, deduped and ascending', () => {
+    const s = withRound(3, ['hero-banner-001.jpg'], withRound(10, ['hero-banner-001.jpg']));
+    expect(deleteSlugBreak(s, s.tasks[0]!.id)?.rounds).toEqual([3, 10]);
+  });
+
+  it('excludes images that are only kept or undecided', () => {
+    const base = withRound(2, ['hero-banner-001.jpg', 'hero-banner-002.jpg']);
+    const task = base.tasks[0]!;
+    const kept = task.iterations.flatMap((it) => it.images)[0]!;
+    const s = setImageDecision(base, task.id, kept.id, 'kept');
+    // Only `approved` images were ever promoted into approved/ — the second
+    // image is still undecided, so nothing is at stake on disk.
+    expect(deleteSlugBreak(s, task.id)?.approvedFilenames).toEqual([]);
+  });
+
+  it('is silent for a task with no on-disk round images', () => {
+    const t = newTask('Hero banner');
+    const s = appendIteration(addTask(newSession('S'), t), t.id, {
+      prompt: 'p',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [newGeneratedImage('data:image/png;base64,xx', 'p')],
+    });
+    expect(deleteSlugBreak(s, t.id)).toBeNull();
+  });
+
+  it('is silent for an unknown task id', () => {
+    expect(deleteSlugBreak(withRound(2), 'nope')).toBeNull();
   });
 });

@@ -15,8 +15,8 @@
  * (Workspace's auto-load-round effect) and BI-029.3 (the export path).
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import Sidebar from './Sidebar';
 import { SCHEMA_VERSION, type PromptTask, type Session } from '@/lib/types';
@@ -81,6 +81,7 @@ function makeProps(
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe('Sidebar (component-test harness smoke)', () => {
@@ -124,5 +125,22 @@ describe('Sidebar (component-test harness smoke)', () => {
     expect(screen.getByRole('button', { name: /Generate All/ }).getAttribute('title')).toContain(
       'No eligible tasks',
     );
+  });
+
+  it('delegates delete without confirming it itself (BI-033)', () => {
+    // The confirmation moved to DeleteTaskModal, which can state what the
+    // delete severs on disk; a window.confirm here would be a second dialog.
+    const confirmed = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirmed);
+    const onDeleteTask = vi.fn();
+    const session = makeSession({ tasks: [makeTask('t1', 'Hero banner')] });
+    render(<Sidebar {...makeProps({ session, onDeleteTask })} />);
+
+    // Queried by title: the button's content is the 🗑 glyph, which wins the
+    // accessible-name computation over the title attribute.
+    fireEvent.click(screen.getByTitle('Delete task'));
+
+    expect(confirmed).not.toHaveBeenCalled();
+    expect(onDeleteTask).toHaveBeenCalledWith('t1');
   });
 });

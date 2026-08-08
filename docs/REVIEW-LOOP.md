@@ -93,6 +93,19 @@ confirm before any rename that would change a joined task's slug; **keep `imageg
 in step** when you accept one. Slug-preserving renames (`Hero Banner` → `hero banner!`) are safe
 and pass silently.
 
+**Deleting a joined task is the other half of that join (BI-033).** A rename moves one end;
+a delete removes it. The frontend opens a modal naming the slug, the joined rounds, and any
+`approved/` copies the task promoted, because three things outlive the delete: those approved
+copies (which the in-app undo above can no longer reach), the task's `selection.json` entry
+(still instructing `/blast-iterate`), and the `rounds/r<N>/` images themselves. Only the last
+is recoverable — **↻ Load round** re-mints the task from `batch.json`, though its decisions,
+ratings, and feedback do not come back, so the session then reads "nothing approved" while
+`approved/` still holds the promoted copy. The modal offers an **opt-in** cleanup of the first
+two (it removes the approved copies and writes `{ slug, decision: "skip" }` for each joined
+round, reusing the same sibling-approval guard as the undo above); the delete itself never
+writes to the host repo, and the `rounds/r<N>/` files are never touched. `imagegen/tasks.json`
+is still yours to edit — a deleted task reappears on the next load until you remove it there.
+
 ### `rounds/r<N>/selection.json` — written by the frontend, read by `/blast-iterate`
 
 ```json
