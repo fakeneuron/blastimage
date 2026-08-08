@@ -10,7 +10,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-EPIC-029** [heavy]🧠 | imagegen-byte-resolution — folder export, review sheet, and per-image download all call bare `fetch()` on `imagegen:` URLs, which cannot resolve. In adopter mode the documented Folder export (`docs/ADOPT.md` §"approved/") lands `manifest.json` and zero images. Every *render* site already resolves correctly via `ResolvedImage`; only the byte-consuming paths were missed. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: `imagegen:` is first-class except where bytes are needed)
   - [x] **BI-029.2** [heavy]🧠 | resolve-image-blob-seam — Completed 2026-08-07.
-  - [ ] **BI-029.3** [medium]🧩 | export-imagegen-regression — export + review sheet with `imagegen:` URLs report zero failures. Existing tests stub `fetch` globally and never feed it the custom scheme, which is why the gap was invisible.
+  - [x] **BI-029.3** [medium]🧩 | export-imagegen-regression — Completed 2026-08-08.
   - [ ] **BI-029.4** [light]🔧 | blob-cache-bounds — bound the `ImagegenContext` blob-URL cache and invalidate a round's entries on `loadRound` (currently unbounded, revoked only on unmount, serves stale blobs after a terminal rewrite).
   - [ ] **BI-029.N** [light]🔧 | audit
 

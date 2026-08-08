@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ImageBlobResolver } from './imageBlob';
+import { resolveImageBlob, type ImageBlobResolver } from './imageBlob';
+import { roundImageUrl } from './imagegenUrl';
 import { SCHEMA_VERSION, type ApprovedImage, type ExportManifest, type Session } from './types';
 import {
   buildReviewSheetHtml,
@@ -470,5 +471,155 @@ describe('downloadManifestBundle', () => {
 
     expect(failed).toBe(1);
     expect(created).toEqual(['manifest.json', 'ok-image0ab.png']);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// imagegen: URL exports (BI-029.3)
+//
+// The suites above drive every export through `fetchResolver`, so no test ever
+// pushed an `imagegen:` URL — the custom scheme minted by the terminal review
+// loop (BI-024.1) — through an export path. That blind spot is why the epic's
+// bug (bare `fetch()` on an unfetchable scheme, zero images exported) shipped
+// invisibly. These tests drive the *real* `resolveImageBlob` against a fake
+// linked root, so a stub cannot paper over a regression in the seam.
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * A fake `imagegen/` root holding one blob per path, so `readImagegenFile`'s
+ * directory walk (`rounds` → `r<N>` → file) resolves without a real FSA.
+ */
+function makeFakeImagegenRoot(files: Record<string, Blob>): FileSystemDirectoryHandle {
+  const dirAt = (prefix: string) => ({
+    getDirectoryHandle: async (name: string) => dirAt(`${prefix}${name}/`),
+    getFileHandle: async (name: string) => {
+      const blob = files[`${prefix}${name}`];
+      if (!blob) throw new Error(`no such file: ${prefix}${name}`);
+      return { getFile: async () => blob };
+    },
+  });
+  return dirAt('') as unknown as FileSystemDirectoryHandle;
+}
+
+/** The two-image adopter-mode manifest under test: one PNG, one JPEG, both on disk. */
+function makeImagegenManifest(): ExportManifest {
+  return makeManifest([
+    { taskName: 'Hero Banner', imageId: 'aaaaaaaa1111', url: roundImageUrl(1, 'hero-01.png') },
+    { taskName: 'About', url: roundImageUrl(1, 'about-02.jpg') },
+  ]);
+}
+
+const IMAGEGEN_FILES = {
+  'rounds/r1/hero-01.png': new Blob(['png-bytes'], { type: 'image/png' }),
+  'rounds/r1/about-02.jpg': new Blob(['jpg-bytes'], { type: 'image/jpeg' }),
+};
+
+/** The production resolver, bound to a linked root — exactly what `ImagegenProvider` injects. */
+function linkedResolver(files = IMAGEGEN_FILES): ImageBlobResolver {
+  const root = makeFakeImagegenRoot(files);
+  return (url) => resolveImageBlob(url, root);
+}
+
+/** Stubs the download path and returns the filenames + blobs handed to `downloadBlob`. */
+function captureDownloads() {
+  const names: string[] = [];
+  const blobs: Blob[] = [];
+  vi.stubGlobal('URL', {
+    createObjectURL: vi.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:x';
+    }),
+    revokeObjectURL: vi.fn(),
+  });
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    names.push(this.download);
+  });
+  return { names, blobs };
+}
+
+describe('exports with imagegen: URLs', () => {
+  it('writes every on-disk image to the picked folder without fetching', async () => {
+    const { dir, written } = makeFakeDir();
+    (window as unknown as Record<string, unknown>).showDirectoryPicker = vi.fn(async () => dir);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await exportManifestToFolder(makeImagegenManifest(), linkedResolver());
+
+    expect(res).toEqual({ status: 'written', images: 2, failedImages: 0 });
+    // Extensions come from each blob's mime, so these names prove the bytes
+    // travelled from the fake root rather than from a placeholder.
+    expect(written).toEqual(['manifest.json', 'hero-banner-aaaaaaaa.png', 'about-image1ab.jpg']);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('downloads the full bundle without fetching', async () => {
+    const { names } = captureDownloads();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const failed = await downloadManifestBundle(makeImagegenManifest(), linkedResolver());
+
+    expect(failed).toBe(0);
+    expect(names).toEqual(['manifest.json', 'hero-banner-aaaaaaaa.png', 'about-image1ab.jpg']);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('embeds the on-disk bytes into the review sheet', async () => {
+    const { names, blobs } = captureDownloads();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const failed = await downloadReviewSheet(makeImagegenManifest(), linkedResolver());
+
+    expect(failed).toBe(0);
+    expect(names).toEqual(['review.html']);
+    const html = await blobs[0].text();
+    expect(html).toContain('src="data:image/png;base64,');
+    expect(html).toContain('src="data:image/jpeg;base64,');
+    expect(html).not.toContain('image unavailable');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('counts every image as failed when the resolver cannot read the scheme', async () => {
+    // Pins the pre-BI-029.2 behaviour: a resolver that only knows `fetch` fails
+    // every image of this manifest, which is what made the bug invisible.
+    const { dir, written } = makeFakeDir();
+    (window as unknown as Record<string, unknown>).showDirectoryPicker = vi.fn(async () => dir);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+
+    const res = await exportManifestToFolder(makeImagegenManifest(), fetchResolver);
+
+    expect(res).toEqual({ status: 'written', images: 0, failedImages: 2 });
+    expect(written).toEqual(['manifest.json']);
+  });
+
+  it('degrades to counted failures when no folder is linked', async () => {
+    const { dir, written } = makeFakeDir();
+    (window as unknown as Record<string, unknown>).showDirectoryPicker = vi.fn(async () => dir);
+    const unlinkedResolver: ImageBlobResolver = (url) => resolveImageBlob(url, null);
+
+    const res = await exportManifestToFolder(makeImagegenManifest(), unlinkedResolver);
+
+    expect(res).toEqual({ status: 'written', images: 0, failedImages: 2 });
+    expect(written).toEqual(['manifest.json']);
+  });
+
+  it('still lands the review sheet when no folder is linked', async () => {
+    const { names, blobs } = captureDownloads();
+    const unlinkedResolver: ImageBlobResolver = (url) => resolveImageBlob(url, null);
+
+    const failed = await downloadReviewSheet(makeImagegenManifest(), unlinkedResolver);
+
+    expect(failed).toBe(2);
+    expect(names).toEqual(['review.html']);
+    expect(await blobs[0].text()).toContain('image unavailable');
   });
 });
