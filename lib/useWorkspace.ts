@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ImagegenApi } from './ImagegenContext';
 import type { LinkImagegenResult } from './imagegenFs';
+import { resolveImageBlob } from './imageBlob';
 import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
 import {
   buildApproveSelectionTask,
@@ -89,6 +90,8 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   writeSelection: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   promoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   resolveDisplayUrl: async (url) => url,
+  // No linked root: `data:`/`https:` still resolve, `imagegen:` rejects (BI-029.2).
+  resolveBlob: (url) => resolveImageBlob(url, null),
 };
 
 export interface UseWorkspace {
@@ -603,7 +606,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const manifest = buildExportManifest(session);
     const total = manifest.approved.length;
     if (supportsDirectoryPicker()) {
-      const result = await exportManifestToFolder(manifest);
+      const result = await exportManifestToFolder(manifest, imagegen.resolveBlob);
       if (result.status === 'cancelled') return;
       if (result.status === 'error') {
         setError(result.error);
@@ -616,7 +619,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
         return;
       }
     } else {
-      const failed = await downloadManifestBundle(manifest);
+      const failed = await downloadManifestBundle(manifest, imagegen.resolveBlob);
       if (failed > 0) {
         setError(
           `Downloaded the manifest and ${total - failed} of ${total} images; ${failed} could not be fetched.`,
@@ -631,7 +634,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (!session) return;
     const manifest = buildExportManifest(session);
     const total = manifest.approved.length;
-    const failed = await downloadReviewSheet(manifest);
+    const failed = await downloadReviewSheet(manifest, imagegen.resolveBlob);
     if (failed > 0) {
       setError(
         `Downloaded the review sheet with ${total - failed} of ${total} images embedded; ${failed} could not be fetched.`,

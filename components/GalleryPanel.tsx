@@ -12,6 +12,9 @@ import { useState } from 'react';
 
 import Lightbox from '@/components/Lightbox';
 import ResolvedImage from '@/components/ResolvedImage';
+import { useImagegen } from '@/lib/ImagegenContext';
+import type { ImageBlobResolver } from '@/lib/imageBlob';
+import { isImagegenUrl } from '@/lib/imagegenUrl';
 import type { ApprovedImage, StarRating } from '@/lib/types';
 import { downloadBlob, imageExtension, slugify } from '@/lib/storage';
 
@@ -31,14 +34,14 @@ function StarDisplay({ rating }: { rating: StarRating }) {
   );
 }
 
-async function downloadImage(url: string, basename: string) {
+async function downloadImage(url: string, basename: string, resolveBlob: ImageBlobResolver) {
   try {
-    const res = await fetch(url);
-    const blob = await res.blob();
+    const blob = await resolveBlob(url);
     downloadBlob(blob, `${basename}.${imageExtension(blob.type)}`);
   } catch {
-    // Fallback: open in a new tab if the fetch fails (e.g. strict CORS)
-    window.open(url, '_blank');
+    // Fallback: open in a new tab if the fetch fails (e.g. strict CORS). An
+    // `imagegen:` path has no browser handler, so there is nothing to open.
+    if (!isImagegenUrl(url)) window.open(url, '_blank');
   }
 }
 
@@ -48,6 +51,8 @@ export default function GalleryPanel({
   onExportToFolder,
   onExportReviewSheet,
 }: GalleryPanelProps) {
+  // Per-image download resolves bytes through the same seam as export (BI-029.2).
+  const { resolveBlob } = useImagegen();
   // Index of the approved image shown full-size in the lightbox; null when closed (BI-027).
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const lightboxImages = approved.map((item) => ({ src: item.url, alt: item.finalPrompt }));
@@ -125,6 +130,7 @@ export default function GalleryPanel({
                       downloadImage(
                         item.url,
                         `${slugify(item.taskName) || 'image'}-${item.imageId.slice(0, 8)}`,
+                        resolveBlob,
                       )
                     }
                     title="Download image"

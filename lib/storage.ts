@@ -19,6 +19,7 @@
  * and is not handled here.
  */
 
+import type { ImageBlobResolver } from './imageBlob';
 import {
   SCHEMA_VERSION,
   type ApprovedImage,
@@ -389,13 +390,15 @@ function approvedImageFilename(approved: ApprovedImage, mime: string): string {
 
 /**
  * Resolves the full file set for an export bundle: `manifest.json` plus one file
- * per approved image (fetched to a blob — data URLs and remote Grok URLs both
- * fetch client-side). Skips images whose fetch fails and reports the count so
+ * per approved image, each resolved to bytes through `resolveBlob` (BI-029.2 —
+ * `imagegen:` paths need the linked folder, so this must never `fetch` an image
+ * URL itself). Skips images that fail to resolve and reports the count so
  * callers can land a partial bundle. Shared by the folder-write and the
  * download fallback.
  */
 async function gatherExportFiles(
   manifest: ExportManifest,
+  resolveBlob: ImageBlobResolver,
 ): Promise<{ files: ExportFile[]; failed: number }> {
   const files: ExportFile[] = [
     {
@@ -406,8 +409,7 @@ async function gatherExportFiles(
   let failed = 0;
   for (const approved of manifest.approved) {
     try {
-      const res = await fetch(approved.url);
-      const blob = await res.blob();
+      const blob = await resolveBlob(approved.url);
       files.push({ name: approvedImageFilename(approved, blob.type), blob });
     } catch {
       failed += 1;
@@ -420,11 +422,12 @@ async function gatherExportFiles(
  * Writes the manifest + every approved image into a user-picked directory via
  * the File System Access API. Returns `cancelled` when the user dismisses the
  * picker, `error` on a picker/write failure, or `written` with the count of
- * images landed (and any whose fetch failed). Caller should feature-detect with
- * {@link supportsDirectoryPicker} first.
+ * images landed (and any that could not be resolved). Caller should
+ * feature-detect with {@link supportsDirectoryPicker} first.
  */
 export async function exportManifestToFolder(
   manifest: ExportManifest,
+  resolveBlob: ImageBlobResolver,
 ): Promise<FolderExportResult> {
   if (!supportsDirectoryPicker()) {
     return { status: 'error', error: 'This browser does not support folder export.' };
@@ -439,7 +442,7 @@ export async function exportManifestToFolder(
     return { status: 'error', error: 'Could not open the selected folder.' };
   }
   try {
-    const { files, failed } = await gatherExportFiles(manifest);
+    const { files, failed } = await gatherExportFiles(manifest, resolveBlob);
     for (const file of files) {
       const handle = await dir.getFileHandle(file.name, { create: true });
       const writable = await handle.createWritable();
@@ -455,10 +458,13 @@ export async function exportManifestToFolder(
 /**
  * Fallback for browsers without the directory picker: downloads `manifest.json`
  * and each approved image as separate files via the existing download path.
- * Returns the count of images whose fetch failed (still downloads the rest).
+ * Returns the count of images that could not be resolved (still downloads the rest).
  */
-export async function downloadManifestBundle(manifest: ExportManifest): Promise<number> {
-  const { files, failed } = await gatherExportFiles(manifest);
+export async function downloadManifestBundle(
+  manifest: ExportManifest,
+  resolveBlob: ImageBlobResolver,
+): Promise<number> {
+  const { files, failed } = await gatherExportFiles(manifest, resolveBlob);
   for (const file of files) downloadBlob(file.blob, file.name);
   return failed;
 }
@@ -614,22 +620,21 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 /**
- * Fetches each approved image and converts it to a base64 data URL for inline
- * embedding in the review sheet, keyed by `imageId`. Skips images whose fetch
- * fails and reports the count so the sheet can still land. Mirrors
- * {@link gatherExportFiles} but yields data URLs (for HTML embed) rather than
- * blobs (for file writes).
+ * Resolves each approved image through `resolveBlob` and converts it to a base64
+ * data URL for inline embedding in the review sheet, keyed by `imageId`. Skips
+ * images that fail to resolve and reports the count so the sheet can still land.
+ * Mirrors {@link gatherExportFiles} but yields data URLs (for HTML embed) rather
+ * than blobs (for file writes).
  */
 async function gatherReviewImages(
   manifest: ExportManifest,
+  resolveBlob: ImageBlobResolver,
 ): Promise<{ embedded: Map<ID, string>; failed: number }> {
   const embedded = new Map<ID, string>();
   let failed = 0;
   for (const approved of manifest.approved) {
     try {
-      const res = await fetch(approved.url);
-      const blob = await res.blob();
-      embedded.set(approved.imageId, await blobToDataUrl(blob));
+      embedded.set(approved.imageId, await blobToDataUrl(await resolveBlob(approved.url)));
     } catch {
       failed += 1;
     }
@@ -638,13 +643,16 @@ async function gatherReviewImages(
 }
 
 /**
- * Builds and downloads a self-contained `review.html` for the manifest: fetches
+ * Builds and downloads a self-contained `review.html` for the manifest: resolves
  * + embeds every approved image as a data URL, renders the sheet, and triggers
- * the download. Returns the count of images whose fetch failed (still downloads
- * the sheet with placeholders for those).
+ * the download. Returns the count of images that could not be resolved (still
+ * downloads the sheet with placeholders for those).
  */
-export async function downloadReviewSheet(manifest: ExportManifest): Promise<number> {
-  const { embedded, failed } = await gatherReviewImages(manifest);
+export async function downloadReviewSheet(
+  manifest: ExportManifest,
+  resolveBlob: ImageBlobResolver,
+): Promise<number> {
+  const { embedded, failed } = await gatherReviewImages(manifest, resolveBlob);
   const blob = new Blob([buildReviewSheetHtml(manifest, embedded)], { type: 'text/html' });
   downloadBlob(blob, 'review.html');
   return failed;

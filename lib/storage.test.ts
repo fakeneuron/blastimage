@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ImageBlobResolver } from './imageBlob';
 import { SCHEMA_VERSION, type ApprovedImage, type ExportManifest, type Session } from './types';
 import {
   buildReviewSheetHtml,
@@ -271,6 +272,13 @@ function makeFakeDir() {
   return { dir: dir as unknown as FileSystemDirectoryHandle, written };
 }
 
+/**
+ * Stand-in for the linked-folder resolver these exports now take (BI-029.2).
+ * Fetch-only, so the `fetch` stubs below still drive the suites; resolution of
+ * `imagegen:` URLs is covered in `lib/imageBlob.test.ts`.
+ */
+const fetchResolver: ImageBlobResolver = async (url) => (await fetch(url)).blob();
+
 /** A fetch stub returning an image blob of the given mime per call. */
 function stubFetchOk(mime = 'image/png') {
   vi.stubGlobal(
@@ -301,6 +309,7 @@ describe('exportManifestToFolder', () => {
 
     const res = await exportManifestToFolder(
       makeManifest([{ taskName: 'Hero Banner', imageId: 'aaaaaaaa1111' }, { taskName: 'About' }]),
+      fetchResolver,
     );
 
     expect(res).toEqual({ status: 'written', images: 2, failedImages: 0 });
@@ -311,7 +320,9 @@ describe('exportManifestToFolder', () => {
     (window as unknown as Record<string, unknown>).showDirectoryPicker = vi.fn(async () => {
       throw new DOMException('aborted', 'AbortError');
     });
-    expect(await exportManifestToFolder(makeManifest([{}]))).toEqual({ status: 'cancelled' });
+    expect(await exportManifestToFolder(makeManifest([{}]), fetchResolver)).toEqual({
+      status: 'cancelled',
+    });
   });
 
   it('lands a partial bundle and reports images whose fetch failed', async () => {
@@ -323,7 +334,10 @@ describe('exportManifestToFolder', () => {
       .mockRejectedValueOnce(new Error('CORS'));
     vi.stubGlobal('fetch', fetchMock);
 
-    const res = await exportManifestToFolder(makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]));
+    const res = await exportManifestToFolder(
+      makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]),
+      fetchResolver,
+    );
 
     expect(res).toEqual({ status: 'written', images: 1, failedImages: 1 });
     expect(written).toEqual(['manifest.json', 'ok-image0ab.png']);
@@ -331,7 +345,7 @@ describe('exportManifestToFolder', () => {
 
   it('errors (does not throw) when the picker is unsupported', async () => {
     delete (window as unknown as Record<string, unknown>).showDirectoryPicker;
-    const res = await exportManifestToFolder(makeManifest([{}]));
+    const res = await exportManifestToFolder(makeManifest([{}]), fetchResolver);
     expect(res.status).toBe('error');
   });
 });
@@ -421,7 +435,10 @@ describe('downloadReviewSheet', () => {
       .mockRejectedValueOnce(new Error('CORS'));
     vi.stubGlobal('fetch', fetchMock);
 
-    const failed = await downloadReviewSheet(makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]));
+    const failed = await downloadReviewSheet(
+      makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]),
+      fetchResolver,
+    );
 
     expect(failed).toBe(1);
     expect(created).toEqual(['review.html']);
@@ -446,7 +463,10 @@ describe('downloadManifestBundle', () => {
       .mockRejectedValueOnce(new Error('CORS'));
     vi.stubGlobal('fetch', fetchMock);
 
-    const failed = await downloadManifestBundle(makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]));
+    const failed = await downloadManifestBundle(
+      makeManifest([{ taskName: 'Ok' }, { taskName: 'Bad' }]),
+      fetchResolver,
+    );
 
     expect(failed).toBe(1);
     expect(created).toEqual(['manifest.json', 'ok-image0ab.png']);

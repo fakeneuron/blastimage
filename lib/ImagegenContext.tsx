@@ -28,6 +28,7 @@ import {
   writeRoundSelection,
   type LinkImagegenResult,
 } from './imagegenFs';
+import { resolveImageBlob, type ImageBlobResolver } from './imageBlob';
 import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
@@ -46,6 +47,8 @@ export interface ImagegenApi {
   ) => Promise<Result<void>>;
   promoteApproved: (round: number, keeperFilename: string) => Promise<Result<void>>;
   resolveDisplayUrl: (url: string) => Promise<string>;
+  /** The sole URL→bytes path (BI-029.2) — see {@link import('./imageBlob').resolveImageBlob}. */
+  resolveBlob: ImageBlobResolver;
 }
 
 const ImagegenContext = createContext<ImagegenApi | null>(null);
@@ -138,6 +141,11 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const resolveBlob = useCallback(
+    async (url: string): Promise<Blob> => resolveImageBlob(url, handleRef.current),
+    [],
+  );
+
   const value: ImagegenApi = {
     linked,
     linkFolder,
@@ -146,6 +154,7 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     writeSelection,
     promoteApproved,
     resolveDisplayUrl,
+    resolveBlob,
   };
 
   return <ImagegenContext.Provider value={value}>{children}</ImagegenContext.Provider>;
