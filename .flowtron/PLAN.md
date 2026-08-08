@@ -18,6 +18,9 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **BI-031.4** [light]🔧 | orphan-config-cleanup — drop the `BUILD_TARGET=cloudflare` branch from `next.config.ts` (orphaned by BI-028, which deleted the `docs/DEPLOY.md` it cites but never touched the config); rewrite `lib/generate.ts`'s BI-013-era error copy as operator-facing text.
   - [ ] **BI-031.N** [light]🔧 | audit
 
+- [ ] **BI-032** [medium]🧩 | approved-collision-guard — `promoteKeeperToApproved` (`lib/imagegenFs.ts:343`) opens the destination with `create: true` under a flat `approved/` namespace, so approving `hero-001.jpg` from r2 silently overwrites the r1 file of the same name. BI-030.2 guarded only its undo against this collision. Surfaced by BI-030.N audit 2026-08-08.
+- [ ] **BI-033** [medium]🧩 | delete-slug-guard — `deleteTask` (`lib/useWorkspace.ts:461`) has no `renameSlugBreak` equivalent, so deleting a task carrying `imagegen:rounds/` images orphans its on-disk round silently. `Sidebar.tsx:97` already confirms deletion but never mentions the join. BI-030.3 scoped this out (assumption 2). Surfaced by BI-030.N audit 2026-08-08.
+
 ## Low
 
 (none)
