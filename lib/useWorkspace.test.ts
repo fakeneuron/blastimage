@@ -22,7 +22,7 @@ import type { ImagegenApi } from './ImagegenContext';
 import { ROUND_BATCH_SCHEMA_VERSION, type RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import { loadSession } from './storage';
-import { SCHEMA_VERSION } from './types';
+import { SCHEMA_VERSION, type Session } from './types';
 
 /** Installs a provider gated on a promise; `release()` lets the batch resolve. */
 function installDeferredProvider(): { release: () => void } {
@@ -105,7 +105,9 @@ describe('generate() post-await reconciliation', () => {
 
     // The batch landed in the originating session in storage.
     await waitFor(() => {
-      const origin = loadSession(originId)!;
+      const loaded = loadSession(originId);
+      expect(loaded.status).toBe('ok');
+      const origin = (loaded as { status: 'ok'; session: Session }).session;
       const task = origin.tasks.find((t) => t.id === taskId)!;
       expect(task.iterations).toHaveLength(1);
       expect(task.iterations[0].images).toHaveLength(4);
@@ -219,7 +221,8 @@ describe('importSessionBackup() (BI-022.7)', () => {
     await waitFor(() =>
       expect(result.current.sessions.some((m) => m.id === result.current.session!.id)).toBe(true),
     );
-    expect(loadSession(result.current.session!.id)!.name).toBe('Imported Site');
+    const stored = loadSession(result.current.session!.id);
+    expect(stored).toMatchObject({ status: 'ok', session: { name: 'Imported Site' } });
   });
 
   it('surfaces a validation error for an invalid backup and does not switch', async () => {
@@ -231,6 +234,92 @@ describe('importSessionBackup() (BI-022.7)', () => {
 
     expect(result.current.error).toBeTruthy();
     expect(result.current.session!.id).toBe(before);
+  });
+});
+
+/**
+ * Unreadable stored sessions (BI-030.4).
+ *
+ * A session the load guards reject is not an absent one: bootstrapping over it
+ * used to be silent, and its index row kept it in the switcher as a dead entry
+ * that no-oped on selection. These pin both moments through the real storage
+ * layer — the fixtures are written straight into localStorage, since only a
+ * *different* app version could produce them legitimately.
+ */
+function seedStoredSession(id: string, name: string, raw: string): void {
+  localStorage.setItem(`blastimage:session:${id}`, raw);
+  localStorage.setItem(
+    'blastimage:index',
+    JSON.stringify([{ id, name, updatedAt: '2026-08-08T00:00:00.000Z' }]),
+  );
+}
+
+/** Serialized session carrying a schemaVersion this app does not support. */
+function futureSessionJson(id: string, name: string): string {
+  const now = '2026-08-08T00:00:00.000Z';
+  return JSON.stringify({
+    id,
+    name,
+    tasks: [],
+    refLibrary: [],
+    createdAt: now,
+    updatedAt: now,
+    schemaVersion: SCHEMA_VERSION + 1,
+  });
+}
+
+describe('unreadable stored sessions (BI-030.4)', () => {
+  it('names the project in a banner when the active session fails the version guard', async () => {
+    seedStoredSession('dead-1', 'Acme Site', futureSessionJson('dead-1', 'Acme Site'));
+    localStorage.setItem('blastimage:active', 'dead-1');
+
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    // Still usable: a fresh default project is active…
+    expect(result.current.session!.name).toBe('My Website');
+    expect(result.current.session!.id).not.toBe('dead-1');
+    // …but the swallowed project is named, with both versions.
+    expect(result.current.error).toContain('Acme Site');
+    expect(result.current.error).toContain(`schema version ${SCHEMA_VERSION + 1}`);
+    expect(result.current.error).toContain(`expects ${SCHEMA_VERSION}`);
+    // Nothing was deleted — the data (and its switcher entry) survive.
+    expect(localStorage.getItem('blastimage:session:dead-1')).not.toBeNull();
+    await waitFor(() => expect(result.current.sessions.some((m) => m.id === 'dead-1')).toBe(true));
+  });
+
+  it('names the project when the active session is corrupt', async () => {
+    seedStoredSession('dead-2', 'Half Written', '{ not valid json');
+    localStorage.setItem('blastimage:active', 'dead-2');
+
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    expect(result.current.session!.name).toBe('My Website');
+    expect(result.current.error).toContain('Half Written');
+    expect(result.current.error).toContain('corrupt');
+  });
+
+  it('explains a dead switcher entry instead of snapping silently back', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const before = result.current.session!.id;
+
+    // The entry is selectable because its index row outlives the guard rejection.
+    seedStoredSession('dead-3', 'Acme Site', futureSessionJson('dead-3', 'Acme Site'));
+    await act(async () => result.current.switchSession('dead-3'));
+
+    expect(result.current.session!.id).toBe(before);
+    expect(result.current.error).toContain('Acme Site');
+  });
+
+  it('stays silent on the ordinary absent paths (first run, unknown id)', async () => {
+    const { result } = renderHook(() => useWorkspace());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(result.current.error).toBeNull();
+
+    await act(async () => result.current.switchSession('never-stored'));
+    expect(result.current.error).toBeNull();
   });
 });
 

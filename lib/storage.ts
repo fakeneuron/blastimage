@@ -48,6 +48,22 @@ export interface SessionMeta {
 /** Discriminated result for operations that can fail with a user-facing reason. */
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
+/**
+ * Outcome of a session load (BI-030.4). BI-002 collapsed every failure into a
+ * bare `null`, which made a session rejected by the guards indistinguishable
+ * from one that was never stored — so callers bootstrapped over it in silence.
+ * `name` comes from the surviving index entry (the blob itself is unreadable by
+ * definition) so a caller can name the affected project to the user.
+ *
+ * `absent` also covers "storage unavailable" (server-side / privacy mode):
+ * neither is evidence of a lost project, and no caller distinguishes them.
+ */
+export type SessionLoad =
+  | { status: 'ok'; session: Session }
+  | { status: 'absent' }
+  | { status: 'corrupt'; name: string | null }
+  | { status: 'unsupported-version'; name: string | null; storedVersion: number };
+
 // ─────────────────────────────────────────────────────────────────────────
 // SSR-safe accessor
 // ─────────────────────────────────────────────────────────────────────────
@@ -130,24 +146,30 @@ export function listSessions(): SessionMeta[] {
 }
 
 /**
- * Loads a full session by id. Returns `null` when storage is unavailable, the
- * id is unknown, the stored JSON is corrupt, the shape is invalid, or the
- * persisted `schemaVersion` does not match {@link SCHEMA_VERSION}.
+ * Loads a full session by id, reporting *why* it could not be loaded rather
+ * than a bare `null` (BI-030.4): `absent` when storage is unavailable or the id
+ * is unknown, `corrupt` when the stored JSON does not parse or is not a
+ * session, and `unsupported-version` when the persisted `schemaVersion` does
+ * not match {@link SCHEMA_VERSION}. The stored data is never rewritten or
+ * removed here — a rejected session stays on disk for a future app version.
  */
-export function loadSession(id: ID): Session | null {
+export function loadSession(id: ID): SessionLoad {
   const storage = getStorage();
-  if (!storage) return null;
+  if (!storage) return { status: 'absent' };
   const raw = storage.getItem(sessionKey(id));
-  if (!raw) return null;
+  if (!raw) return { status: 'absent' };
+  const name = readIndex(storage).find((m) => m.id === id)?.name ?? null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return null; // corrupt JSON
+    return { status: 'corrupt', name }; // corrupt JSON
   }
-  if (!isSession(parsed)) return null;
-  if (parsed.schemaVersion !== SCHEMA_VERSION) return null; // version guard
-  return parsed;
+  if (!isSession(parsed)) return { status: 'corrupt', name };
+  if (parsed.schemaVersion !== SCHEMA_VERSION) {
+    return { status: 'unsupported-version', name, storedVersion: parsed.schemaVersion }; // version guard
+  }
+  return { status: 'ok', session: parsed };
 }
 
 /**
@@ -200,10 +222,10 @@ export function clearActiveSessionId(): void {
   getStorage()?.removeItem(ACTIVE_KEY);
 }
 
-/** Convenience: loads the active session, or `null` when none is set or it fails the load guards. */
-export function loadActiveSession(): Session | null {
+/** Convenience: loads the active session, carrying {@link loadSession}'s reason when it fails. */
+export function loadActiveSession(): SessionLoad {
   const id = getActiveSessionId();
-  return id ? loadSession(id) : null;
+  return id ? loadSession(id) : { status: 'absent' };
 }
 
 // ─────────────────────────────────────────────────────────────────────────

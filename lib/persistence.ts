@@ -29,6 +29,7 @@ import {
   saveSession,
   setActiveSessionId,
   type Result,
+  type SessionLoad,
   type SessionMeta,
 } from './storage';
 
@@ -39,8 +40,8 @@ import {
 export interface PersistenceAdapter {
   /** All known sessions as lightweight metadata. */
   listSessions(): Promise<SessionMeta[]>;
-  /** Loads a full session by id, or `null` when absent / corrupt / version-mismatched. */
-  loadSession(id: ID): Promise<Session | null>;
+  /** Loads a full session by id, reporting absent / corrupt / version-mismatched (BI-030.4). */
+  loadSession(id: ID): Promise<SessionLoad>;
   /** Persists a session and upserts its index entry; never throws. */
   saveSession(session: Session): Promise<Result<SessionMeta>>;
   /** Removes a session, its index entry, and clears the active pointer if it pointed here. */
@@ -51,8 +52,8 @@ export interface PersistenceAdapter {
   setActiveSessionId(id: ID): Promise<void>;
   /** Clears the active-session pointer. */
   clearActiveSessionId(): Promise<void>;
-  /** Convenience: loads the active session, or `null` when none is set / it fails the load guards. */
-  loadActiveSession(): Promise<Session | null>;
+  /** Convenience: loads the active session, carrying the same reason on failure. */
+  loadActiveSession(): Promise<SessionLoad>;
 }
 
 /**

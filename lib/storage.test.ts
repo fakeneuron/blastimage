@@ -50,7 +50,7 @@ describe('save / load round-trip', () => {
     const session = makeSession();
     const res = saveSession(session);
     expect(res.ok).toBe(true);
-    expect(loadSession(session.id)).toEqual(session);
+    expect(loadSession(session.id)).toEqual({ status: 'ok', session });
   });
 
   it('indexes multiple named sessions via listSessions', () => {
@@ -71,20 +71,41 @@ describe('save / load round-trip', () => {
   });
 });
 
+// Each guard reports *why* it rejected the session (BI-030.4) — collapsing them
+// into one `null` is what let callers bootstrap over a stored project silently.
 describe('load guards', () => {
-  it('returns null on schemaVersion mismatch', () => {
+  it('reports the stored version and the project name on schemaVersion mismatch', () => {
+    const session = makeSession({ name: 'Acme Site', schemaVersion: SCHEMA_VERSION + 1 });
+    saveSession(session);
+    expect(loadSession(session.id)).toEqual({
+      status: 'unsupported-version',
+      name: 'Acme Site',
+      storedVersion: SCHEMA_VERSION + 1,
+    });
+  });
+
+  it('reports corrupt on unparseable stored JSON', () => {
+    localStorage.setItem('blastimage:session:bad', '{ not valid json');
+    expect(loadSession('bad')).toEqual({ status: 'corrupt', name: null });
+  });
+
+  it('reports corrupt (naming the project) on JSON that is not a session', () => {
+    const session = makeSession({ id: 'shape', name: 'Half Written' });
+    saveSession(session);
+    localStorage.setItem('blastimage:session:shape', JSON.stringify({ id: 'shape' }));
+    expect(loadSession('shape')).toEqual({ status: 'corrupt', name: 'Half Written' });
+  });
+
+  it('reports absent for an unknown id', () => {
+    expect(loadSession('nope')).toEqual({ status: 'absent' });
+  });
+
+  it('leaves a rejected session in storage rather than clearing it', () => {
     const session = makeSession({ schemaVersion: SCHEMA_VERSION + 1 });
     saveSession(session);
-    expect(loadSession(session.id)).toBeNull();
-  });
-
-  it('returns null on corrupt stored JSON', () => {
-    localStorage.setItem('blastimage:session:bad', '{ not valid json');
-    expect(loadSession('bad')).toBeNull();
-  });
-
-  it('returns null for an unknown id', () => {
-    expect(loadSession('nope')).toBeNull();
+    loadSession(session.id);
+    expect(localStorage.getItem(`blastimage:session:${session.id}`)).not.toBeNull();
+    expect(listSessions().map((m) => m.id)).toEqual([session.id]);
   });
 });
 
@@ -94,7 +115,11 @@ describe('active-session pointer', () => {
     saveSession(session);
     setActiveSessionId(session.id);
     expect(getActiveSessionId()).toBe('active1');
-    expect(loadActiveSession()).toEqual(session);
+    expect(loadActiveSession()).toEqual({ status: 'ok', session });
+  });
+
+  it('reports absent when no active pointer is set', () => {
+    expect(loadActiveSession()).toEqual({ status: 'absent' });
   });
 
   it('clears the active pointer when the active session is deleted', () => {

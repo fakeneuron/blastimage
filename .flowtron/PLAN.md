@@ -15,7 +15,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **BI-EPIC-030** [heavy]🧠 | silent-drift-surfacing — three load-bearing contracts fail without any user-visible signal: `slugify(name)` joins app state to on-disk round state in both directions, `schemaVersion` gates every session load, and approve is a one-way write into the user's repo. Make the drift visible; do not re-architect the joins. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: Load-bearing joins fail silently)
   - [x] **BI-030.2** [medium]🧩 | reversible-approve — Completed 2026-08-08.
   - [x] **BI-030.3** [medium]🧩 | rename-slug-guard — Completed 2026-08-08.
-  - [ ] **BI-030.4** [medium]🧩 | schema-mismatch-banner — distinguish "absent" from "version-mismatched" in `loadSession`; name the affected session in a banner instead of silently bootstrapping a fresh one and leaving a dead switcher entry.
+  - [x] **BI-030.4** [medium]🧩 | schema-mismatch-banner — Completed 2026-08-08.
   - [ ] **BI-030.N** [light]🔧 | audit
 
 - [ ] **BI-EPIC-031** [medium]🧩 | generation-mode-clarity — in-app generation is Grok-Build-only by deliberate decision (BI-023: "generation stays local-only (Grok Build)"), and BI-EPIC-024 preserved it on purpose while migrating only the iterate action off `generateBatch`. Nothing in the UI or README says which mode you are in, and the one diagnostic that would explain it is swallowed. Clarify, do not remove. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: The adopter path is the product)

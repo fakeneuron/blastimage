@@ -36,6 +36,7 @@ import type {
   Session,
   StarRating,
 } from './types';
+import { SCHEMA_VERSION } from './types';
 import {
   downloadBlob,
   downloadManifestBundle,
@@ -46,6 +47,7 @@ import {
   parseTaskImport,
   slugify,
   supportsDirectoryPicker,
+  type SessionLoad,
   type SessionMeta,
 } from './storage';
 import { persistence } from './persistence';
@@ -121,6 +123,27 @@ function confirmSlugBreak(
       `⟳ Iterate will write a slug /blast-iterate won't match.\n\n` +
       `Rename imagegen/tasks.json to match, or keep the old name.`,
   );
+}
+
+/**
+ * User-facing reason a stored session could not be opened, or `null` when the
+ * load is a non-event (`ok`, or `absent` — first run, no pointer, or storage
+ * unavailable). Callers append the consequence, since bootstrapping over the
+ * session and refusing to switch to it read differently (BI-030.4).
+ */
+function unreadableSessionReason(load: SessionLoad): string | null {
+  const label = (name: string | null): string => `Project “${name ?? 'Untitled'}”`;
+  switch (load.status) {
+    case 'unsupported-version':
+      return (
+        `${label(load.name)} was saved with schema version ${load.storedVersion}; ` +
+        `this app expects ${SCHEMA_VERSION}.`
+      );
+    case 'corrupt':
+      return `${label(load.name)} could not be read — its saved data is corrupt.`;
+    default:
+      return null;
+  }
 }
 
 export interface UseWorkspace {
@@ -280,14 +303,18 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     void (async () => {
       const existing = await persistence.loadActiveSession();
       if (cancelled) return;
-      if (existing) {
-        setSession(existing);
+      if (existing.status === 'ok') {
+        setSession(existing.session);
         setSessions(await persistence.listSessions());
         if (cancelled) return;
-        setActiveTaskId(existing.tasks[0]?.id ?? null);
+        setActiveTaskId(existing.session.tasks[0]?.id ?? null);
         setReady(true);
         return;
       }
+      // A rejected session is not an absent one: bootstrapping over it would
+      // drop the user's project without a word and leave its index entry
+      // stranded in the switcher (BI-030.4). Say which project, and why.
+      const unreadable = unreadableSessionReason(existing);
       const fresh = newSession(DEFAULT_SESSION_NAME);
       const res = await persistence.saveSession(fresh);
       if (cancelled) return;
@@ -296,6 +323,9 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
         if (cancelled) return;
         setSession(fresh);
         setSessions(await persistence.listSessions());
+        if (unreadable) {
+          setError(`${unreadable} A new project was started; the old data is still in browser storage.`);
+        }
       } else {
         // Storage unavailable: keep the session in memory so the UI still works.
         setSession(fresh);
@@ -351,11 +381,18 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   function switchSession(id: ID): void {
     void (async () => {
       const loaded = await persistence.loadSession(id);
-      if (!loaded) return;
+      if (loaded.status !== 'ok') {
+        // The index entry outlives a session the load guards reject, so this is
+        // reachable from the switcher. Explain it instead of letting the
+        // <select> snap silently back to the current project (BI-030.4).
+        const unreadable = unreadableSessionReason(loaded);
+        if (unreadable) setError(`${unreadable} The current project is still open.`);
+        return;
+      }
       await persistence.setActiveSessionId(id);
-      sessionRef.current = loaded;
-      setSession(loaded);
-      setActiveTaskId(loaded.tasks[0]?.id ?? null);
+      sessionRef.current = loaded.session;
+      setSession(loaded.session);
+      setActiveTaskId(loaded.session.tasks[0]?.id ?? null);
     })();
   }
 
@@ -491,8 +528,10 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
         // The user switched sessions mid-generate: persist the batch into the
         // originating stored session without flipping the UI back to it.
         const origin = await persistence.loadSession(session.id);
-        if (origin) {
-          const res = await persistence.saveSession(appendIterationTo(origin, taskId, draft));
+        if (origin.status === 'ok') {
+          const res = await persistence.saveSession(
+            appendIterationTo(origin.session, taskId, draft),
+          );
           if (res.ok) setSessions(await persistence.listSessions());
           else setError(res.error);
         }

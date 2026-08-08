@@ -40,6 +40,8 @@ When blastimage runs inside Grok Build with the provider bridge wired
 
 Sessions persist in `localStorage` — no backend required. Use **↓ Export** / **↑ Import** in the Project section to back up a whole workspace to a `.json` file and restore it (Import lands it as a fresh copy), so a project can move between browsers or devices.
 
+A stored project written by a different schema version — or one whose saved data is corrupt — cannot be opened. Rather than starting over in silence, blastimage names it in a banner (at launch, and again if you pick it from the Project switcher) and leaves its data untouched in browser storage.
+
 ## Docs
 
 - [`docs/REVIEW-LOOP.md`](docs/REVIEW-LOOP.md) — terminal-generate / frontend-review loop (adopter SSOT)
