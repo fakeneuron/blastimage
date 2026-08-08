@@ -2,7 +2,7 @@
 
 ## Project
 
-Local Next.js application for coordinated AI image generation workflows. Users define prompt tasks, attach reference photos, generate batches with Grok Imagine, review and iterate, then export approved images with a JSON provenance manifest. **Adopter mode** (BI-EPIC-024): generation runs in a Grok Build terminal session via `/blast-generate` and `/blast-iterate`; the frontend is viewer/selector only — see `docs/REVIEW-LOOP.md`.
+Local Next.js application for coordinated AI image generation workflows. Users define prompt tasks, attach reference photos, generate batches with Grok Imagine, review and iterate, then export approved images with a JSON provenance manifest. Two mutually exclusive generation modes: **Adopter mode** (BI-EPIC-024) — generation runs in a Grok Build terminal session via `/blast-generate` and `/blast-iterate`; the frontend is viewer/selector only — see `docs/REVIEW-LOOP.md`. **In-app mode** — blastimage runs directly inside a Grok Build session with the provider bridge wired, so generation happens in-browser — see `docs/GROK-AGENT.md`.
 
 ## Stack
 

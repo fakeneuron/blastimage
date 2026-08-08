@@ -26,10 +26,13 @@ blastimage is the viewer/selector — the browser never generates. Full contract
 
 Install terminal skills from the submodule: [`docs/ADOPT.md`](docs/ADOPT.md) §5.1.
 
-### In-app loop (local Grok Build session)
+### In-app loop (Grok Build only)
 
-When blastimage runs inside Grok Build with the provider bridge wired
-([`docs/GROK-AGENT.md`](docs/GROK-AGENT.md)), generation stays in-browser:
+This mode only works when blastimage itself runs **inside a Grok Build session**
+with the provider bridge wired ([`docs/GROK-AGENT.md`](docs/GROK-AGENT.md)) — a
+plain browser tab (including a submodule adopter's) has no bridge to call, so
+Generate stays disabled with the reason stated. When the bridge is present,
+generation stays in-browser:
 
 1. **Create a project** — a default session opens on first launch; rename it or create a new one from the sidebar.
 2. **Add tasks** — each task has a base prompt and an optional reference photo selection (up to 3 active at once from the session library). To stage many at once, **🛠 Build** composes a `tasks.json` from pasted prompts or `prompts/*.txt` files, and **⇪ Import** loads such a file into the session.

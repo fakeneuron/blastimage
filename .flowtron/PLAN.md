@@ -14,7 +14,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-EPIC-031** [medium]🧩 | generation-mode-clarity — in-app generation is Grok-Build-only by deliberate decision (BI-023: "generation stays local-only (Grok Build)"), and BI-EPIC-024 preserved it on purpose while migrating only the iterate action off `generateBatch`. Nothing in the UI or README says which mode you are in, and the one diagnostic that would explain it is swallowed. Clarify, do not remove. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: The adopter path is the product)
   - [x] **BI-031.2** [light]🔧 | provider-absent-ux — Completed 2026-08-08.
-  - [ ] **BI-031.3** [light]🔧 | readme-mode-labels — label the README "In-app loop" section Grok-Build-only; reconcile with `docs/REVIEW-LOOP.md` §2 ("the browser never generates") and CLAUDE.md.
+  - [x] **BI-031.3** [light]🔧 | readme-mode-labels — Completed 2026-08-08.
   - [ ] **BI-031.4** [light]🔧 | orphan-config-cleanup — drop the `BUILD_TARGET=cloudflare` branch from `next.config.ts` (orphaned by BI-028, which deleted the `docs/DEPLOY.md` it cites but never touched the config); rewrite `lib/generate.ts`'s BI-013-era error copy as operator-facing text.
   - [ ] **BI-031.N** [light]🔧 | audit
 

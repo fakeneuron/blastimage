@@ -52,7 +52,10 @@ does not generate the refs — it selects them; the terminal skill generates.)
 | **`/blast-iterate` (terminal)** | read `selection.json`, generate the next round from keeper-as-ref + edited prompt | review / select |
 
 **The browser never generates.** Its only change from today's app: the iterate action
-**emits a request file** instead of calling `generateBatch`.
+**emits a request file** instead of calling `generateBatch`. (Scope: this adopter
+workflow. blastimage also has a separate **in-app** mode — running directly inside
+a Grok Build session with the provider bridge wired — where generation does happen
+in-browser; see the README's "In-app loop" section.)
 
 ---
 
