@@ -325,9 +325,51 @@ export async function writeRoundSelection(
   );
 }
 
+/** True when two files hold the same bytes (size checked first — the cheap common case). */
+async function sameBytes(a: File, b: File): Promise<boolean> {
+  if (a.size !== b.size) return false;
+  const [left, right] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
+  const lhs = new Uint8Array(left);
+  const rhs = new Uint8Array(right);
+  return lhs.every((byte, i) => byte === rhs[i]);
+}
+
+/**
+ * True when promoting `rounds/r<N>/<keeperFilename>` would replace a *different*
+ * image already sitting at `approved/<keeperFilename>` (BI-032).
+ *
+ * `approved/` is a flat, filename-keyed namespace and round images are named
+ * `<slug>-NNN.<ext>`, so the same task iterated across rounds collides there by
+ * construction. Detection reads disk rather than session state deliberately:
+ * the resident file may have been promoted in an earlier browser session, where
+ * no `ApprovedImage` record survives to compare against. Bytes are compared so
+ * that re-approving the *same* image stays silent — only a real replacement is
+ * reported. An absent `approved/` dir or an absent file is not a conflict.
+ */
+export async function approvedFileConflict(
+  root: FileSystemDirectoryHandle,
+  round: number,
+  keeperFilename: string,
+): Promise<Result<boolean>> {
+  let resident: File;
+  try {
+    resident = await readImagegenFile(root, `approved/${keeperFilename}`);
+  } catch {
+    // No approved/ dir, or nothing under that name — nothing to replace.
+    return { ok: true, value: false };
+  }
+  try {
+    const source = await readImagegenFile(root, `rounds/r${round}/${keeperFilename}`);
+    return { ok: true, value: !(await sameBytes(resident, source)) };
+  } catch {
+    return { ok: false, error: `Could not read rounds/r${round}/${keeperFilename}.` };
+  }
+}
+
 /**
  * Copies a keeper image from `rounds/r<N>/` into `imagegen/approved/` under the
- * same filename (creates `approved/` when absent).
+ * same filename (creates `approved/` when absent). Callers that must not
+ * clobber a colliding approval check {@link approvedFileConflict} first.
  */
 export async function promoteKeeperToApproved(
   root: FileSystemDirectoryHandle,

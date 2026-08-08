@@ -125,6 +125,14 @@ clobbering a sibling approval: the entry is only rewritten when no other image o
 still approved in that round, and the file is only deleted when no other still-approved image
 maps to the same (flat, filename-keyed) `approved/` name.
 
+**Approve never silently replaces (BI-032).** Because `approved/` is flat and round images are
+named `<slug>-NNN.<ext>`, approving the same task from two rounds lands on one filename. The
+frontend now compares the resident file's bytes before promoting and raises a blocking confirm
+when they differ — naming the round the resident copy came from where it can. Declining writes
+nothing and rolls the decision back, so session state never claims an approval the disk doesn't
+hold. Re-approving the *same* image passes silently. The replaced copy is not recoverable from
+the frontend, but its round file stays in `rounds/r<N>/`.
+
 ---
 
 ## 4. Frontend seams (BI-EPIC-024 — shipped)

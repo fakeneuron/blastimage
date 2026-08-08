@@ -356,11 +356,16 @@ describe('unreadable stored sessions (BI-030.4)', () => {
  */
 function recordingImagegen(batches: Record<number, RoundBatch>): {
   api: ImagegenApi;
+  promoted: string[];
   unpromoted: string[];
   selections: Array<{ round: number; tasks: RoundSelectionTask[] }>;
+  /** Filenames `approvedConflict` should report as already-taken (BI-032). */
+  conflicts: string[];
 } {
+  const promoted: string[] = [];
   const unpromoted: string[] = [];
   const selections: Array<{ round: number; tasks: RoundSelectionTask[] }> = [];
+  const conflicts: string[] = [];
   const api: ImagegenApi = {
     linked: true,
     linkFolder: async () => ({ status: 'cancelled' }),
@@ -373,15 +378,22 @@ function recordingImagegen(batches: Record<number, RoundBatch>): {
       selections.push({ round, tasks });
       return { ok: true, value: undefined };
     },
-    promoteApproved: async () => ({ ok: true, value: undefined }),
+    promoteApproved: async (_round, keeperFilename) => {
+      promoted.push(keeperFilename);
+      return { ok: true, value: undefined };
+    },
     unpromoteApproved: async (keeperFilename) => {
       unpromoted.push(keeperFilename);
       return { ok: true, value: undefined };
     },
+    approvedConflict: async (_round, keeperFilename) => ({
+      ok: true,
+      value: conflicts.includes(keeperFilename),
+    }),
     resolveDisplayUrl: async (url) => url,
     resolveBlob: async () => new Blob(['x']),
   };
-  return { api, unpromoted, selections };
+  return { api, promoted, unpromoted, selections, conflicts };
 }
 
 function roundBatch(round: number, images: string[]): RoundBatch {
@@ -391,6 +403,21 @@ function roundBatch(round: number, images: string[]): RoundBatch {
     generatedAt: '2026-08-08T00:00:00Z',
     tasks: [{ slug: 'hero', name: 'Hero', prompt: 'a hero image', images }],
   };
+}
+
+/**
+ * Stubs window.confirm with a fixed answer; returns the prompts it received.
+ * `confirm` is stubbed as a real global rather than mocked away, per the
+ * project's seam preference. Shared by the two blocking-confirm guards
+ * (BI-030.3 rename, BI-032 approve collision).
+ */
+function stubConfirm(answer: boolean): string[] {
+  const asked: string[] = [];
+  vi.stubGlobal('confirm', (message?: string) => {
+    asked.push(message ?? '');
+    return answer;
+  });
+  return asked;
 }
 
 /** Loads `round` and returns the hero task id plus its image ids for that round. */
@@ -512,6 +539,120 @@ describe('reversible approve (BI-030.2)', () => {
 });
 
 /**
+ * Approve collision guard (BI-032).
+ *
+ * `approved/` is flat and filename-keyed, so approving `hero-001.jpg` from r2
+ * would silently replace r1's file of the same name. These pin the confirm and
+ * — the part most likely to be silently wrong — the decision rollback that
+ * keeps session state in step with disk when the user declines.
+ */
+describe('approve collision guard (BI-032)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function twoRounds() {
+    return recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+      2: roundBatch(2, ['hero-001.jpg']),
+    });
+  }
+
+  it('does not ask when no file of that name is already approved', async () => {
+    const asked = stubConfirm(true);
+    const { api, promoted } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+
+    await waitFor(() => expect(promoted).toEqual(['hero-001.jpg']));
+    expect(asked).toEqual([]);
+  });
+
+  it('asks before replacing a different image already at that name, and promotes on accept', async () => {
+    const asked = stubConfirm(true);
+    const { api, promoted, selections, conflicts } = twoRounds();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const r1 = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(r1.taskId, r1.imageIds[0]!, 'approved'));
+    await waitFor(() => expect(promoted).toHaveLength(1));
+
+    conflicts.push('hero-001.jpg');
+    const r2 = await loadHero(result, 2);
+    await act(async () => result.current.setImageDecision(r2.taskId, r2.imageIds[0]!, 'approved'));
+
+    await waitFor(() => expect(promoted).toEqual(['hero-001.jpg', 'hero-001.jpg']));
+    expect(asked).toHaveLength(1);
+    // Names the round the resident file came from, recovered from session state.
+    expect(asked[0]).toContain('round 1');
+    expect(selections).toHaveLength(2);
+  });
+
+  it('declining writes nothing and reverts the decision', async () => {
+    stubConfirm(false);
+    const { api, promoted, selections, conflicts } = twoRounds();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const r1 = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(r1.taskId, r1.imageIds[0]!, 'approved'));
+    await waitFor(() => expect(promoted).toHaveLength(1));
+
+    conflicts.push('hero-001.jpg');
+    const r2 = await loadHero(result, 2);
+    await act(async () => result.current.setImageDecision(r2.taskId, r2.imageIds[0]!, 'kept'));
+    await act(async () => result.current.setImageDecision(r2.taskId, r2.imageIds[0]!, 'approved'));
+
+    // Nothing new on disk, and the decision rolled back to what it was.
+    expect(promoted).toEqual(['hero-001.jpg']);
+    expect(selections).toHaveLength(1);
+    await waitFor(() => {
+      const task = result.current.session!.tasks.find((t) => t.id === r2.taskId)!;
+      const image = task.iterations
+        .flatMap((it) => it.images)
+        .find((img) => img.id === r2.imageIds[0]!)!;
+      expect(image.decision).toBe('kept');
+    });
+  });
+
+  it('a declined approve via submitFeedback keeps the feedback it committed', async () => {
+    stubConfirm(false);
+    const { api, promoted, conflicts } = twoRounds();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const r1 = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(r1.taskId, r1.imageIds[0]!, 'approved'));
+    await waitFor(() => expect(promoted).toHaveLength(1));
+
+    conflicts.push('hero-001.jpg');
+    const r2 = await loadHero(result, 2);
+    await act(async () =>
+      result.current.submitFeedback(
+        r2.taskId,
+        r2.imageIds[0]!,
+        { text: 'warmer tones', useAsReference: true },
+        'approve',
+      ),
+    );
+
+    expect(promoted).toEqual(['hero-001.jpg']);
+    await waitFor(() => {
+      const task = result.current.session!.tasks.find((t) => t.id === r2.taskId)!;
+      const image = task.iterations
+        .flatMap((it) => it.images)
+        .find((img) => img.id === r2.imageIds[0]!)!;
+      expect(image.decision).toBe('undecided');
+      expect(image.feedback?.text).toBe('warmer tones');
+    });
+  });
+});
+
+/**
  * Rename slug guard (BI-030.3).
  *
  * `slugify(task.name)` is the only thing joining a task to the round files on
@@ -521,16 +662,6 @@ describe('reversible approve (BI-030.2)', () => {
  * real global rather than mocked away, per the project's seam preference.
  */
 describe('rename slug guard (BI-030.3)', () => {
-  /** Stubs window.confirm with a fixed answer; returns the prompts it received. */
-  function stubConfirm(answer: boolean): string[] {
-    const asked: string[] = [];
-    vi.stubGlobal('confirm', (message?: string) => {
-      asked.push(message ?? '');
-      return answer;
-    });
-    return asked;
-  }
-
   afterEach(() => {
     vi.unstubAllGlobals();
   });

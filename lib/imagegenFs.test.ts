@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  approvedFileConflict,
   listAvailableRounds,
   promoteKeeperToApproved,
   readRoundBatch,
@@ -264,5 +265,62 @@ describe('imagegenFs approve removal (BI-030.2)', () => {
   it('succeeds when approved/ does not exist at all', async () => {
     const root = fakeWritableDir({ rounds: fakeWritableDir({}) });
     expect((await removeApprovedFile(root, 'hero-001.jpg')).ok).toBe(true);
+  });
+});
+
+describe('imagegenFs approve collision detection (BI-032)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('indexedDB', undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** `approved/` absent entirely, plus one round holding `hero-001.jpg`. */
+  function rootWithRound(round: number, contents: string): FileSystemDirectoryHandle {
+    const roundDir = fakeWritableDir({
+      'hero-001.jpg': fakeFile('hero-001.jpg', contents, 'image/jpeg'),
+    });
+    return fakeWritableDir({ rounds: fakeWritableDir({ [`r${round}`]: roundDir }) });
+  }
+
+  it('reports no conflict when approved/ does not exist', async () => {
+    const out = await approvedFileConflict(rootWithRound(1, 'r1-bytes'), 1, 'hero-001.jpg');
+    expect(out).toEqual({ ok: true, value: false });
+  });
+
+  it('reports no conflict when approved/ holds a different filename', async () => {
+    const root = rootWithRound(1, 'r1-bytes');
+    await promoteKeeperToApproved(root, 1, 'hero-001.jpg');
+
+    const out = await approvedFileConflict(root, 1, 'hero-002.jpg');
+    expect(out).toEqual({ ok: true, value: false });
+  });
+
+  it('reports no conflict when the resident file is the same image (re-approve)', async () => {
+    const root = rootWithRound(1, 'r1-bytes');
+    expect((await promoteKeeperToApproved(root, 1, 'hero-001.jpg')).ok).toBe(true);
+
+    const out = await approvedFileConflict(root, 1, 'hero-001.jpg');
+    expect(out).toEqual({ ok: true, value: false });
+  });
+
+  it('reports a conflict when another round would replace the resident file', async () => {
+    const r1 = fakeWritableDir({ 'hero-001.jpg': fakeFile('hero-001.jpg', 'r1-bytes', 'image/jpeg') });
+    const r2 = fakeWritableDir({ 'hero-001.jpg': fakeFile('hero-001.jpg', 'r2-bytes', 'image/jpeg') });
+    const root = fakeWritableDir({ rounds: fakeWritableDir({ r1, r2 }) });
+    expect((await promoteKeeperToApproved(root, 1, 'hero-001.jpg')).ok).toBe(true);
+
+    const out = await approvedFileConflict(root, 2, 'hero-001.jpg');
+    expect(out).toEqual({ ok: true, value: true });
+  });
+
+  it('errors when the round file it would promote cannot be read', async () => {
+    const root = rootWithRound(1, 'r1-bytes');
+    await promoteKeeperToApproved(root, 1, 'hero-001.jpg');
+
+    const out = await approvedFileConflict(root, 9, 'hero-001.jpg');
+    expect(out.ok).toBe(false);
   });
 });

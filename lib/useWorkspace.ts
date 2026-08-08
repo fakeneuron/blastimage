@@ -97,6 +97,7 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   writeSelection: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   promoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   unpromoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  approvedConflict: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   resolveDisplayUrl: async (url) => url,
   // No linked root: `data:`/`https:` still resolve, `imagegen:` rejects (BI-029.2).
   resolveBlob: (url) => resolveImageBlob(url, null),
@@ -124,6 +125,27 @@ function confirmSlugBreak(
       `“${risk.nextSlug}”, so the next ↻ Load round will mint a duplicate task and ` +
       `⟳ Iterate will write a slug /blast-iterate won't match.\n\n` +
       `Rename imagegen/tasks.json to match, or keep the old name.`,
+  );
+}
+
+/**
+ * Blocking confirm for an approve that would replace a different image already
+ * sitting at `approved/<keeperFilename>` (BI-032). `approved/` is flat and
+ * filename-keyed, so the same task approved from two rounds collides there.
+ * `priorRound` is `null` when the resident file predates this session's model
+ * and its round can no longer be named. Proceeds without asking where
+ * `window.confirm` is unavailable (SSR), mirroring {@link confirmSlugBreak}.
+ */
+function confirmApprovedOverwrite(keeperFilename: string, priorRound: number | null): boolean {
+  if (typeof window === 'undefined' || typeof window.confirm !== 'function') return true;
+  const origin = priorRound === null ? 'promoted earlier' : `promoted from round ${priorRound}`;
+  return window.confirm(
+    `Approve “${keeperFilename}”?\n\n` +
+      `imagegen/approved/${keeperFilename} already holds a different image ` +
+      `(${origin}). approved/ is keyed by filename, so approving this one ` +
+      `replaces it — the approved copy is not recoverable from the frontend ` +
+      `(its round file stays in imagegen/rounds/).\n\n` +
+      `Replace it, or cancel and clear the earlier approval first.`,
   );
 }
 
@@ -604,13 +626,52 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     return null;
   }
 
-  async function handleImagegenApprove(taskId: ID, imageId: ID): Promise<void> {
+  /**
+   * Promotes an approved image into `approved/` and records the approve entry
+   * in `selection.json`.
+   *
+   * `previous` is the decision held *before* the caller's `commit`, so a
+   * declined overwrite confirm (BI-032) can roll the decision back. The rollback
+   * reads `sessionRef.current` — the *post*-commit session — so that
+   * `submitFeedback`'s feedback text survives a declined approve and only the
+   * decision field moves. (`handleImagegenUnapprove` deliberately uses the
+   * *pre*-commit `session` instead, for the same reason in reverse: each
+   * handler needs the state that makes its own guard correct.)
+   */
+  async function handleImagegenApprove(
+    taskId: ID,
+    imageId: ID,
+    previous: ReviewDecision | undefined,
+  ): Promise<void> {
     if (!session || !imagegen.linked) return;
     const hit = findGeneratedImage(session, taskId, imageId);
     if (!hit) return;
     const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
     const keeper = roundImageFilenameFromUrl(hit.image.url);
     if (round === null || !keeper) return;
+
+    // approved/ is flat and filename-keyed: the same task approved from two
+    // rounds lands on one name. Ask before replacing a different image there.
+    const conflict = await imagegen.approvedConflict(round, keeper);
+    if (!conflict.ok) {
+      setError(conflict.error);
+      return;
+    }
+    if (conflict.value) {
+      const priorRound =
+        buildApprovedImages(session)
+          .filter((a) => a.imageId !== imageId && roundImageFilenameFromUrl(a.url) === keeper)
+          .map((a) => roundNumberFromImageUrl(a.url))
+          .find((r): r is number => r !== null) ?? null;
+      if (!confirmApprovedOverwrite(keeper, priorRound)) {
+        const current = sessionRef.current;
+        if (current) {
+          commit(setImageDecisionOn(current, taskId, imageId, previous ?? 'undecided'));
+        }
+        return;
+      }
+    }
+
     const slug = slugify(hit.task.name);
     const selectedAt = new Date().toISOString();
     const promote = await imagegen.promoteApproved(round, keeper);
@@ -681,7 +742,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (!session) return;
     const previous = findGeneratedImage(session, taskId, imageId)?.image.decision;
     commit(setImageDecisionOn(session, taskId, imageId, decision));
-    if (decision === 'approved') void handleImagegenApprove(taskId, imageId);
+    if (decision === 'approved') void handleImagegenApprove(taskId, imageId, previous);
     else if (previous === 'approved') void handleImagegenUnapprove(taskId, imageId);
   }
 
@@ -703,7 +764,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (action === 'keep') next = setImageDecisionOn(next, taskId, imageId, 'kept');
     else if (action === 'approve') next = setImageDecisionOn(next, taskId, imageId, 'approved');
     commit(next);
-    if (action === 'approve') void handleImagegenApprove(taskId, imageId);
+    if (action === 'approve') void handleImagegenApprove(taskId, imageId, previous);
     else if (action === 'keep' && previous === 'approved') {
       void handleImagegenUnapprove(taskId, imageId);
     }

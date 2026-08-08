@@ -19,6 +19,7 @@ import {
 } from 'react';
 
 import {
+  approvedFileConflict,
   listAvailableRounds,
   pickAndLinkImagegenFolder,
   promoteKeeperToApproved,
@@ -79,6 +80,8 @@ export interface ImagegenApi {
   promoteApproved: (round: number, keeperFilename: string) => Promise<Result<void>>;
   /** Inverse of {@link ImagegenApi.promoteApproved} — clears a mis-clicked approve (BI-030.2). */
   unpromoteApproved: (keeperFilename: string) => Promise<Result<void>>;
+  /** True when {@link ImagegenApi.promoteApproved} would replace a different image (BI-032). */
+  approvedConflict: (round: number, keeperFilename: string) => Promise<Result<boolean>>;
   resolveDisplayUrl: (url: string) => Promise<string>;
   /** The sole URL→bytes path (BI-029.2) — see {@link import('./imageBlob').resolveImageBlob}. */
   resolveBlob: ImageBlobResolver;
@@ -170,6 +173,17 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const approvedConflict = useCallback(
+    async (round: number, keeperFilename: string): Promise<Result<boolean>> => {
+      const root = handleRef.current;
+      if (!root) {
+        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
+      }
+      return approvedFileConflict(root, round, keeperFilename);
+    },
+    [],
+  );
+
   const resolveDisplayUrl = useCallback(async (url: string): Promise<string> => {
     if (!isImagegenUrl(url)) return url;
     const cache = blobCacheRef.current;
@@ -207,6 +221,7 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     writeSelection,
     promoteApproved,
     unpromoteApproved,
+    approvedConflict,
     resolveDisplayUrl,
     resolveBlob,
   };
