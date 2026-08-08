@@ -12,13 +12,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-EPIC-031** [medium]🧩 | generation-mode-clarity — in-app generation is Grok-Build-only by deliberate decision (BI-023: "generation stays local-only (Grok Build)"), and BI-EPIC-024 preserved it on purpose while migrating only the iterate action off `generateBatch`. Nothing in the UI or README says which mode you are in, and the one diagnostic that would explain it is swallowed. Clarify, do not remove. Discovery supplied by audit-repo 2026-08-06. Surfaced by audit-repo 2026-08-06 (Theme: The adopter path is the product)
-  - [x] **BI-031.2** [light]🔧 | provider-absent-ux — Completed 2026-08-08.
-  - [x] **BI-031.3** [light]🔧 | readme-mode-labels — Completed 2026-08-08.
-  - [x] **BI-031.4** [light]🔧 | orphan-config-cleanup — Completed 2026-08-08.
-  - [x] **BI-031.5** [light]🔧 | generate-comment-drift — Completed 2026-08-08.
-  - [x] **BI-031.N** [light]🔧 | audit — Completed 2026-08-08.
-
 - [ ] **BI-032** [medium]🧩 | approved-collision-guard — `promoteKeeperToApproved` (`lib/imagegenFs.ts:343`) opens the destination with `create: true` under a flat `approved/` namespace, so approving `hero-001.jpg` from r2 silently overwrites the r1 file of the same name. BI-030.2 guarded only its undo against this collision. Surfaced by BI-030.N audit 2026-08-08.
 - [ ] **BI-033** [medium]🧩 | delete-slug-guard — `deleteTask` (`lib/useWorkspace.ts:461`) has no `renameSlugBreak` equivalent, so deleting a task carrying `imagegen:rounds/` images orphans its on-disk round silently. `Sidebar.tsx:97` already confirms deletion but never mentions the join. BI-030.3 scoped this out (assumption 2). Surfaced by BI-030.N audit 2026-08-08.
 
@@ -32,6 +25,12 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-EPIC-031** [medium]🧩 | generation-mode-clarity — Completed 2026-08-08.
+  - [x] **BI-031.2** [light]🔧 | provider-absent-ux — Completed 2026-08-08.
+  - [x] **BI-031.3** [light]🔧 | readme-mode-labels — Completed 2026-08-08.
+  - [x] **BI-031.4** [light]🔧 | orphan-config-cleanup — Completed 2026-08-08.
+  - [x] **BI-031.5** [light]🔧 | generate-comment-drift — Completed 2026-08-08.
+  - [x] **BI-031.N** [light]🔧 | audit — Completed 2026-08-08.
 - [x] **BI-EPIC-030** [heavy]🧠 | silent-drift-surfacing — Completed 2026-08-08.
   - [x] **BI-030.2** [medium]🧩 | reversible-approve — Completed 2026-08-08.
   - [x] **BI-030.3** [medium]🧩 | rename-slug-guard — Completed 2026-08-08.
