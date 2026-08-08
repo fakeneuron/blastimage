@@ -113,6 +113,6 @@ export async function generateBatch(req: GenerationRequest): Promise<GeneratedCa
   // tool, convert them to data URLs, install a provider that returns them, then
   // trigger the generate action (or inject state directly).
   throw new Error(
-    'No Grok Imagine provider installed. BI-013 live test: agent must call image_gen, produce data URLs, and install globalThis.__grokImagineProvider before generate runs.'
+    "Image generation isn't available in this browser. In-app generation requires blastimage to be running inside a Grok Build session with the Grok Imagine provider installed — see docs/GROK-AGENT.md."
   );
 }

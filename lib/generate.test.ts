@@ -129,3 +129,13 @@ describe('isGenerationAvailable (BI-031.2)', () => {
     expect(isGenerationAvailable()).toBe(false);
   });
 });
+
+describe('generateBatch without a provider (BI-031.4)', () => {
+  afterEach(uninstallTestMockProvider);
+
+  it('throws operator-facing text naming the missing bridge, not internal task jargon', async () => {
+    await expect(generateBatch({ prompt: 'p', batchSize: 3 })).rejects.toThrow(
+      "Image generation isn't available in this browser. In-app generation requires blastimage to be running inside a Grok Build session with the Grok Imagine provider installed — see docs/GROK-AGENT.md."
+    );
+  });
+});
