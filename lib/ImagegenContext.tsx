@@ -29,10 +29,40 @@ import {
   type LinkImagegenResult,
 } from './imagegenFs';
 import { resolveImageBlob, type ImageBlobResolver } from './imageBlob';
-import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
+import { imagegenPathFromUrl, isImagegenUrl, roundNumberFromImageUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
+
+/**
+ * Upper bound on `resolveDisplayUrl`'s blob-URL cache (BI-029.4) — without one
+ * it grows for the life of the single `ImagegenProvider` mount, since object
+ * URLs are otherwise only revoked on unmount. Sized to comfortably hold a few
+ * fully-loaded rounds of review images without visible re-fetch churn.
+ */
+const BLOB_CACHE_MAX_ENTRIES = 200;
+
+/** Evicts the least-recently-used entry (oldest by `Map` insertion order) and revokes its object URL. */
+function evictOldestBlob(cache: Map<string, string>): void {
+  const oldestUrl = cache.keys().next().value;
+  if (oldestUrl === undefined) return;
+  URL.revokeObjectURL(cache.get(oldestUrl)!);
+  cache.delete(oldestUrl);
+}
+
+/**
+ * Drops and revokes every cached entry belonging to `round` — called before a
+ * (re)load so a round rewritten on disk (e.g. a rerun of `/blast-generate`
+ * against an existing `rounds/r<N>/`) never serves a stale cached blob.
+ */
+function invalidateRoundBlobs(cache: Map<string, string>, round: number): void {
+  for (const [url, blobUrl] of cache) {
+    if (roundNumberFromImageUrl(url) === round) {
+      URL.revokeObjectURL(blobUrl);
+      cache.delete(url);
+    }
+  }
+}
 
 /** FSA surface consumed by {@link useWorkspace} for round ingest + selection writes. */
 export interface ImagegenApi {
@@ -96,6 +126,7 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     if (!root) {
       return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
     }
+    invalidateRoundBlobs(blobCacheRef.current, round);
     return readRoundBatch(root, round);
   }, []);
 
@@ -127,14 +158,22 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
 
   const resolveDisplayUrl = useCallback(async (url: string): Promise<string> => {
     if (!isImagegenUrl(url)) return url;
-    const cached = blobCacheRef.current.get(url);
-    if (cached) return cached;
+    const cache = blobCacheRef.current;
+    const cached = cache.get(url);
+    if (cached) {
+      // Bump recency: delete + re-set moves the key to the end of Map's
+      // insertion-order iteration, which evictOldestBlob relies on.
+      cache.delete(url);
+      cache.set(url, cached);
+      return cached;
+    }
     const root = handleRef.current;
     if (!root) return url;
     try {
       const file = await readImagegenFile(root, imagegenPathFromUrl(url));
       const blobUrl = URL.createObjectURL(file);
-      blobCacheRef.current.set(url, blobUrl);
+      if (cache.size >= BLOB_CACHE_MAX_ENTRIES) evictOldestBlob(cache);
+      cache.set(url, blobUrl);
       return blobUrl;
     } catch {
       return url;
