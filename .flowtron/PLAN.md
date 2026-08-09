@@ -8,12 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-EPIC-034** [heavy]🧠 | dependency-vuln-gate — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Dependencies are frozen, not managed)
-  - [x] **BI-034.2** [light]🔧 | relax-next-pin — Completed 2026-08-08.
-  - [x] **BI-034.3** [medium]🧩 | ci-audit-step — Completed 2026-08-08.
-  - [x] **BI-034.4** [light]🔧 | dependabot-config — Completed 2026-08-08.
-  - [x] **BI-034.5** [medium]🧩 | secret-scan-decision — Completed 2026-08-08.
-  - [ ] **BI-034.N** [light]🔧 | audit — Audit BI-EPIC-034; doc-drift sweep.
+(none)
 
 ## Medium
 
@@ -40,6 +35,12 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-EPIC-034** [heavy]🧠 | dependency-vuln-gate — Completed 2026-08-09.
+  - [x] **BI-034.2** [light]🔧 | relax-next-pin — Completed 2026-08-08.
+  - [x] **BI-034.3** [medium]🧩 | ci-audit-step — Completed 2026-08-08.
+  - [x] **BI-034.4** [light]🔧 | dependabot-config — Completed 2026-08-08.
+  - [x] **BI-034.5** [medium]🧩 | secret-scan-decision — Completed 2026-08-08.
+  - [x] **BI-034.N** [light]🔧 | dependency-vuln-gate audit — Completed 2026-08-09.
 - [x] **BI-033** [medium]🧩 | delete-slug-guard — Completed 2026-08-08.
 - [x] **BI-032** [medium]🧩 | approved-collision-guard — Completed 2026-08-08.
 - [x] **BI-EPIC-031** [medium]🧩 | generation-mode-clarity — Completed 2026-08-08.
