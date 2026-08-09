@@ -587,7 +587,7 @@ export function buildReviewSheetHtml(manifest: ExportManifest, embedded: Map<ID,
     .map((img) => {
       const src = embedded.get(img.imageId);
       const thumb = src
-        ? `<img class="thumb" src="${src}" alt="${escapeHtml(img.taskName)}" />`
+        ? `<img class="thumb" src="${escapeHtml(src)}" alt="${escapeHtml(img.taskName)}" />`
         : `<div class="thumb missing">image unavailable</div>`;
       const refs = img.refImageIds.map((id) => escapeHtml(refName.get(id) ?? id));
       const refsLine = refs.length

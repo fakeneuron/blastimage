@@ -412,6 +412,16 @@ describe('buildReviewSheetHtml', () => {
     expect(html).toContain('&lt;b&gt;x&lt;/b&gt;');
   });
 
+  it('escapes src so an embedded value cannot break out of the attribute (BI-035.4)', () => {
+    const manifest = makeManifest([{ imageId: 'img1' }]);
+    const malicious = 'data:,x" onerror="alert(1)';
+    const html = buildReviewSheetHtml(manifest, new Map([['img1', malicious]]));
+
+    // Quotes in the value are entity-encoded so they cannot close the attribute.
+    expect(html).not.toContain(`src="${malicious}"`);
+    expect(html).toContain('src="data:,x&quot; onerror=&quot;alert(1)"');
+  });
+
   it('renders a placeholder for an image absent from the embedded map, keeping the card', () => {
     const manifest = makeManifest([{ imageId: 'img1', taskName: 'No Image' }]);
     const html = buildReviewSheetHtml(manifest, new Map());
