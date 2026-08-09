@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 - [ ] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Themes: Docs are dense and current except where the product pivoted; Accessibility is modal-complete, chrome-incomplete)
-  - [ ] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Rewrite `VISION.md` against the two shipped modes; drop the mock claim, record the BI-028 hosted-mode removal.
+  - [x] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Completed 2026-08-09.
   - [x] **BI-035.3** [light]🔧 | sidebar-aria-labels — Completed 2026-08-09.
   - [x] **BI-035.4** [light]🔧 | review-sheet-src-escape — Completed 2026-08-09.
   - [x] **BI-035.5** [medium]🧩 | lightbox-focus-management — Completed 2026-08-09.
