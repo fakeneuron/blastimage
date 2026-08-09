@@ -28,6 +28,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 
 - [ ] **BI-036** [medium]🧩 | unchecked-index-access — Enable `noUncheckedIndexedAccess` in `tsconfig.json` and fix the fallout. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
+- [ ] **BI-037** [light]🔧 | dependabot-actions-ecosystem — Add a `github-actions` ecosystem entry to `.github/dependabot.yml` so `actions/checkout@v4` and `actions/setup-node@v4` stop being the repo's last unmonitored dependency class. Surfaced by BI-034.N audit (F2); BI-034.4 filed npm only. Weekly cadence; raises PR volume slightly.
 
 ## Future Opportunities
 
