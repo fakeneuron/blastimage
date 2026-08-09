@@ -9,6 +9,16 @@ npm install
 npm run dev   # http://localhost:3003
 ```
 
+Commits are gated by a [gitleaks](https://github.com/gitleaks/gitleaks) secret
+scan (`.pre-commit-config.yaml`, tuned by `.gitleaks.toml`). The config is inert
+until the hook is armed, and arming is **per clone** — a fresh checkout scans
+nothing until you run it:
+
+```bash
+brew install gitleaks && uv tool install pre-commit   # once per machine
+pre-commit install                                    # once per clone
+```
+
 ## Workflow
 
 ### Adopter loop (terminal generate → frontend review)

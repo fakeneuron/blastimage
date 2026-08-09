@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-034.2** [light]🔧 | relax-next-pin — Completed 2026-08-08.
   - [x] **BI-034.3** [medium]🧩 | ci-audit-step — Completed 2026-08-08.
   - [x] **BI-034.4** [light]🔧 | dependabot-config — Completed 2026-08-08.
-  - [ ] **BI-034.5** [medium]🧩 | secret-scan-decision — Adopt the gitleaks + pre-commit deposits via `/natabula-layer-refresh`, or record the opt-out.
+  - [x] **BI-034.5** [medium]🧩 | secret-scan-decision — Completed 2026-08-08.
   - [ ] **BI-034.N** [light]🔧 | audit — Audit BI-EPIC-034; doc-drift sweep.
 
 ## Medium
