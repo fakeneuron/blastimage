@@ -22,6 +22,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 
 - [ ] **BI-036** [medium]🧩 | unchecked-index-access — Enable `noUncheckedIndexedAccess` in `tsconfig.json` and fix the fallout. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
+- [ ] **BI-038** [medium]🧩 | resolved-image-restore-race — `ResolvedImage`'s effect never re-runs after `ImagegenProvider`'s handle restore settles: `resolveDisplayUrl` is a `useCallback([])`, so its identity never changes. An `imagegen:` image mounted before the restore keeps its raw src for the life of the mount. Pinned as a quirk by [[TEST-003]]; flip that test to a contract when fixed.
 
 ## Future Opportunities
 
