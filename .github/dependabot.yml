@@ -9,3 +9,11 @@ updates:
         update-types:
           - "patch"
           - "minor"
+
+  # Workflow action pins (`/` means `.github/workflows`). Ungrouped on purpose:
+  # the pins are major tags (`@v4`), so nearly every update Dependabot raises
+  # here is a major and would land as its own PR regardless (BI-037).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
