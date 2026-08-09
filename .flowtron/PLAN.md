@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **TEST-002.2** [medium]🧩 | review-grid-tests — Completed 2026-08-09.
   - [x] **TEST-002.3** [medium]🧩 | task-detail-tests — Completed 2026-08-09.
   - [x] **TEST-002.4** [medium]🧩 | lightbox-tests — Completed 2026-08-09.
-  - [ ] **TEST-002.5** [light]🔧 | gallery-bulk-tests — `GalleryPanel` export callbacks; `BulkReviewPane` per-task generating/failed states.
+  - [x] **TEST-002.5** [light]🔧 | gallery-bulk-tests — Completed 2026-08-09.
   - [ ] **TEST-002.6** [light]🔧 | import-reference-tests — `ImportBuilder` parse/compose paths; `ReferenceLibrary` add/remove.
   - [ ] **TEST-002.N** [light]🔧 | audit — Audit TEST-EPIC-002; doc-drift sweep.
 - [ ] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Themes: Docs are dense and current except where the product pivoted; Accessibility is modal-complete, chrome-incomplete)
