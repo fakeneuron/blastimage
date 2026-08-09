@@ -37,3 +37,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Runtime dependencies only — dev-tooling advisories never reach a built
+      # artifact. The Next 15 tree's postcss/sharp advisories are held clear by
+      # the `overrides` block in package.json (BI-034.3).
+      - name: Audit
+        run: npm audit --omit=dev --audit-level=high

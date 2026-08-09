@@ -10,7 +10,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-EPIC-034** [heavy]🧠 | dependency-vuln-gate — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Dependencies are frozen, not managed)
   - [x] **BI-034.2** [light]🔧 | relax-next-pin — Completed 2026-08-08.
-  - [ ] **BI-034.3** [medium]🧩 | ci-audit-step — Add an `npm audit` gate to `.github/workflows/ci.yml`. BI-034.2 found `--audit-level=high` would fail on day one: 4 packages stay flagged via Next 15's bundled `postcss`/`sharp`, fixable only by the Next 16 major (Theme B won't-fix). Choose a threshold, `overrides`, or a baseline diff.
+  - [x] **BI-034.3** [medium]🧩 | ci-audit-step — Completed 2026-08-08.
   - [ ] **BI-034.4** [light]🔧 | dependabot-config — Add `.github/dependabot.yml` (npm, weekly, grouped patch/minor).
   - [ ] **BI-034.5** [medium]🧩 | secret-scan-decision — Adopt the gitleaks + pre-commit deposits via `/natabula-layer-refresh`, or record the opt-out.
   - [ ] **BI-034.N** [light]🔧 | audit — Audit BI-EPIC-034; doc-drift sweep.
