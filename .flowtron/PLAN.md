@@ -12,12 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Themes: Docs are dense and current except where the product pivoted; Accessibility is modal-complete, chrome-incomplete)
-  - [x] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Completed 2026-08-09.
-  - [x] **BI-035.3** [light]🔧 | sidebar-aria-labels — Completed 2026-08-09.
-  - [x] **BI-035.4** [light]🔧 | review-sheet-src-escape — Completed 2026-08-09.
-  - [x] **BI-035.5** [medium]🧩 | lightbox-focus-management — Completed 2026-08-09.
-  - [ ] **BI-035.N** [light]🔧 | audit — Audit BI-EPIC-035; doc-drift sweep.
+(none)
 
 ## Low
 
@@ -30,6 +25,12 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Completed 2026-08-09.
+  - [x] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Completed 2026-08-09.
+  - [x] **BI-035.3** [light]🔧 | sidebar-aria-labels — Completed 2026-08-09.
+  - [x] **BI-035.4** [light]🔧 | review-sheet-src-escape — Completed 2026-08-09.
+  - [x] **BI-035.5** [medium]🧩 | lightbox-focus-management — Completed 2026-08-09.
+  - [x] **BI-035.N** [light]🔧 | audit — Completed 2026-08-09.
 - [x] **TEST-003** [medium]🧩 | modal-chrome-tests — Completed 2026-08-09.
 - [x] **TEST-EPIC-002** [heavy]🧠 | component-test-coverage — Completed 2026-08-09.
   - [x] **TEST-002.2** [medium]🧩 | review-grid-tests — Completed 2026-08-09.
