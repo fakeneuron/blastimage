@@ -8,15 +8,31 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-EPIC-034** [heavy]🧠 | dependency-vuln-gate — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Dependencies are frozen, not managed)
+  - [ ] **BI-034.2** [light]🔧 | relax-next-pin — Move `next` from exact `15.5.19` to `^15.5.23`, refresh the lockfile, confirm lint/typecheck/test/build stay green.
+  - [ ] **BI-034.3** [light]🔧 | ci-audit-step — Add `npm audit --omit=dev --audit-level=high` to `.github/workflows/ci.yml`.
+  - [ ] **BI-034.4** [light]🔧 | dependabot-config — Add `.github/dependabot.yml` (npm, weekly, grouped patch/minor).
+  - [ ] **BI-034.5** [medium]🧩 | secret-scan-decision — Adopt the gitleaks + pre-commit deposits via `/natabula-layer-refresh`, or record the opt-out.
+  - [ ] **BI-034.N** [light]🔧 | audit — Audit BI-EPIC-034; doc-drift sweep.
 
 ## Medium
 
-(none)
+- [ ] **TEST-EPIC-002** [heavy]🧠 | component-test-coverage — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
+  - [ ] **TEST-002.2** [medium]🧩 | review-grid-tests — Decision toggle/clear, rating, feedback + iterate callbacks.
+  - [ ] **TEST-002.3** [medium]🧩 | task-detail-tests — Prompt edit, ref toggle (≤3 cap), generate gating on `generationAvailable`.
+  - [ ] **TEST-002.4** [medium]🧩 | lightbox-tests — ← / → stepping, Escape close, focus behavior.
+  - [ ] **TEST-002.5** [light]🔧 | gallery-bulk-tests — `GalleryPanel` export callbacks; `BulkReviewPane` per-task generating/failed states.
+  - [ ] **TEST-002.6** [light]🔧 | import-reference-tests — `ImportBuilder` parse/compose paths; `ReferenceLibrary` add/remove.
+  - [ ] **TEST-002.N** [light]🔧 | audit — Audit TEST-EPIC-002; doc-drift sweep.
+- [ ] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Themes: Docs are dense and current except where the product pivoted; Accessibility is modal-complete, chrome-incomplete)
+  - [ ] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Rewrite `VISION.md` against the two shipped modes; drop the mock claim, record the BI-028 hosted-mode removal.
+  - [ ] **BI-035.3** [light]🔧 | sidebar-aria-labels — `aria-label` every icon-only button in `components/Sidebar.tsx`.
+  - [ ] **BI-035.4** [light]🔧 | review-sheet-src-escape — Escape `src` in `buildReviewSheetHtml` so its docstring's guarantee holds (`lib/storage.ts:590`).
+  - [ ] **BI-035.N** [light]🔧 | audit — Audit BI-EPIC-035; doc-drift sweep.
 
 ## Low
 
-(none)
+- [ ] **BI-036** [medium]🧩 | unchecked-index-access — Enable `noUncheckedIndexedAccess` in `tsconfig.json` and fix the fallout. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
 
 ## Future Opportunities
 
