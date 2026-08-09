@@ -12,9 +12,11 @@
  *
  * `FileReader` and `Image` are stubbed rather than relied on natively:
  * happy-dom's decode timing for both isn't a dependable browser-parity
- * guarantee, so a deterministic synchronous-`onload` stub keeps the ingest
+ * guarantee, so a stub with deterministic `onload` timing keeps the ingest
  * tests reliable — the same rationale as the `URL`/`HTMLAnchorElement.click`
- * stubs already established in `lib/storage.test.ts`.
+ * stubs already established in `lib/storage.test.ts`. Both fakes fire
+ * `onload` from a `queueMicrotask`, *not* synchronously, so they mirror the
+ * real APIs' async callback shape — which is why `flush()` below exists.
  *
  * No `ImagegenProvider` needed — thumbnails render a raw `<img src=
  * {ref.dataUrl}>` from an already-decoded data URL, not through

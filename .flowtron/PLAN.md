@@ -12,13 +12,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **TEST-EPIC-002** [heavy]🧠 | component-test-coverage — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
-  - [x] **TEST-002.2** [medium]🧩 | review-grid-tests — Completed 2026-08-09.
-  - [x] **TEST-002.3** [medium]🧩 | task-detail-tests — Completed 2026-08-09.
-  - [x] **TEST-002.4** [medium]🧩 | lightbox-tests — Completed 2026-08-09.
-  - [x] **TEST-002.5** [light]🔧 | gallery-bulk-tests — Completed 2026-08-09.
-  - [x] **TEST-002.6** [light]🔧 | import-reference-tests — Completed 2026-08-09.
-  - [ ] **TEST-002.N** [light]🔧 | audit — Audit TEST-EPIC-002; doc-drift sweep.
 - [ ] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Themes: Docs are dense and current except where the product pivoted; Accessibility is modal-complete, chrome-incomplete)
   - [ ] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Rewrite `VISION.md` against the two shipped modes; drop the mock claim, record the BI-028 hosted-mode removal.
   - [ ] **BI-035.3** [light]🔧 | sidebar-aria-labels — `aria-label` every icon-only button in `components/Sidebar.tsx`.
@@ -36,6 +29,13 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **TEST-EPIC-002** [heavy]🧠 | component-test-coverage — Completed 2026-08-09.
+  - [x] **TEST-002.2** [medium]🧩 | review-grid-tests — Completed 2026-08-09.
+  - [x] **TEST-002.3** [medium]🧩 | task-detail-tests — Completed 2026-08-09.
+  - [x] **TEST-002.4** [medium]🧩 | lightbox-tests — Completed 2026-08-09.
+  - [x] **TEST-002.5** [light]🔧 | gallery-bulk-tests — Completed 2026-08-09.
+  - [x] **TEST-002.6** [light]🔧 | import-reference-tests — Completed 2026-08-09.
+  - [x] **TEST-002.N** [light]🔧 | component-test-coverage audit — Completed 2026-08-09.
 - [x] **BI-037** [light]🔧 | dependabot-actions-ecosystem — Completed 2026-08-09.
 - [x] **BI-EPIC-034** [heavy]🧠 | dependency-vuln-gate — Completed 2026-08-09.
   - [x] **BI-034.2** [light]🔧 | relax-next-pin — Completed 2026-08-08.
