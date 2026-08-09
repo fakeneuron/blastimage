@@ -21,9 +21,11 @@
  * `resolveDisplayUrl` passes through untouched. The provider renders no DOM element
  * of its own, so the container's first child is the backdrop.
  *
- * Focus behaviour is deliberately absent from this file: `Lightbox` has none to
- * test (no initial focus, no trap, no restore, despite `aria-modal="true"`). That
- * gap is filed as a11y work under BI-EPIC-035, not pinned here as if intended.
+ * Focus behaviour was absent when this file was written and is now covered (BI-035.5
+ * gave the overlay initial focus, a Tab trap, and restore-on-close, backing the
+ * `aria-modal="true"` it had always declared). That task also moved the three
+ * controls inside the `<figure role="dialog">` so the modal container holds what it
+ * owns — which is why the Close button no longer double-fires; see the closing block.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -55,11 +57,24 @@ async function renderLightbox(images: LightboxImage[] = makeImages(3), index = 1
   return { container, unmount, onClose, onIndexChange };
 }
 
+/**
+ * Stands in for the thumbnail that opened the overlay: something outside the render
+ * tree holding focus at mount, so the restore-on-close path has a real target.
+ */
+function mountOpener() {
+  const opener = document.createElement('button');
+  opener.dataset.opener = '';
+  document.body.appendChild(opener);
+  opener.focus();
+  return opener;
+}
+
 const dialog = () => screen.getByRole('dialog', { name: 'Image viewer' });
 const button = (name: string) => screen.getByRole('button', { name });
 
 afterEach(() => {
   cleanup();
+  document.querySelectorAll('[data-opener]').forEach((el) => el.remove());
 });
 
 describe('Lightbox — keyboard stepping (BI-027)', () => {
@@ -176,19 +191,19 @@ describe('Lightbox — closing (BI-027)', () => {
   });
 
   /**
-   * Documents a live quirk rather than a contract: unlike the two nav buttons, the
-   * Close button does not `stopPropagation`, so its click also reaches the backdrop
-   * handler and `onClose` fires twice. Harmless today — both consumers implement
-   * `onClose` as `setLightboxIndex(null)`, which is idempotent — but pinned so that
-   * adding the missing `stopPropagation` shows up here as a deliberate change
-   * instead of passing silently.
+   * This asserted `2` until BI-035.5, documenting a quirk: the Close button carried
+   * no `stopPropagation` of its own, so its click also reached the backdrop handler.
+   * BI-035.5 moved the controls inside the `<figure>` to give the focus trap a
+   * boundary that matches `aria-modal`, and the figure's existing `stopPropagation`
+   * now covers Close too. The double-fire is gone as a side effect — the deliberate
+   * change the old pin existed to surface, recorded here rather than passing silently.
    */
-  it('fires onClose twice from Close — the click also reaches the backdrop', async () => {
+  it('fires onClose once from Close — the figure stops the click reaching the backdrop', async () => {
     const { onClose } = await renderLightbox();
 
     fireEvent.click(button('Close'));
 
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('closes on a backdrop click', async () => {
@@ -233,6 +248,112 @@ describe('Lightbox — single-image sets (BI-027)', () => {
 
     expect(onIndexChange).toHaveBeenNthCalledWith(1, 0);
     expect(onIndexChange).toHaveBeenNthCalledWith(2, 0);
+  });
+});
+
+/**
+ * The overlay declared `role="dialog" aria-modal="true"` from BI-027 onward but
+ * enforced none of it until BI-035.5. Tab is *managed* here — the handler picks the
+ * next target and calls `preventDefault()` rather than delegating to the browser's
+ * sequential navigation — which is both why these assertions can run at all
+ * (happy-dom implements no sequential focus navigation) and why the wrap cases below
+ * are contract rather than incidental browser behaviour.
+ *
+ * DOM order inside the dialog is Close → Previous → Next; the visual positions are
+ * `absolute` and unrelated to it.
+ */
+describe('Lightbox — focus management (BI-035.5)', () => {
+  it('moves focus to the dialog on open', async () => {
+    await renderLightbox();
+
+    expect(document.activeElement).toBe(dialog());
+  });
+
+  it('restores focus to the opener on close', async () => {
+    const opener = mountOpener();
+    const { unmount } = await renderLightbox();
+    expect(document.activeElement).not.toBe(opener);
+
+    unmount();
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('enters the control set on the first Tab', async () => {
+    await renderLightbox();
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+
+    expect(document.activeElement).toBe(button('Close'));
+  });
+
+  it('cycles forward through the controls and wraps at the end', async () => {
+    await renderLightbox(makeImages(3), 1);
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Close'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Previous image'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Next image'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Close'));
+  });
+
+  it('enters at the last control on a backward Tab from the dialog', async () => {
+    await renderLightbox(makeImages(3), 1);
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+
+    expect(document.activeElement).toBe(button('Next image'));
+  });
+
+  it('wraps backward from the first control to the last', async () => {
+    await renderLightbox(makeImages(3), 1);
+    fireEvent.keyDown(window, { key: 'Tab' });
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+
+    expect(document.activeElement).toBe(button('Next image'));
+  });
+
+  it('skips a nav button that is disabled at the end of the set', async () => {
+    await renderLightbox(makeImages(3), 0);
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Close'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+
+    expect(document.activeElement).toBe(button('Next image'));
+  });
+
+  it('holds focus on Close for a single-image set', async () => {
+    await renderLightbox(makeImages(1), 0);
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    fireEvent.keyDown(window, { key: 'Tab' });
+
+    expect(document.activeElement).toBe(button('Close'));
+  });
+
+  it('claims the Tab key while the trap is active', async () => {
+    await renderLightbox();
+
+    // `fireEvent` reports the dispatch result: false once preventDefault ran.
+    expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
+  });
+
+  /**
+   * The overlay renders nothing for an empty or out-of-range set, but the keydown
+   * listener is bound before that guard — so the trap has to stand down rather than
+   * swallow Tab for whatever is still on the page behind it.
+   */
+  it('leaves Tab alone when there is no dialog to trap it in', async () => {
+    const opener = mountOpener();
+    await renderLightbox([], 0);
+
+    expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(true);
+    expect(document.activeElement).toBe(opener);
   });
 });
 
