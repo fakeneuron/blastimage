@@ -8,9 +8,12 @@
  * is untested is the component gluing them to the UI — paste/upload → rows,
  * row edit/remove, and the download validation gates.
  *
- * Deliberately out of scope: Esc-close and backdrop-click-close. Both are
- * generic dialog chrome shared with `FeedbackModal`/`IterateModal`, not the
- * named "parse/compose paths" risk this task covers.
+ * The dialog chrome (Esc, listener teardown, backdrop-vs-dialog click) was out
+ * of scope for TEST-002.6, which named the "parse/compose paths" risk only and
+ * deferred the chrome as a real gap. TEST-003 picked it up: the block below runs
+ * the same four assertions here as on `FeedbackModal`, `IterateModal`, and
+ * `DeleteTaskModal`, replicated per component so a failure names the one that
+ * broke.
  *
  * No `ImagegenProvider` needed — this component renders no images at all.
  * The download test reuses the `URL.createObjectURL` /
@@ -26,8 +29,8 @@ import type { TaskImportDraft } from '@/lib/storage';
 
 function renderBuilder() {
   const onClose = vi.fn();
-  const { container } = render(<ImportBuilder onClose={onClose} />);
-  return { onClose, container };
+  const { container, unmount } = render(<ImportBuilder onClose={onClose} />);
+  return { onClose, container, unmount };
 }
 
 function pasteTextarea() {
@@ -80,6 +83,60 @@ function captureDownloads() {
 afterEach(() => {
   vi.unstubAllGlobals();
   cleanup();
+});
+
+describe('ImportBuilder — dialog chrome (TEST-003)', () => {
+  it('closes on Escape', () => {
+    const { onClose } = renderBuilder();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores keys it does not handle', () => {
+    const { onClose } = renderBuilder();
+
+    fireEvent.keyDown(window, { key: 'a' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('stops listening once unmounted', () => {
+    const { unmount, onClose } = renderBuilder();
+
+    unmount();
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes on a backdrop click', () => {
+    const { container, onClose } = renderBuilder();
+
+    fireEvent.click(container.firstChild as HTMLElement);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays open when the dialog itself is clicked', () => {
+    const { onClose } = renderBuilder();
+
+    fireEvent.click(screen.getByRole('dialog', { name: 'Build task-import file' }));
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes on the Close button without emitting a file', () => {
+    const { onClose } = renderBuilder();
+    const { names } = captureDownloads();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(names).toHaveLength(0);
+  });
 });
 
 describe('ImportBuilder — paste (BI-021.3)', () => {

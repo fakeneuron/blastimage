@@ -23,7 +23,7 @@ const JOINED: DeleteSlugBreak = {
 function renderModal(overrides: Partial<React.ComponentProps<typeof DeleteTaskModal>> = {}) {
   const onConfirm = vi.fn();
   const onClose = vi.fn();
-  render(
+  const { container, unmount } = render(
     <DeleteTaskModal
       taskName="Hero banner"
       risk={null}
@@ -33,7 +33,7 @@ function renderModal(overrides: Partial<React.ComponentProps<typeof DeleteTaskMo
       {...overrides}
     />,
   );
-  return { onConfirm, onClose };
+  return { onConfirm, onClose, container, unmount };
 }
 
 const deleteButton = () => screen.getByRole('button', { name: 'Delete task' });
@@ -106,5 +106,48 @@ describe('DeleteTaskModal (BI-033)', () => {
 
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The chrome this modal shares with `FeedbackModal` / `IterateModal` /
+ * `ImportBuilder` (TEST-003). The Esc half is covered above; these are the two
+ * halves that were missing — the listener teardown TEST-002.4 proved worth
+ * pinning, and the backdrop's close-vs-stopPropagation split.
+ */
+describe('DeleteTaskModal — dialog chrome (TEST-003)', () => {
+  it('stops listening once unmounted', () => {
+    const { unmount, onClose } = renderModal();
+
+    unmount();
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('ignores keys it does not handle', () => {
+    const { onClose } = renderModal();
+
+    fireEvent.keyDown(window, { key: 'a' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes on a backdrop click without deleting', () => {
+    const { container, onClose, onConfirm } = renderModal();
+
+    fireEvent.click(container.firstChild as HTMLElement);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('stays open when the dialog itself is clicked', () => {
+    const { onClose } = renderModal();
+
+    fireEvent.click(screen.getByRole('dialog', { name: 'Delete task' }));
+
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
