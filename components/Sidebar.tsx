@@ -11,6 +11,17 @@
  * does not fit a `window.confirm` (BI-033). The import file-read (DOM concern)
  * lives here, per the ReferenceLibrary precedent; parse/validate/merge live in
  * lib (BI-019).
+ *
+ * Accessible naming (BI-035.3): every button carries an explicit `aria-label`,
+ * because the glyph-bearing ones would otherwise be named by their content —
+ * `✎` and `🗑` announce as bare glyphs, and the two `Import` buttons announce
+ * identically. Each label *contains* its button's visible text (WCAG 2.5.3
+ * Label in Name), which is why the round chips are "Load round r1", not
+ * "Load round 1". `title` stays alongside: it is the hover tooltip and carries
+ * detail the name should not (the Generate All disabled reason, the chips'
+ * `rounds/rN/batch.json` path). The project `<select>` is named the native way
+ * instead — `htmlFor`/`id` on the visible "Project" label, which was previously
+ * associated with it by layout only.
  */
 
 import { useRef } from 'react';
@@ -81,6 +92,9 @@ export default function Sidebar({
   onLoadRound,
 }: SidebarProps) {
   const latestRound = availableRounds.length ? availableRounds[availableRounds.length - 1] : undefined;
+  // Shared by the button's visible text and its accessible name (BI-035.3), so the
+  // two cannot drift apart — the name must contain the visible text (WCAG 2.5.3).
+  const loadRoundLabel = `Load round${latestRound !== undefined ? ` r${latestRound}` : ''}`;
   const importInputRef = useRef<HTMLInputElement>(null);
   const sessionImportInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,10 +122,14 @@ export default function Sidebar({
     <aside className="flex h-full w-72 shrink-0 flex-col border-r border-black/10 bg-black/[.02] dark:border-white/10 dark:bg-white/[.02]">
       {/* Session switcher */}
       <div className="border-b border-black/10 p-3 dark:border-white/10">
-        <label className="mb-1 block text-xs font-medium uppercase tracking-wide opacity-60">
+        <label
+          htmlFor="project-select"
+          className="mb-1 block text-xs font-medium uppercase tracking-wide opacity-60"
+        >
           Project
         </label>
         <select
+          id="project-select"
           className="w-full rounded border border-black/15 bg-background px-2 py-1.5 text-sm dark:border-white/15"
           value={session.id}
           onChange={(e) => onSwitchSession(e.target.value)}
@@ -125,12 +143,14 @@ export default function Sidebar({
         <div className="mt-2 flex gap-2">
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            aria-label="New project"
             onClick={handleNewSession}
           >
             + New
           </button>
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            aria-label="Rename project"
             onClick={handleRenameSession}
           >
             Rename
@@ -141,6 +161,7 @@ export default function Sidebar({
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             title="Download this project as a full backup (.json)"
+            aria-label="Export project backup"
             onClick={onExportSession}
           >
             ⤓ Export
@@ -148,6 +169,7 @@ export default function Sidebar({
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             title="Import a project backup (.json) as a new project"
+            aria-label="Import project backup"
             onClick={() => sessionImportInputRef.current?.click()}
           >
             ⤒ Import
@@ -173,6 +195,7 @@ export default function Sidebar({
                 : 'border-black/15 dark:border-white/15'
             }`}
             title="Link your repo's imagegen/ folder (standard location per ADOPT.md §7)"
+            aria-label={imagegenLinked ? 'imagegen linked' : 'Link imagegen'}
             onClick={onLinkImagegen}
           >
             {imagegenLinked ? '🔗 imagegen linked' : '🔗 Link imagegen'}
@@ -187,9 +210,10 @@ export default function Sidebar({
                   : 'No rounds found yet — run /blast-generate in a terminal session'
                 : 'Link imagegen first'
             }
+            aria-label={loadRoundLabel}
             onClick={() => onLoadRound()}
           >
-            ↻ Load round{latestRound !== undefined ? ` r${latestRound}` : ''}
+            ↻ {loadRoundLabel}
           </button>
         </div>
         {imagegenLinked && availableRounds.length > 1 && (
@@ -199,6 +223,7 @@ export default function Sidebar({
                 key={n}
                 className="rounded border border-black/15 px-1.5 py-0.5 text-[10px] hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
                 title={`Load rounds/r${n}/batch.json`}
+                aria-label={`Load round r${n}`}
                 onClick={() => onLoadRound(n)}
               >
                 r{n}
@@ -215,6 +240,7 @@ export default function Sidebar({
           <button
             className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             title="Build a task-import file (tasks.json) from pasted prompts or prompts/*.txt"
+            aria-label="Build task-import file"
             onClick={onOpenBuilder}
           >
             🛠 Build
@@ -222,12 +248,14 @@ export default function Sidebar({
           <button
             className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             title="Import tasks from a JSON file ({version, tasks: [{name, basePrompt}]})"
+            aria-label="Import tasks from JSON"
             onClick={() => importInputRef.current?.click()}
           >
             ⇪ Import
           </button>
           <button
             className="rounded bg-foreground px-2 py-0.5 text-xs font-medium text-background hover:opacity-90"
+            aria-label="New task"
             onClick={handleAddTask}
           >
             + New task
@@ -250,6 +278,7 @@ export default function Sidebar({
       <div className="px-3 pb-2">
         <button
           disabled={!canGenerateAll}
+          aria-label="Generate All"
           onClick={onGenerateAll}
           className="w-full rounded bg-foreground px-2 py-1.5 text-xs font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           title={
@@ -290,6 +319,7 @@ export default function Sidebar({
                     <button
                       className="opacity-0 transition-opacity group-hover:opacity-70 hover:!opacity-100"
                       title="Rename task"
+                      aria-label="Rename task"
                       onClick={() => handleRenameTask(task.id, task.name)}
                     >
                       ✎
@@ -297,6 +327,7 @@ export default function Sidebar({
                     <button
                       className="opacity-0 transition-opacity group-hover:opacity-70 hover:!opacity-100"
                       title="Delete task"
+                      aria-label="Delete task"
                       onClick={() => onDeleteTask(task.id)}
                     >
                       🗑
