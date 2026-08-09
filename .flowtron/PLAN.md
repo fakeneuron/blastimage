@@ -18,6 +18,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **BI-035.4** [light]🔧 | review-sheet-src-escape — Escape `src` in `buildReviewSheetHtml` so its docstring's guarantee holds (`lib/storage.ts:590`).
   - [ ] **BI-035.5** [medium]🧩 | lightbox-focus-management — `components/Lightbox.tsx` declares `role="dialog" aria-modal="true"` but manages no focus: no initial focus, no trap, no restore on close. Keyboard nav works only because the handler is bound to `window`. Surfaced by [[TEST-002.4]].
   - [ ] **BI-035.N** [light]🔧 | audit — Audit BI-EPIC-035; doc-drift sweep.
+- [ ] **TEST-003** [medium]🧩 | modal-chrome-tests — Cover `FeedbackModal` / `IterateModal` window-keydown teardown + backdrop close, and `ResolvedImage`; closes [[TEST-002.6]]'s deferred `ImportBuilder` Esc/backdrop chrome. Surfaced by [[TEST-002.N]].
 
 ## Low
 
