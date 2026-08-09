@@ -15,7 +15,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **TEST-EPIC-002** [heavy]🧠 | component-test-coverage — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
   - [x] **TEST-002.2** [medium]🧩 | review-grid-tests — Completed 2026-08-09.
   - [ ] **TEST-002.3** [medium]🧩 | task-detail-tests — Prompt edit, ref toggle (≤3 cap), generate gating on `generationAvailable`.
-  - [ ] **TEST-002.4** [medium]🧩 | lightbox-tests — ← / → stepping, Escape close, focus behavior.
+  - [x] **TEST-002.4** [medium]🧩 | lightbox-tests — Completed 2026-08-09.
   - [ ] **TEST-002.5** [light]🔧 | gallery-bulk-tests — `GalleryPanel` export callbacks; `BulkReviewPane` per-task generating/failed states.
   - [ ] **TEST-002.6** [light]🔧 | import-reference-tests — `ImportBuilder` parse/compose paths; `ReferenceLibrary` add/remove.
   - [ ] **TEST-002.N** [light]🔧 | audit — Audit TEST-EPIC-002; doc-drift sweep.
@@ -23,6 +23,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Rewrite `VISION.md` against the two shipped modes; drop the mock claim, record the BI-028 hosted-mode removal.
   - [ ] **BI-035.3** [light]🔧 | sidebar-aria-labels — `aria-label` every icon-only button in `components/Sidebar.tsx`.
   - [ ] **BI-035.4** [light]🔧 | review-sheet-src-escape — Escape `src` in `buildReviewSheetHtml` so its docstring's guarantee holds (`lib/storage.ts:590`).
+  - [ ] **BI-035.5** [medium]🧩 | lightbox-focus-management — `components/Lightbox.tsx` declares `role="dialog" aria-modal="true"` but manages no focus: no initial focus, no trap, no restore on close. Keyboard nav works only because the handler is bound to `window`. Surfaced by [[TEST-002.4]].
   - [ ] **BI-035.N** [light]🔧 | audit — Audit BI-EPIC-035; doc-drift sweep.
 
 ## Low
