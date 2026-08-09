@@ -12,8 +12,8 @@
 # to trim; delete a recipe only if it genuinely doesn't apply.
 #
 # Note: `lint` / `test` / `typecheck` / `e2e` here call the native tools
-# (eslint/vitest/ruff/pytest/tsc/playwright) so they work for humans and CI.
-# Inside Claude Code, `/ft-quality` covers the same ground for agents.
+# (eslint/vitest/ruff/pytest/tsc/playwright) so they work for humans, agents,
+# and CI alike.
 
 # list available recipes
 default:
