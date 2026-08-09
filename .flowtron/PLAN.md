@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-039** [medium]🧩 | remaining-modal-focus — Apply Lightbox-class focus trap + restore to FeedbackModal, IterateModal, DeleteTaskModal, and ImportBuilder; extract useFocusTrap if it reduces four copies. Surfaced by [[BI-035.N]] audit.
+(none)
 
 ## Low
 
@@ -26,6 +26,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-039** [medium]🧩 | remaining-modal-focus — Completed 2026-08-09.
 - [x] **BI-EPIC-035** [medium]🧩 | doc-currency-polish — Completed 2026-08-09.
   - [x] **BI-035.2** [medium]🧩 | vision-mode-rewrite — Completed 2026-08-09.
   - [x] **BI-035.3** [light]🔧 | sidebar-aria-labels — Completed 2026-08-09.

@@ -33,6 +33,18 @@ function renderBuilder() {
   return { onClose, container, unmount };
 }
 
+/**
+ * Stands in for the control that opened the modal: something outside the render
+ * tree holding focus at mount, so the restore-on-close path has a real target.
+ */
+function mountOpener() {
+  const opener = document.createElement('button');
+  opener.dataset.opener = '';
+  document.body.appendChild(opener);
+  opener.focus();
+  return opener;
+}
+
 function pasteTextarea() {
   return screen.getByLabelText(/Paste prompts/i) as HTMLTextAreaElement;
 }
@@ -83,6 +95,7 @@ function captureDownloads() {
 afterEach(() => {
   vi.unstubAllGlobals();
   cleanup();
+  document.querySelectorAll('[data-opener]').forEach((el) => el.remove());
 });
 
 describe('ImportBuilder — dialog chrome (TEST-003)', () => {
@@ -250,5 +263,58 @@ describe('ImportBuilder — download gates (BI-021.3)', () => {
         { name: 'Task 2', basePrompt: 'second prompt' },
       ]);
     });
+  });
+});
+
+/**
+ * Focus management (BI-039) — shared `useFocusTrap`. Empty-builder DOM order:
+ * paste → Add from paste → Upload .txt files → Close (Download is disabled and
+ * skipped). The hidden file input carries `tabIndex={-1}` so it is never a stop.
+ */
+describe('ImportBuilder — focus management (BI-039)', () => {
+  it('moves focus to the paste field on open', () => {
+    renderBuilder();
+
+    expect(document.activeElement).toBe(pasteTextarea());
+  });
+
+  it('restores focus to the opener on close', () => {
+    const opener = mountOpener();
+    const { unmount } = renderBuilder();
+    expect(document.activeElement).not.toBe(opener);
+
+    unmount();
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('cycles forward through the empty-builder controls and wraps', () => {
+    renderBuilder();
+    expect(document.activeElement).toBe(pasteTextarea());
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(addFromPasteButton());
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Upload .txt files' }));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(pasteTextarea());
+  });
+
+  it('does not land on the hidden file input', () => {
+    const { container } = renderBuilder();
+    const file = txtInput(container);
+
+    for (let i = 0; i < 6; i++) {
+      fireEvent.keyDown(window, { key: 'Tab' });
+      expect(document.activeElement).not.toBe(file);
+    }
+  });
+
+  it('claims the Tab key while the trap is active', () => {
+    renderBuilder();
+
+    expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
   });
 });

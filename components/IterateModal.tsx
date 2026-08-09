@@ -12,12 +12,16 @@
  * `selection.json` via `lib/useWorkspace.ts` (`requestNextRound`) for
  * `/blast-iterate`. Mirrors the {@link FeedbackModal} idiom (Esc/backdrop/Cancel
  * dismiss without writing).
+ *
+ * Focus (BI-039): {@link useFocusTrap} moves focus to the prompt field on open,
+ * traps Tab inside the dialog, and restores the opener on close.
  */
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import ResolvedImage from '@/components/ResolvedImage';
 import type { GeneratedImage } from '@/lib/types';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 interface IterateModalProps {
   /** The kept image carried forward as the next round's primary reference. */
@@ -43,15 +47,9 @@ function composePrompt(basePrompt: string, feedback: string): string {
 
 export default function IterateModal({ image, basePrompt, onClose, onSubmit }: IterateModalProps) {
   const [prompt, setPrompt] = useState(() => composePrompt(basePrompt, image.feedback?.text ?? ''));
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Esc closes the modal without generating.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useFocusTrap(dialogRef, { onEscape: onClose });
 
   const canSubmit = !!prompt.trim();
 
@@ -61,10 +59,12 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Iterate from keeper"
-        className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl dark:border-white/15"
+        tabIndex={-1}
+        className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
@@ -88,7 +88,6 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
           </label>
           <textarea
             id="iterate-prompt"
-            autoFocus
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={6}

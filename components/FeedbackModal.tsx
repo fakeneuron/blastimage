@@ -11,12 +11,16 @@
  * quick-approve path) — all persist any typed feedback first. Presentational
  * only: the pure mutation + persistence live in `lib/workspace.ts` /
  * `useWorkspace`.
+ *
+ * Focus (BI-039): {@link useFocusTrap} moves focus to the notes field on open,
+ * traps Tab inside the dialog, and restores the opener on close.
  */
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import ResolvedImage from '@/components/ResolvedImage';
 import type { GeneratedImage } from '@/lib/types';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 /** What the submit buttons map to; `save` persists feedback only. */
 export type FeedbackAction = 'save' | 'keep' | 'approve';
@@ -30,15 +34,9 @@ interface FeedbackModalProps {
 export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModalProps) {
   const [text, setText] = useState(image.feedback?.text ?? '');
   const [useAsReference, setUseAsReference] = useState(image.feedback?.useAsReference ?? false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Esc closes the modal without persisting.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useFocusTrap(dialogRef, { onEscape: onClose });
 
   const submit = (action: FeedbackAction) => onSubmit({ text: text.trim(), useAsReference }, action);
 
@@ -48,10 +46,12 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Image feedback"
-        className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl dark:border-white/15"
+        tabIndex={-1}
+        className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
@@ -72,7 +72,6 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
           </label>
           <textarea
             id="feedback-text"
-            autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={4}

@@ -69,6 +69,18 @@ async function renderModal(
   return { container, unmount, onClose, onSubmit };
 }
 
+/**
+ * Stands in for the control that opened the modal: something outside the render
+ * tree holding focus at mount, so the restore-on-close path has a real target.
+ */
+function mountOpener() {
+  const opener = document.createElement('button');
+  opener.dataset.opener = '';
+  document.body.appendChild(opener);
+  opener.focus();
+  return opener;
+}
+
 const dialog = () => screen.getByRole('dialog', { name: 'Iterate from keeper' });
 const button = (name: string) => screen.getByRole('button', { name });
 const promptBox = () => screen.getByLabelText(/Refined prompt/i) as HTMLTextAreaElement;
@@ -76,6 +88,7 @@ const submitButton = () => button('Save selection request') as HTMLButtonElement
 
 afterEach(() => {
   cleanup();
+  document.querySelectorAll('[data-opener]').forEach((el) => el.remove());
 });
 
 describe('IterateModal — dialog chrome (BI-009)', () => {
@@ -205,5 +218,55 @@ describe('IterateModal — submit gate (BI-009)', () => {
     fireEvent.click(submitButton());
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Focus management (BI-039) — shared `useFocusTrap`. Default prefill leaves submit
+ * enabled, so DOM order is prompt → Cancel → Save selection request.
+ */
+describe('IterateModal — focus management (BI-039)', () => {
+  it('moves focus to the prompt field on open', async () => {
+    await renderModal();
+
+    expect(document.activeElement).toBe(promptBox());
+  });
+
+  it('restores focus to the opener on close', async () => {
+    const opener = mountOpener();
+    const { unmount } = await renderModal();
+    expect(document.activeElement).not.toBe(opener);
+
+    unmount();
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('cycles forward through the controls and wraps at the end', async () => {
+    await renderModal();
+    expect(document.activeElement).toBe(promptBox());
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Cancel'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(submitButton());
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(promptBox());
+  });
+
+  it('skips a disabled submit button', async () => {
+    await renderModal({ basePrompt: '', feedbackText: null });
+    expect(document.activeElement).toBe(promptBox());
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Cancel'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(promptBox());
+  });
+
+  it('claims the Tab key while the trap is active', async () => {
+    await renderModal();
+
+    expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
   });
 });

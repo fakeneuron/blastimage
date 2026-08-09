@@ -36,11 +36,26 @@ function renderModal(overrides: Partial<React.ComponentProps<typeof DeleteTaskMo
   return { onConfirm, onClose, container, unmount };
 }
 
+/**
+ * Stands in for the control that opened the modal: something outside the render
+ * tree holding focus at mount, so the restore-on-close path has a real target.
+ */
+function mountOpener() {
+  const opener = document.createElement('button');
+  opener.dataset.opener = '';
+  document.body.appendChild(opener);
+  opener.focus();
+  return opener;
+}
+
 const deleteButton = () => screen.getByRole('button', { name: 'Delete task' });
+const cancelButton = () => screen.getByRole('button', { name: 'Cancel' });
 const cleanupBox = () => screen.queryByRole('checkbox');
+const dialog = () => screen.getByRole('dialog', { name: 'Delete task' });
 
 afterEach(() => {
   cleanup();
+  document.querySelectorAll('[data-opener]').forEach((el) => el.remove());
 });
 
 describe('DeleteTaskModal (BI-033)', () => {
@@ -146,8 +161,53 @@ describe('DeleteTaskModal — dialog chrome (TEST-003)', () => {
   it('stays open when the dialog itself is clicked', () => {
     const { onClose } = renderModal();
 
-    fireEvent.click(screen.getByRole('dialog', { name: 'Delete task' }));
+    fireEvent.click(dialog());
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Focus management (BI-039) — shared `useFocusTrap`. Plain confirm (no cleanup
+ * checkbox) has DOM order Cancel → Delete. The cleanup checkbox, when offered,
+ * is first.
+ */
+describe('DeleteTaskModal — focus management (BI-039)', () => {
+  it('moves focus to Cancel on open for a plain confirm', () => {
+    renderModal();
+
+    expect(document.activeElement).toBe(cancelButton());
+  });
+
+  it('moves focus to the cleanup checkbox when it is offered', () => {
+    renderModal({ risk: JOINED, imagegenLinked: true });
+
+    expect(document.activeElement).toBe(cleanupBox());
+  });
+
+  it('restores focus to the opener on close', () => {
+    const opener = mountOpener();
+    const { unmount } = renderModal();
+    expect(document.activeElement).not.toBe(opener);
+
+    unmount();
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('cycles forward through Cancel and Delete and wraps', () => {
+    renderModal();
+    expect(document.activeElement).toBe(cancelButton());
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(deleteButton());
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(cancelButton());
+  });
+
+  it('claims the Tab key while the trap is active', () => {
+    renderModal();
+
+    expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
   });
 });

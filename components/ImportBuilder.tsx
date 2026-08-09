@@ -10,11 +10,17 @@
  * the resulting rows, then download a file that round-trips through ⇪ Import.
  * DOM file-read lives here (ReferenceLibrary precedent); the pure parse/emit
  * logic lives in `lib/storage.ts` (`parsePastedPrompts` / `downloadTaskImport`).
+ *
+ * Focus (BI-039): {@link useFocusTrap} moves focus to the paste field on open,
+ * traps Tab inside the dialog, and restores the opener on close. The hidden
+ * file input carries `tabIndex={-1}` so it is not a trap stop (activation is
+ * via the Upload button).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { downloadTaskImport, parsePastedPrompts } from '@/lib/storage';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 /** One editable preview row: a draft plus a stable React key. */
 interface BuilderRow {
@@ -33,15 +39,9 @@ export default function ImportBuilder({ onClose }: ImportBuilderProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const keyRef = useRef(0);
   const txtInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Esc closes the modal without emitting.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useFocusTrap(dialogRef, { onEscape: onClose });
 
   function appendDrafts(drafts: { name: string; basePrompt: string }[]) {
     setRows((prev) => [
@@ -98,10 +98,12 @@ export default function ImportBuilder({ onClose }: ImportBuilderProps) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Build task-import file"
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-lg border border-black/10 bg-background p-5 shadow-xl dark:border-white/15"
+        tabIndex={-1}
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -150,6 +152,7 @@ export default function ImportBuilder({ onClose }: ImportBuilderProps) {
               type="file"
               accept=".txt,text/plain"
               multiple
+              tabIndex={-1}
               className="hidden"
               onChange={(e) => {
                 if (e.target.files?.length) void handleTxtFiles(e.target.files);

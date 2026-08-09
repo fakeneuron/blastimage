@@ -62,6 +62,18 @@ async function renderModal(image: GeneratedImage = makeImage()) {
   return { container, unmount, onClose, onSubmit };
 }
 
+/**
+ * Stands in for the control that opened the modal: something outside the render
+ * tree holding focus at mount, so the restore-on-close path has a real target.
+ */
+function mountOpener() {
+  const opener = document.createElement('button');
+  opener.dataset.opener = '';
+  document.body.appendChild(opener);
+  opener.focus();
+  return opener;
+}
+
 const dialog = () => screen.getByRole('dialog', { name: 'Image feedback' });
 const button = (name: string) => screen.getByRole('button', { name });
 const notes = () => screen.getByLabelText(/Refinement notes/i) as HTMLTextAreaElement;
@@ -69,6 +81,7 @@ const refBox = () => screen.getByRole('checkbox') as HTMLInputElement;
 
 afterEach(() => {
   cleanup();
+  document.querySelectorAll('[data-opener]').forEach((el) => el.remove());
 });
 
 describe('FeedbackModal — dialog chrome (BI-006)', () => {
@@ -194,5 +207,62 @@ describe('FeedbackModal — submit paths (BI-006)', () => {
     fireEvent.click(button('Save'));
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Focus management (BI-039) — shared `useFocusTrap`. Tab is managed (handler picks
+ * the next target + preventDefault), so these assertions are contract rather than
+ * browser sequential navigation. DOM order: notes → checkbox → Cancel → Save →
+ * Save & Keep → Approve.
+ */
+describe('FeedbackModal — focus management (BI-039)', () => {
+  it('moves focus to the notes field on open', async () => {
+    await renderModal();
+
+    expect(document.activeElement).toBe(notes());
+  });
+
+  it('restores focus to the opener on close', async () => {
+    const opener = mountOpener();
+    const { unmount } = await renderModal();
+    expect(document.activeElement).not.toBe(opener);
+
+    unmount();
+
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('cycles forward through the controls and wraps at the end', async () => {
+    await renderModal();
+    expect(document.activeElement).toBe(notes());
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(refBox());
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Cancel'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Save'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Save & Keep'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(button('Approve'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(notes());
+  });
+
+  it('wraps backward from the first control to the last', async () => {
+    await renderModal();
+    expect(document.activeElement).toBe(notes());
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+
+    expect(document.activeElement).toBe(button('Approve'));
+  });
+
+  it('claims the Tab key while the trap is active', async () => {
+    await renderModal();
+
+    expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
   });
 });

@@ -9,23 +9,19 @@
  * click + Esc to close); Left/Right arrows step through the set, clamped at the
  * ends (`lib/lightbox.ts`). Presentational only — the index math lives in lib.
  *
- * Focus (BI-035.5): the overlay backs its `aria-modal="true"` claim — opening it
- * moves focus to the dialog, Tab/Shift+Tab cycle its own controls rather than
- * reaching the page behind the backdrop, and closing restores focus to whatever
- * opened it. Tab is fully managed (the handler picks the next target itself)
- * instead of delegating to native sequential navigation, so the boundary
- * behaviour is deterministic. Both consumers unmount on close, so the restore
- * rides the effect cleanup and covers all three close paths at once.
+ * Focus (BI-035.5 / BI-039): the overlay backs its `aria-modal="true"` claim via
+ * {@link useFocusTrap} — opening moves focus to the dialog, Tab/Shift+Tab cycle
+ * its own controls rather than reaching the page behind the backdrop, Escape
+ * dismisses, and closing restores focus to whatever opened it. Arrow keys stay
+ * local here (lightbox-only). Both consumers unmount on close, so the restore
+ * rides the trap's effect cleanup and covers all three close paths at once.
  */
 
 import { useEffect, useRef } from 'react';
 
 import ResolvedImage from '@/components/ResolvedImage';
 import { stepIndex } from '@/lib/lightbox';
-
-/** Everything inside the dialog that can hold focus. Disabled nav buttons opt out. */
-const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 export interface LightboxImage {
   src: string;
@@ -43,41 +39,17 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
   const image = images[index];
   const dialogRef = useRef<HTMLElement>(null);
 
-  // Move focus into the overlay on open; hand it back to the opener on close.
-  useEffect(() => {
-    const opener = document.activeElement;
-    dialogRef.current?.focus();
-    return () => {
-      if (opener instanceof HTMLElement) opener.focus();
-    };
-  }, []);
+  useFocusTrap(dialogRef, { onEscape: onClose, focusTarget: 'dialog' });
 
-  // Esc closes; Left/Right step through the set (clamped, no wrap); Tab is trapped.
+  // Left/Right step through the set (clamped, no wrap). Esc + Tab live in the trap.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowLeft') onIndexChange(stepIndex(index, -1, images.length));
+      if (e.key === 'ArrowLeft') onIndexChange(stepIndex(index, -1, images.length));
       else if (e.key === 'ArrowRight') onIndexChange(stepIndex(index, 1, images.length));
-      else if (e.key === 'Tab') {
-        const targets = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []);
-        if (targets.length === 0) return;
-        // `at` is -1 while focus sits on the dialog itself, so a first Tab enters
-        // at either end of the set depending on direction.
-        const at = targets.indexOf(document.activeElement as HTMLElement);
-        const next = e.shiftKey
-          ? at <= 0
-            ? targets.length - 1
-            : at - 1
-          : at === -1 || at === targets.length - 1
-            ? 0
-            : at + 1;
-        e.preventDefault();
-        targets[next]?.focus();
-      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [index, images.length, onClose, onIndexChange]);
+  }, [index, images.length, onIndexChange]);
 
   if (!image) return null;
 

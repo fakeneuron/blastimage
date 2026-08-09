@@ -13,11 +13,16 @@
  * the delete and the retraction run in `lib/useWorkspace.ts` (`deleteTask`).
  * Mirrors the {@link IterateModal} idiom (Esc/backdrop/Cancel dismiss without
  * writing).
+ *
+ * Focus (BI-039): {@link useFocusTrap} moves focus to the first control on open
+ * (Cancel when no cleanup checkbox is offered; the cleanup checkbox when it is),
+ * traps Tab inside the dialog, and restores the opener on close.
  */
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { DeleteSlugBreak } from '@/lib/workspace';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 interface DeleteTaskModalProps {
   taskName: string;
@@ -42,15 +47,9 @@ export default function DeleteTaskModal({
   onConfirm,
 }: DeleteTaskModalProps) {
   const [removeApproved, setRemoveApproved] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Esc closes the modal without deleting.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useFocusTrap(dialogRef, { onEscape: onClose });
 
   const approved = risk?.approvedFilenames ?? [];
   const canOfferCleanup = approved.length > 0 && imagegenLinked;
@@ -61,10 +60,12 @@ export default function DeleteTaskModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Delete task"
-        className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl dark:border-white/15"
+        tabIndex={-1}
+        className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -135,7 +136,6 @@ export default function DeleteTaskModal({
           </button>
           <button
             type="button"
-            autoFocus
             onClick={() => onConfirm({ removeApproved: canOfferCleanup && removeApproved })}
             className="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
           >
