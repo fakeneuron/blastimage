@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 - [ ] **TEST-EPIC-002** [heavy]🧠 | component-test-coverage — Discovery supplied by audit-repo 2026-08-08. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
-  - [ ] **TEST-002.2** [medium]🧩 | review-grid-tests — Decision toggle/clear, rating, feedback + iterate callbacks.
+  - [x] **TEST-002.2** [medium]🧩 | review-grid-tests — Completed 2026-08-09.
   - [ ] **TEST-002.3** [medium]🧩 | task-detail-tests — Prompt edit, ref toggle (≤3 cap), generate gating on `generationAvailable`.
   - [ ] **TEST-002.4** [medium]🧩 | lightbox-tests — ← / → stepping, Escape close, focus behavior.
   - [ ] **TEST-002.5** [light]🔧 | gallery-bulk-tests — `GalleryPanel` export callbacks; `BulkReviewPane` per-task generating/failed states.
