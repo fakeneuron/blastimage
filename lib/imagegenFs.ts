@@ -211,9 +211,9 @@ export async function readImagegenFile(
   if (parts.length === 0) throw new Error('Empty imagegen path.');
   let dir = root;
   for (let i = 0; i < parts.length - 1; i++) {
-    dir = await dir.getDirectoryHandle(parts[i]);
+    dir = await dir.getDirectoryHandle(parts[i]!);
   }
-  const fileHandle = await dir.getFileHandle(parts[parts.length - 1]);
+  const fileHandle = await dir.getFileHandle(parts[parts.length - 1]!);
   return fileHandle.getFile();
 }
 

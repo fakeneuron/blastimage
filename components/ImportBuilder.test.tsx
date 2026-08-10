@@ -201,8 +201,8 @@ describe('ImportBuilder — row edit/remove', () => {
     fireEvent.change(pasteTextarea(), { target: { value: 'first\n\nsecond' } });
     fireEvent.click(addFromPasteButton());
 
-    fireEvent.change(nameInputs()[0], { target: { value: 'Renamed' } });
-    fireEvent.change(promptInputs()[1], { target: { value: 'edited prompt' } });
+    fireEvent.change(nameInputs()[0]!, { target: { value: 'Renamed' } });
+    fireEvent.change(promptInputs()[1]!, { target: { value: 'edited prompt' } });
 
     expect(nameInputs().map((i) => i.value)).toEqual(['Renamed', 'Task 2']);
     expect(promptInputs().map((i) => i.value)).toEqual(['first', 'edited prompt']);
@@ -213,7 +213,7 @@ describe('ImportBuilder — row edit/remove', () => {
     fireEvent.change(pasteTextarea(), { target: { value: 'first\n\nsecond' } });
     fireEvent.click(addFromPasteButton());
 
-    fireEvent.click(removeButtons()[0]);
+    fireEvent.click(removeButtons()[0]!);
 
     expect(nameInputs().map((i) => i.value)).toEqual(['Task 2']);
     expect(screen.getByText('Tasks (1)')).toBeTruthy();
@@ -231,7 +231,7 @@ describe('ImportBuilder — download gates (BI-021.3)', () => {
     renderBuilder();
     fireEvent.change(pasteTextarea(), { target: { value: 'first' } });
     fireEvent.click(addFromPasteButton());
-    fireEvent.change(nameInputs()[0], { target: { value: '   ' } });
+    fireEvent.change(nameInputs()[0]!, { target: { value: '   ' } });
     const { names } = captureDownloads();
 
     expect(downloadButton().disabled).toBe(false);
@@ -249,14 +249,14 @@ describe('ImportBuilder — download gates (BI-021.3)', () => {
     renderBuilder();
     fireEvent.change(pasteTextarea(), { target: { value: 'first prompt\n\nsecond prompt' } });
     fireEvent.click(addFromPasteButton());
-    fireEvent.change(nameInputs()[0], { target: { value: '  Hero  ' } });
+    fireEvent.change(nameInputs()[0]!, { target: { value: '  Hero  ' } });
     const { names, blobs } = captureDownloads();
 
     fireEvent.click(downloadButton());
 
     expect(names).toEqual(['tasks.json']);
     expect(blobs).toHaveLength(1);
-    return blobs[0].text().then((json) => {
+    return blobs[0]!.text().then((json) => {
       const parsed = JSON.parse(json) as { tasks: TaskImportDraft[] };
       expect(parsed.tasks).toEqual([
         { name: 'Hero', basePrompt: 'first prompt' },

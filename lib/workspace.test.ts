@@ -93,7 +93,7 @@ describe('session mutations', () => {
     const t = newTask('T');
     const s = addTask(newSession('S'), t);
     const next = setTaskPrompt(s, t.id, 'a sunset over the ocean');
-    expect(next.tasks[0].basePrompt).toBe('a sunset over the ocean');
+    expect(next.tasks[0]!.basePrompt).toBe('a sunset over the ocean');
   });
 
   it('importTasks appends fresh tasks with the drafted prompts, preserving existing ones', () => {
@@ -104,10 +104,10 @@ describe('session mutations', () => {
       { name: 'Inline', basePrompt: '' },
     ]);
     expect(next.tasks.map((t) => t.name)).toEqual(['Existing', 'Hero', 'Inline']);
-    expect(next.tasks[1].basePrompt).toBe('a flat-vector hero');
-    expect(next.tasks[2].basePrompt).toBe('');
-    expect(next.tasks[1].iterations).toEqual([]);
-    expect(next.tasks[1].id).not.toBe(next.tasks[2].id);
+    expect(next.tasks[1]!.basePrompt).toBe('a flat-vector hero');
+    expect(next.tasks[2]!.basePrompt).toBe('');
+    expect(next.tasks[1]!.iterations).toEqual([]);
+    expect(next.tasks[1]!.id).not.toBe(next.tasks[2]!.id);
     expect(s.tasks).toHaveLength(1); // immutable
   });
 });
@@ -142,11 +142,11 @@ describe('reference library', () => {
     let s = addRefImage(newSession('S'), r);
     s = addTask(s, t);
     s = toggleTaskRefImage(s, t.id, r.id); // task now references r
-    expect(s.tasks[0].activeRefImageIds).toContain(r.id);
+    expect(s.tasks[0]!.activeRefImageIds).toContain(r.id);
 
     const next = removeRefImage(s, r.id);
     expect(next.refLibrary).toHaveLength(0);
-    expect(next.tasks[0].activeRefImageIds).not.toContain(r.id);
+    expect(next.tasks[0]!.activeRefImageIds).not.toContain(r.id);
   });
 
   it('removeRefImage is a no-op for an unknown id', () => {
@@ -159,9 +159,9 @@ describe('reference library', () => {
     const t = newTask('T');
     let s = addTask(addRefImage(newSession('S'), r), t);
     s = toggleTaskRefImage(s, t.id, r.id);
-    expect(s.tasks[0].activeRefImageIds).toEqual([r.id]);
+    expect(s.tasks[0]!.activeRefImageIds).toEqual([r.id]);
     s = toggleTaskRefImage(s, t.id, r.id);
-    expect(s.tasks[0].activeRefImageIds).toEqual([]);
+    expect(s.tasks[0]!.activeRefImageIds).toEqual([]);
   });
 
   it(`toggleTaskRefImage refuses to exceed ${MAX_ACTIVE_REFS} active refs`, () => {
@@ -171,8 +171,8 @@ describe('reference library', () => {
     for (const r of refs) s = addRefImage(s, r);
     for (const r of refs) s = toggleTaskRefImage(s, t.id, r.id);
     // The (MAX+1)-th toggle is a defensive no-op.
-    expect(s.tasks[0].activeRefImageIds).toHaveLength(MAX_ACTIVE_REFS);
-    expect(s.tasks[0].activeRefImageIds).not.toContain(refs[MAX_ACTIVE_REFS].id);
+    expect(s.tasks[0]!.activeRefImageIds).toHaveLength(MAX_ACTIVE_REFS);
+    expect(s.tasks[0]!.activeRefImageIds).not.toContain(refs[MAX_ACTIVE_REFS]!.id);
   });
 });
 
@@ -201,11 +201,11 @@ describe('generation / iterations', () => {
       primaryRefImageId: null,
       images: [img()],
     });
-    expect(next.tasks[0].iterations).toHaveLength(1);
-    expect(next.tasks[0].iterations[0].index).toBe(0);
-    expect(next.tasks[0].iterations[0].prompt).toBe('a sunset');
-    expect(next.tasks[0].iterations[0].images).toHaveLength(1);
-    expect(s.tasks[0].iterations).toHaveLength(0); // immutable
+    expect(next.tasks[0]!.iterations).toHaveLength(1);
+    expect(next.tasks[0]!.iterations[0]!.index).toBe(0);
+    expect(next.tasks[0]!.iterations[0]!.prompt).toBe('a sunset');
+    expect(next.tasks[0]!.iterations[0]!.images).toHaveLength(1);
+    expect(s.tasks[0]!.iterations).toHaveLength(0); // immutable
   });
 
   it('appendIteration increments the index across rounds and carries the draft fields', () => {
@@ -223,11 +223,11 @@ describe('generation / iterations', () => {
       primaryRefImageId: 'keeper-1',
       images: [img(), img()],
     });
-    const its = s.tasks[0].iterations;
+    const its = s.tasks[0]!.iterations;
     expect(its.map((i) => i.index)).toEqual([0, 1]);
-    expect(its[1].refImageIds).toEqual(['ref-a']);
-    expect(its[1].primaryRefImageId).toBe('keeper-1');
-    expect(its[1].images).toHaveLength(2);
+    expect(its[1]!.refImageIds).toEqual(['ref-a']);
+    expect(its[1]!.primaryRefImageId).toBe('keeper-1');
+    expect(its[1]!.images).toHaveLength(2);
   });
 
   it('appendIteration is a no-op for an unknown task id', () => {
@@ -261,32 +261,32 @@ describe('review mutations', () => {
   it('setImageDecision sets the decision on the targeted image only', () => {
     const { s, taskId, a, b } = seeded();
     const next = setImageDecision(s, taskId, b.id, 'kept');
-    expect(next.tasks[0].iterations[1].images[0].decision).toBe('kept');
-    expect(next.tasks[0].iterations[0].images[0].decision).toBe('undecided');
-    expect(s.tasks[0].iterations[1].images[0].decision).toBe('undecided'); // immutable
+    expect(next.tasks[0]!.iterations[1]!.images[0]!.decision).toBe('kept');
+    expect(next.tasks[0]!.iterations[0]!.images[0]!.decision).toBe('undecided');
+    expect(s.tasks[0]!.iterations[1]!.images[0]!.decision).toBe('undecided'); // immutable
     expect(a.decision).toBe('undecided');
   });
 
   it('setImageDecision can approve and can clear back to undecided', () => {
     const { s, taskId, b } = seeded();
     const approved = setImageDecision(s, taskId, b.id, 'approved');
-    expect(approved.tasks[0].iterations[1].images[0].decision).toBe('approved');
+    expect(approved.tasks[0]!.iterations[1]!.images[0]!.decision).toBe('approved');
     const cleared = setImageDecision(approved, taskId, b.id, 'undecided');
-    expect(cleared.tasks[0].iterations[1].images[0].decision).toBe('undecided');
+    expect(cleared.tasks[0]!.iterations[1]!.images[0]!.decision).toBe('undecided');
   });
 
   it('setImageRating sets the rating on the targeted image', () => {
     const { s, taskId, a } = seeded();
     const next = setImageRating(s, taskId, a.id, 4);
-    expect(next.tasks[0].iterations[0].images[0].rating).toBe(4);
-    expect(s.tasks[0].iterations[0].images[0].rating).toBe(0); // immutable
+    expect(next.tasks[0]!.iterations[0]!.images[0]!.rating).toBe(4);
+    expect(s.tasks[0]!.iterations[0]!.images[0]!.rating).toBe(0); // immutable
   });
 
   it('review mutators bump the task updatedAt', () => {
     const { s, taskId, a } = seeded();
-    const before = s.tasks[0].updatedAt;
+    const before = s.tasks[0]!.updatedAt;
     const next = setImageRating(s, taskId, a.id, 5);
-    expect(next.tasks[0].updatedAt >= before).toBe(true);
+    expect(next.tasks[0]!.updatedAt >= before).toBe(true);
     expect(next.updatedAt >= s.updatedAt).toBe(true);
   });
 
@@ -299,12 +299,12 @@ describe('review mutations', () => {
   it('setImageFeedback sets a FeedbackState on the targeted image only', () => {
     const { s, taskId, b } = seeded();
     const next = setImageFeedback(s, taskId, b.id, { text: 'warmer light', useAsReference: true });
-    const fb = next.tasks[0].iterations[1].images[0].feedback;
+    const fb = next.tasks[0]!.iterations[1]!.images[0]!.feedback;
     expect(fb?.text).toBe('warmer light');
     expect(fb?.useAsReference).toBe(true);
     expect(fb?.updatedAt).toBeTruthy();
-    expect(next.tasks[0].iterations[0].images[0].feedback).toBeNull(); // other image untouched
-    expect(s.tasks[0].iterations[1].images[0].feedback).toBeNull(); // immutable
+    expect(next.tasks[0]!.iterations[0]!.images[0]!.feedback).toBeNull(); // other image untouched
+    expect(s.tasks[0]!.iterations[1]!.images[0]!.feedback).toBeNull(); // immutable
     expect(b.feedback).toBeNull();
   });
 
@@ -312,14 +312,14 @@ describe('review mutations', () => {
     const { s, taskId, b } = seeded();
     const withFb = setImageFeedback(s, taskId, b.id, { text: 'x', useAsReference: false });
     const cleared = setImageFeedback(withFb, taskId, b.id, null);
-    expect(cleared.tasks[0].iterations[1].images[0].feedback).toBeNull();
+    expect(cleared.tasks[0]!.iterations[1]!.images[0]!.feedback).toBeNull();
   });
 
   it('setImageFeedback bumps the task updatedAt and no-ops on unknown ids', () => {
     const { s, taskId, a } = seeded();
-    const before = s.tasks[0].updatedAt;
+    const before = s.tasks[0]!.updatedAt;
     const next = setImageFeedback(s, taskId, a.id, { text: 'note', useAsReference: false });
-    expect(next.tasks[0].updatedAt >= before).toBe(true);
+    expect(next.tasks[0]!.updatedAt >= before).toBe(true);
     expect(setImageFeedback(s, 'nope', a.id, { text: 'x', useAsReference: false })).toBe(s);
     expect(setImageFeedback(s, taskId, 'nope', { text: 'x', useAsReference: false })).toBe(s);
   });
@@ -394,11 +394,11 @@ describe('gallery derivations', () => {
     const { s, t1, t2, img1, img3 } = seeded();
     const approved = buildApprovedImages(s);
     expect(approved).toHaveLength(2);
-    expect(approved[0].imageId).toBe(img1.id);
-    expect(approved[0].taskId).toBe(t1.id);
-    expect(approved[0].taskName).toBe('Hero');
-    expect(approved[1].imageId).toBe(img3.id);
-    expect(approved[1].taskId).toBe(t2.id);
+    expect(approved[0]!.imageId).toBe(img1.id);
+    expect(approved[0]!.taskId).toBe(t1.id);
+    expect(approved[0]!.taskName).toBe('Hero');
+    expect(approved[1]!.imageId).toBe(img3.id);
+    expect(approved[1]!.taskId).toBe(t2.id);
   });
 
   it('buildApprovedImages returns an empty array for a session with no approvals', () => {
@@ -413,9 +413,9 @@ describe('gallery derivations', () => {
     const approved = buildApprovedImages(s2);
     const heroApproved = approved.filter((a) => a.taskId === t1.id);
     // img1 is in iteration 0 → promptHistory = ['hero r1']
-    expect(heroApproved[0].promptHistory).toEqual(['hero r1']);
+    expect(heroApproved[0]!.promptHistory).toEqual(['hero r1']);
     // img2 is in iteration 1 → promptHistory = ['hero r1', 'hero r2']
-    expect(heroApproved[1].promptHistory).toEqual(['hero r1', 'hero r2']);
+    expect(heroApproved[1]!.promptHistory).toEqual(['hero r1', 'hero r2']);
   });
 
   it('buildExportManifest includes session metadata and approved images', () => {
@@ -446,7 +446,7 @@ describe('gallery derivations', () => {
     s3 = setImageDecision(s3, t3.id, img4.id, 'approved');
     const m3 = buildExportManifest(s3);
     expect(m3.references).toHaveLength(1);
-    expect(m3.references[0].id).toBe(ref.id);
+    expect(m3.references[0]!.id).toBe(ref.id);
   });
 });
 
@@ -481,16 +481,16 @@ describe('cloneSessionWithNewIds (BI-022.7)', () => {
 
     // Every id is fresh.
     expect(clone.id).not.toBe(s.id);
-    expect(clone.refLibrary[0].id).not.toBe(refId);
-    expect(clone.tasks[0].id).not.toBe(taskId);
-    expect(clone.tasks[0].iterations[0].images[0].id).not.toBe(img0Id);
+    expect(clone.refLibrary[0]!.id).not.toBe(refId);
+    expect(clone.tasks[0]!.id).not.toBe(taskId);
+    expect(clone.tasks[0]!.iterations[0]!.images[0]!.id).not.toBe(img0Id);
 
     // References point at the cloned ids, not the originals.
-    expect(clone.tasks[0].activeRefImageIds).toEqual([clone.refLibrary[0].id]);
-    expect(clone.tasks[0].iterations[0].refImageIds).toEqual([clone.refLibrary[0].id]);
+    expect(clone.tasks[0]!.activeRefImageIds).toEqual([clone.refLibrary[0]!.id]);
+    expect(clone.tasks[0]!.iterations[0]!.refImageIds).toEqual([clone.refLibrary[0]!.id]);
     // The 2nd iteration's promoted-image seed maps to the *cloned* 1st image.
-    expect(clone.tasks[0].iterations[1].primaryRefImageId).toBe(
-      clone.tasks[0].iterations[0].images[0].id,
+    expect(clone.tasks[0]!.iterations[1]!.primaryRefImageId).toBe(
+      clone.tasks[0]!.iterations[0]!.images[0]!.id,
     );
   });
 
@@ -501,9 +501,9 @@ describe('cloneSessionWithNewIds (BI-022.7)', () => {
     expect(clone.name).toBe(s.name);
     expect(clone.createdAt).toBe(s.createdAt);
     expect(clone.updatedAt).toBe(s.updatedAt);
-    expect(clone.refLibrary[0].dataUrl).toBe(s.refLibrary[0].dataUrl);
-    expect(clone.tasks[0].iterations.map((it) => it.prompt)).toEqual(['p0', 'p1']);
-    expect(clone.tasks[0].iterations[1].images[0].url).toBe('data:image/png;base64,IMG1');
+    expect(clone.refLibrary[0]!.dataUrl).toBe(s.refLibrary[0]!.dataUrl);
+    expect(clone.tasks[0]!.iterations.map((it) => it.prompt)).toEqual(['p0', 'p1']);
+    expect(clone.tasks[0]!.iterations[1]!.images[0]!.url).toBe('data:image/png;base64,IMG1');
   });
 });
 

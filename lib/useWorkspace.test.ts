@@ -73,7 +73,7 @@ describe('generate() post-await reconciliation', () => {
     const task = result.current.session!.tasks.find((t) => t.id === taskId)!;
     expect(task.name).toBe('Hero renamed'); // pre-fix: reverted to 'Hero'
     expect(task.iterations).toHaveLength(1);
-    expect(task.iterations[0].images).toHaveLength(4);
+    expect(task.iterations[0]!.images).toHaveLength(4);
   });
 
   it('persists the batch to the originating stored session on a mid-generate switch', async () => {
@@ -110,7 +110,7 @@ describe('generate() post-await reconciliation', () => {
       const origin = (loaded as { status: 'ok'; session: Session }).session;
       const task = origin.tasks.find((t) => t.id === taskId)!;
       expect(task.iterations).toHaveLength(1);
-      expect(task.iterations[0].images).toHaveLength(4);
+      expect(task.iterations[0]!.images).toHaveLength(4);
     });
   });
 });
@@ -146,7 +146,7 @@ describe('generateAll() (BI-015)', () => {
     for (const id of [heroId, aboutId]) {
       const task = tasks.find((t) => t.id === id)!;
       expect(task.iterations).toHaveLength(1);
-      expect(task.iterations[0].images).toHaveLength(4);
+      expect(task.iterations[0]!.images).toHaveLength(4);
     }
     expect(tasks.find((t) => t.id === emptyId)!.iterations).toHaveLength(0);
   });
@@ -236,9 +236,9 @@ describe('importSessionBackup() (BI-022.7)', () => {
     expect(result.current.session!.name).toBe('Imported Site');
     expect(result.current.session!.id).not.toBe('backup-sess-1');
     expect(result.current.session!.tasks).toHaveLength(1);
-    expect(result.current.session!.tasks[0].name).toBe('Hero');
-    expect(result.current.session!.tasks[0].id).not.toBe('backup-task-1');
-    expect(result.current.activeTaskId).toBe(result.current.session!.tasks[0].id);
+    expect(result.current.session!.tasks[0]!.name).toBe('Hero');
+    expect(result.current.session!.tasks[0]!.id).not.toBe('backup-task-1');
+    expect(result.current.activeTaskId).toBe(result.current.session!.tasks[0]!.id);
 
     // Persisted to storage and listed.
     await waitFor(() =>

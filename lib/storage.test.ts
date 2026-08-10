@@ -67,7 +67,7 @@ describe('save / load round-trip', () => {
     saveSession(makeSession({ id: 'a', name: 'Renamed' }));
     const metas = listSessions();
     expect(metas).toHaveLength(1);
-    expect(metas[0].name).toBe('Renamed');
+    expect(metas[0]!.name).toBe('Renamed');
   });
 });
 
@@ -391,8 +391,8 @@ describe('escapeHtml', () => {
 describe('buildReviewSheetHtml', () => {
   it('embeds the passed data URL and renders name, stars, prompt, and approved date', () => {
     const manifest = makeManifest([{ imageId: 'img1', taskName: 'Hero Banner' }]);
-    manifest.approved[0].finalPrompt = 'a sunlit ridge';
-    manifest.approved[0].rating = 3;
+    manifest.approved[0]!.finalPrompt = 'a sunlit ridge';
+    manifest.approved[0]!.rating = 3;
     const html = buildReviewSheetHtml(manifest, new Map([['img1', 'data:image/png;base64,AAA']]));
 
     expect(html).toContain('<!doctype html>');
@@ -404,7 +404,7 @@ describe('buildReviewSheetHtml', () => {
 
   it('escapes free-text prompts and names so markup cannot inject', () => {
     const manifest = makeManifest([{ imageId: 'img1', taskName: '<b>x</b>' }]);
-    manifest.approved[0].finalPrompt = '<script>alert(1)</script>';
+    manifest.approved[0]!.finalPrompt = '<script>alert(1)</script>';
     const html = buildReviewSheetHtml(manifest, new Map([['img1', 'data:,x']]));
 
     expect(html).not.toContain('<script>alert(1)</script>');
@@ -433,8 +433,8 @@ describe('buildReviewSheetHtml', () => {
 
   it('resolves reference names from the manifest and renders prompt history', () => {
     const manifest = makeManifest([{ imageId: 'img1' }]);
-    manifest.approved[0].refImageIds = ['r1'];
-    manifest.approved[0].promptHistory = ['first pass', 'refined'];
+    manifest.approved[0]!.refImageIds = ['r1'];
+    manifest.approved[0]!.promptHistory = ['first pass', 'refined'];
     manifest.references = [
       { id: 'r1', name: 'brand-blue', dataUrl: 'data:,r', mimeType: 'image/png', addedAt: 'x' },
     ];
@@ -611,7 +611,7 @@ describe('exports with imagegen: URLs', () => {
 
     expect(failed).toBe(0);
     expect(names).toEqual(['review.html']);
-    const html = await blobs[0].text();
+    const html = await blobs[0]!.text();
     expect(html).toContain('src="data:image/png;base64,');
     expect(html).toContain('src="data:image/jpeg;base64,');
     expect(html).not.toContain('image unavailable');
@@ -655,6 +655,6 @@ describe('exports with imagegen: URLs', () => {
 
     expect(failed).toBe(2);
     expect(names).toEqual(['review.html']);
-    expect(await blobs[0].text()).toContain('image unavailable');
+    expect(await blobs[0]!.text()).toContain('image unavailable');
   });
 });

@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **BI-036** [medium]🧩 | unchecked-index-access — Enable `noUncheckedIndexedAccess` in `tsconfig.json` and fix the fallout. Surfaced by audit-repo 2026-08-08 (Theme: Verification is complete at the unit layer, thin at the UI layer)
+(none)
 
 ## Future Opportunities
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-036** [medium]🧩 | unchecked-index-access — Completed 2026-08-09.
 - [x] **BI-038** [medium]🧩 | resolved-image-restore-race — Completed 2026-08-09.
 - [x] **BI-040** [light]🔧 | jsx-a11y-lint — Completed 2026-08-09.
 - [x] **BI-039** [medium]🧩 | remaining-modal-focus — Completed 2026-08-09.
