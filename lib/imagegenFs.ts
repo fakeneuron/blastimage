@@ -202,18 +202,34 @@ export async function restoreLinkedImagegenFolder(): Promise<FileSystemDirectory
   return handle;
 }
 
+/**
+ * Walks `relativePath`'s parent directories under `root`, returning the final
+ * directory handle and leaf name. `create` controls whether intermediate dirs
+ * are created along the way (write callers) or must already exist (read
+ * callers). Returns `null` for an empty path — callers decide how to fail.
+ */
+async function resolveImagegenParent(
+  root: FileSystemDirectoryHandle,
+  relativePath: string,
+  create: boolean,
+): Promise<{ dir: FileSystemDirectoryHandle; leaf: string } | null> {
+  const parts = relativePath.replace(/^\/+/, '').split('/').filter(Boolean);
+  if (parts.length === 0) return null;
+  let dir = root;
+  for (let i = 0; i < parts.length - 1; i++) {
+    dir = await dir.getDirectoryHandle(parts[i]!, create ? { create: true } : undefined);
+  }
+  return { dir, leaf: parts[parts.length - 1]! };
+}
+
 /** Reads a file at `relativePath` under the linked `imagegen/` root. */
 export async function readImagegenFile(
   root: FileSystemDirectoryHandle,
   relativePath: string,
 ): Promise<File> {
-  const parts = relativePath.replace(/^\/+/, '').split('/').filter(Boolean);
-  if (parts.length === 0) throw new Error('Empty imagegen path.');
-  let dir = root;
-  for (let i = 0; i < parts.length - 1; i++) {
-    dir = await dir.getDirectoryHandle(parts[i]!);
-  }
-  const fileHandle = await dir.getFileHandle(parts[parts.length - 1]!);
+  const resolved = await resolveImagegenParent(root, relativePath, false);
+  if (!resolved) throw new Error('Empty imagegen path.');
+  const fileHandle = await resolved.dir.getFileHandle(resolved.leaf);
   return fileHandle.getFile();
 }
 
@@ -254,14 +270,10 @@ export async function writeImagegenTextFile(
   if (!(await ensureWritePermission(root))) {
     return { ok: false, error: 'Write permission denied for the linked imagegen folder.' };
   }
-  const parts = relativePath.replace(/^\/+/, '').split('/').filter(Boolean);
-  if (parts.length === 0) return { ok: false, error: 'Empty imagegen path.' };
+  const resolved = await resolveImagegenParent(root, relativePath, true);
+  if (!resolved) return { ok: false, error: 'Empty imagegen path.' };
   try {
-    let dir = root;
-    for (let i = 0; i < parts.length - 1; i++) {
-      dir = await dir.getDirectoryHandle(parts[i]!, { create: true });
-    }
-    const fileHandle = (await dir.getFileHandle(parts[parts.length - 1]!, {
+    const fileHandle = (await resolved.dir.getFileHandle(resolved.leaf, {
       create: true,
     })) as ImagegenFileHandle;
     const writable = await fileHandle.createWritable();
