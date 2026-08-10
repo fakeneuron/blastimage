@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-(none)
+- [ ] **BI-041** [light] | imagegenFs path-walk dedup — Extract the shared path-resolve loop duplicated by `readImagegenFile` and `writeImagegenTextFile`. Deferred from BI-036.
 
 ## Future Opportunities
 
