@@ -8,11 +8,16 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-EPIC-042** [heavy]🧠 | blob-url-lifetime — `resolveDisplayUrl` hands out object URLs and revokes them (LRU eviction, same-round reload) on a schedule mounted `<img>` elements cannot observe, so a revoked image stays blank until remount. Give revocation an observable signal. Discovery supplied by audit-repo 2026-08-09. Surfaced by audit-repo 2026-08-09 (Theme: Object-URL lifetime is the one place the seam discipline doesn't reach)
+  - [ ] **BI-042.2** [medium]🧩 | revocation-epoch — bump an epoch in `ImagegenProvider` wherever a blob URL is revoked, expose it on `ImagegenApi`, and key `ResolvedImage`'s effect on it (mirrors BI-038's `linked` fix).
+  - [ ] **BI-042.3** [medium]🧩 | consumer-recovery-test — mount a `ResolvedImage` on an `imagegen:` URL, trigger a same-round reload and an LRU eviction, assert the rendered `src` stays live. `ImagegenContext.test.tsx` asserts revocation happens but never what a consumer does after.
+  - [ ] **BI-042.4** [light]🔧 | memoize-imagegen-value — `useMemo` the context value; drops the latent per-render `listRounds()` walk from `useWorkspace`'s `[imagegen, imagegen.linked]` effect.
+  - [ ] **BI-042.N** [light]🔧 | audit
 
 ## Medium
 
-(none)
+- [ ] **BI-043** [medium]🧩 | round-reingest-idempotence — `ingestRoundBatch` always appends, but a `/blast-generate` rerun rewrites `rounds/r<N>/` in place; loading the same round twice yields duplicate iterations and, once both copies are approved, two gallery entries and two exported files for one image. Replace an existing round's iteration instead of appending, or refuse the duplicate load with a stated reason. Surfaced by audit-repo 2026-08-09 (Theme: Round ingest is append-only; the disk it mirrors is not)
+- [ ] **DEPLOY-001** [light]🔧 | ci-secret-scan — add gitleaks to `ci.yml` as the backstop the per-clone `pre-commit` hook cannot be (arming writes an untracked `.git/hooks/pre-commit`, so a fresh checkout has zero coverage). Must run **before** `Build` or exclude `.next/` — `gitleaks dir .` ignores `.gitignore` and yields 6 false `generic-api-key` hits on Next's own `previewModeSigningKey`/`encryptionKey`. Verify with a `ghp_`-prefixed positive control; see the BI-034.5 archive note. Surfaced by audit-repo 2026-08-09 (Theme: Gates are strong at build time, thinner at commit time)
 
 ## Low
 
