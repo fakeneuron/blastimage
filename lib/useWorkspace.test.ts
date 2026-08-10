@@ -391,6 +391,10 @@ function recordingImagegen(batches: Record<number, RoundBatch>): {
       value: conflicts.includes(keeperFilename),
     }),
     resolveDisplayUrl: async (url) => url,
+    // Display-blob lifetime (BI-042.2) is a render-path concern; this stub drives
+    // the hook's approve/iterate orchestration, which never resolves for display.
+    blobEpoch: 0,
+    retainDisplayUrl: () => () => {},
     resolveBlob: async () => new Blob(['x']),
   };
   return { api, promoted, unpromoted, selections, conflicts };

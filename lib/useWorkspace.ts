@@ -101,6 +101,9 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   unpromoteApproved: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   approvedConflict: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   resolveDisplayUrl: async (url) => url,
+  // Nothing is cached here, so nothing is ever revoked or worth holding (BI-042.2).
+  blobEpoch: 0,
+  retainDisplayUrl: () => () => {},
   // No linked root: `data:`/`https:` still resolve, `imagegen:` rejects (BI-029.2).
   resolveBlob: (url) => resolveImageBlob(url, null),
 };

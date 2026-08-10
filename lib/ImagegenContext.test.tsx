@@ -109,3 +109,120 @@ describe('readRound invalidates that round\'s cached blobs (BI-029.4)', () => {
     expect(round2Reresolved).toBe(round2Resolved);
   });
 });
+
+/** Resolves `count` distinct round-1 URLs in order, returning the blob URL minted for each. */
+async function fillCache(
+  resolveDisplayUrl: (url: string) => Promise<string>,
+  count: number,
+): Promise<string[]> {
+  const resolved: string[] = [];
+  for (let i = 0; i < count; i++) {
+    resolved.push(await act(async () => resolveDisplayUrl(`imagegen:rounds/r1/img${i}.png`)));
+  }
+  return resolved;
+}
+
+/**
+ * Eviction is a memory bound, not a correctness event (BI-042.2) — it must never
+ * revoke a blob URL a mounted consumer is rendering, because that consumer gets
+ * no signal and would strand on a dead URL. Waking it instead is not an option:
+ * it would re-read, re-insert, and evict the next held entry in turn.
+ */
+describe('eviction skips blob URLs a consumer is displaying (BI-042.2)', () => {
+  it('evicts the oldest *evictable* entry rather than a held one', async () => {
+    const { revoked } = stubBlobUrls();
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(true));
+
+    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
+    result.current.retainDisplayUrl(resolved[0]!);
+
+    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'));
+
+    // Oldest is held, so the *second* oldest is what goes.
+    expect(revoked).toEqual([resolved[1]!]);
+  });
+
+  it('releases a hold so the entry becomes evictable again', async () => {
+    const { revoked } = stubBlobUrls();
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(true));
+
+    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
+    const release = result.current.retainDisplayUrl(resolved[0]!);
+    release();
+
+    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'));
+
+    expect(revoked).toEqual([resolved[0]!]);
+  });
+
+  it('keeps the last hold alive when the same blob URL is displayed twice', async () => {
+    const { revoked } = stubBlobUrls();
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(true));
+
+    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
+    // Two consumers rendering one image (e.g. review grid + gallery); one unmounts.
+    result.current.retainDisplayUrl(resolved[0]!);
+    const releaseSecond = result.current.retainDisplayUrl(resolved[0]!);
+    releaseSecond();
+
+    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'));
+
+    expect(revoked).toEqual([resolved[1]!]);
+  });
+
+  it('leaves the bound soft rather than revoking anything when every entry is held', async () => {
+    const { revoked } = stubBlobUrls();
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(true));
+
+    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
+    for (const blobUrl of resolved) result.current.retainDisplayUrl(blobUrl);
+
+    const overflow = await act(async () =>
+      result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'),
+    );
+
+    expect(revoked).toEqual([]);
+    expect(overflow).not.toBe('');
+  });
+});
+
+/**
+ * Invalidation is the opposite case: the bytes behind a displayed URL are gone,
+ * so consumers *must* react. `blobEpoch` is the signal `ResolvedImage` lists in
+ * its resolve-effect deps — the same shape BI-038 used with `linked`.
+ */
+describe('blobEpoch signals a staleness revocation (BI-042.2)', () => {
+  it('bumps when a round reload revokes cached entries', async () => {
+    stubBlobUrls();
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(true));
+
+    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'));
+    const before = result.current.blobEpoch;
+
+    await act(async () => {
+      await result.current.readRound(1);
+    });
+
+    expect(result.current.blobEpoch).toBe(before + 1);
+  });
+
+  it('does not bump when the reloaded round had nothing cached', async () => {
+    stubBlobUrls();
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(true));
+
+    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'));
+    const before = result.current.blobEpoch;
+
+    await act(async () => {
+      await result.current.readRound(2);
+    });
+
+    expect(result.current.blobEpoch).toBe(before);
+  });
+});
