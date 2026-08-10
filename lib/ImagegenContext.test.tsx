@@ -11,10 +11,10 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react';
+import { useState, type ReactNode } from 'react';
 
-import { ImagegenProvider, useImagegen } from './ImagegenContext';
+import { ImagegenProvider, useImagegen, type ImagegenApi } from './ImagegenContext';
 
 const hoisted = vi.hoisted(() => ({
   root: { kind: 'directory', name: 'imagegen' } as unknown as FileSystemDirectoryHandle,
@@ -224,5 +224,45 @@ describe('blobEpoch signals a staleness revocation (BI-042.2)', () => {
     });
 
     expect(result.current.blobEpoch).toBe(before);
+  });
+});
+
+/**
+ * Without useMemo, every provider re-render mints a new context object and
+ * re-fires consumers that list `imagegen` by identity (useWorkspace's
+ * listRounds effect). Memo keeps identity stable across pure parent re-renders.
+ */
+describe('ImagegenApi value identity (BI-042.4)', () => {
+  it('keeps the same context object across a parent re-render that changes neither linked nor blobEpoch', async () => {
+    const seen: ImagegenApi[] = [];
+
+    function Capture() {
+      seen.push(useImagegen());
+      return null;
+    }
+
+    function Parent() {
+      const [n, setN] = useState(0);
+      return (
+        <div>
+          <button type="button" onClick={() => setN((x) => x + 1)}>
+            bump {n}
+          </button>
+          <ImagegenProvider>
+            <Capture />
+          </ImagegenProvider>
+        </div>
+      );
+    }
+
+    const { getByRole } = render(<Parent />);
+    await waitFor(() => expect(seen.at(-1)?.linked).toBe(true));
+    const afterLink = seen.at(-1)!;
+
+    await act(async () => {
+      getByRole('button').click();
+    });
+
+    expect(seen.at(-1)).toBe(afterLink);
   });
 });

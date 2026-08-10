@@ -13,6 +13,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -281,20 +282,39 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const value: ImagegenApi = {
-    linked,
-    linkFolder,
-    listRounds,
-    readRound,
-    writeSelection,
-    promoteApproved,
-    unpromoteApproved,
-    approvedConflict,
-    resolveDisplayUrl,
-    blobEpoch,
-    retainDisplayUrl,
-    resolveBlob,
-  };
+  // Stable identity except when linked/blobEpoch (or a callback) change —
+  // without this, every provider re-render mints a new object and re-fires
+  // useWorkspace's [imagegen, imagegen.linked] listRounds() effect (BI-042.4).
+  const value = useMemo<ImagegenApi>(
+    () => ({
+      linked,
+      linkFolder,
+      listRounds,
+      readRound,
+      writeSelection,
+      promoteApproved,
+      unpromoteApproved,
+      approvedConflict,
+      resolveDisplayUrl,
+      blobEpoch,
+      retainDisplayUrl,
+      resolveBlob,
+    }),
+    [
+      linked,
+      linkFolder,
+      listRounds,
+      readRound,
+      writeSelection,
+      promoteApproved,
+      unpromoteApproved,
+      approvedConflict,
+      resolveDisplayUrl,
+      blobEpoch,
+      retainDisplayUrl,
+      resolveBlob,
+    ],
+  );
 
   return <ImagegenContext.Provider value={value}>{children}</ImagegenContext.Provider>;
 }

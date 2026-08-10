@@ -11,7 +11,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **BI-EPIC-042** [heavy]🧠 | blob-url-lifetime — `resolveDisplayUrl` hands out object URLs and revokes them (LRU eviction, same-round reload) on a schedule mounted `<img>` elements cannot observe, so a revoked image stays blank until remount. Give revocation an observable signal. Discovery supplied by audit-repo 2026-08-09. Surfaced by audit-repo 2026-08-09 (Theme: Object-URL lifetime is the one place the seam discipline doesn't reach)
   - [x] **BI-042.2** [medium]🧩 | revocation-epoch — Completed 2026-08-09.
   - [x] **BI-042.3** [medium]🧩 | consumer-recovery-test — Completed 2026-08-09.
-  - [ ] **BI-042.4** [light]🔧 | memoize-imagegen-value — `useMemo` the context value; drops the latent per-render `listRounds()` walk from `useWorkspace`'s `[imagegen, imagegen.linked]` effect.
+  - [x] **BI-042.4** [light]🔧 | memoize-imagegen-value — Completed 2026-08-09.
   - [ ] **BI-042.N** [light]🔧 | audit
 
 ## Medium
