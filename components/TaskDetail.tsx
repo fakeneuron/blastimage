@@ -118,8 +118,14 @@ export default function TaskDetail({
 
       {/* Prompt editor */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium uppercase tracking-wide opacity-60">Prompt</label>
+        <label
+          htmlFor="task-prompt"
+          className="text-xs font-medium uppercase tracking-wide opacity-60"
+        >
+          Prompt
+        </label>
         <textarea
+          id="task-prompt"
           value={promptDraft}
           onChange={(e) => setPromptDraft(e.target.value)}
           rows={5}

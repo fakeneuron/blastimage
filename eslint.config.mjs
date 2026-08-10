@@ -10,7 +10,13 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // next/* already registers a thin jsx-a11y warn subset; recommended promotes
+  // the full rule set to error so label / interaction regressions fail CI (BI-040).
+  ...compat.extends(
+    "next/core-web-vitals",
+    "next/typescript",
+    "plugin:jsx-a11y/recommended",
+  ),
   {
     ignores: [
       "node_modules/**",

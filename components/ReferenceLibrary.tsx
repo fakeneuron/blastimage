@@ -87,7 +87,12 @@ export default function ReferenceLibrary({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium uppercase tracking-wide opacity-60">References</label>
+        <label
+          htmlFor="ref-library-upload"
+          className="text-xs font-medium uppercase tracking-wide opacity-60"
+        >
+          References
+        </label>
         <span className="text-xs opacity-50">
           {selectedCount}/{MAX_ACTIVE_REFS} active
         </span>
@@ -112,6 +117,7 @@ export default function ReferenceLibrary({
         Drag &amp; drop images here, or click to upload
       </button>
       <input
+        id="ref-library-upload"
         ref={inputRef}
         type="file"
         accept="image/*"

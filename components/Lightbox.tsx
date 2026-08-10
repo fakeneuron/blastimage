@@ -60,15 +60,20 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
     'absolute top-1/2 -translate-y-1/2 rounded-full bg-white/10 px-3 py-2 text-2xl leading-none text-white transition hover:bg-white/20 disabled:cursor-default disabled:opacity-25';
 
   return (
+    // Backdrop: mouse dismiss only. Keyboard dismiss is Escape via useFocusTrap (BI-039).
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- see above
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       {/*
         The controls live inside the dialog, not beside it: `aria-modal` is only
         honest if the modal container holds what it owns, and the focus trap needs
         that same boundary. They stay visually put — all three are `absolute` and
         the figure is not `relative`, so the fixed backdrop remains their anchor.
+        Dismiss uses target===currentTarget on the backdrop (no stopPropagation here).
       */}
       <figure
         ref={dialogRef}
@@ -77,7 +82,6 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
         aria-label="Image viewer"
         tabIndex={-1}
         className="flex max-h-full max-w-full flex-col items-center gap-2 focus:outline-none"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"

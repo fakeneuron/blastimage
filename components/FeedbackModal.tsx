@@ -41,9 +41,13 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
   const submit = (action: FeedbackAction) => onSubmit({ text: text.trim(), useAsReference }, action);
 
   return (
+    // Backdrop: mouse dismiss only. Keyboard dismiss is Escape via useFocusTrap (BI-039).
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- see above
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         ref={dialogRef}
@@ -52,7 +56,6 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
         aria-label="Image feedback"
         tabIndex={-1}
         className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
           <ResolvedImage
