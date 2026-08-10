@@ -196,10 +196,71 @@ export function importTasks(
 }
 
 /**
+ * True when any image in the iteration is stored under `rounds/r<round>/`
+ * (via {@link roundNumberFromImageUrl}). Used to detect a prior ingest of the
+ * same terminal round so re-load can replace instead of append (BI-043).
+ */
+function iterationTouchesRound(it: Iteration, round: number): boolean {
+  return it.images.some((img) => roundNumberFromImageUrl(img.url) === round);
+}
+
+/**
+ * Upserts a draft as the iteration for `round` on `taskId`: replaces the first
+ * iteration that already holds images from that round (and drops any later
+ * same-round duplicates, reindexing), or appends when the round is new.
+ * Unknown task id is a no-op.
+ */
+function upsertIterationForRound(
+  session: Session,
+  taskId: ID,
+  round: number,
+  draft: IterationDraft,
+): Session {
+  const task = session.tasks.find((t) => t.id === taskId);
+  if (!task) return session;
+
+  const matchIndices = task.iterations
+    .map((it, i) => (iterationTouchesRound(it, round) ? i : -1))
+    .filter((i): i is number => i >= 0);
+
+  if (!matchIndices.length) {
+    return appendIteration(session, taskId, draft);
+  }
+
+  const keepAt = matchIndices[0]!;
+  const dropExtras = new Set(matchIndices.slice(1));
+  const iterations: Iteration[] = [];
+  for (let i = 0; i < task.iterations.length; i++) {
+    if (dropExtras.has(i)) continue;
+    const prev = task.iterations[i]!;
+    if (i === keepAt) {
+      iterations.push({
+        id: prev.id,
+        index: iterations.length,
+        prompt: draft.prompt,
+        refImageIds: draft.refImageIds,
+        primaryRefImageId: draft.primaryRefImageId,
+        images: draft.images,
+        createdAt: now(),
+      });
+    } else {
+      iterations.push({ ...prev, index: iterations.length });
+    }
+  }
+  return updateTask(session, taskId, { iterations });
+}
+
+/**
  * Ingests a terminal-generated round (`batch.json` + on-disk images) into the
- * session: matches tasks by {@link slugify}(name) === batch slug and appends an
- * iteration; mints a new task for unknown slugs. Image URLs are caller-supplied
- * path references (typically `imagegen:rounds/r<N>/…`) — never inline bytes.
+ * session: matches tasks by {@link slugify}(name) === batch slug and **upserts**
+ * an iteration for `batch.round` (BI-043 — replace when that round was already
+ * loaded, append when it is new); mints a new task for unknown slugs. Image
+ * URLs are caller-supplied path references (typically `imagegen:rounds/r<N>/…`)
+ * — never inline bytes.
+ *
+ * Replace (not refuse) is the deliberate product choice: `/blast-generate`
+ * rewrites `rounds/r<N>/` in place, so "Load round" after a rerun must refresh
+ * the session rather than stack a second copy of the same disk files.
  */
 export function ingestRoundBatch(
   session: Session,
@@ -217,7 +278,7 @@ export function ingestRoundBatch(
     };
     const existing = next.tasks.find((t) => slugify(t.name) === entry.slug);
     if (existing) {
-      next = appendIteration(next, existing.id, draft);
+      next = upsertIterationForRound(next, existing.id, batch.round, draft);
       if (!existing.basePrompt.trim()) {
         next = setTaskPrompt(next, existing.id, entry.prompt);
       }

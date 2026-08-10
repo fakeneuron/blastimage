@@ -541,6 +541,74 @@ describe('ingestRoundBatch', () => {
     expect(s.tasks[0]!.basePrompt).toBe('Warm hero shot');
     expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Warm hero shot');
   });
+
+  // BI-043: re-load of the same round must not stack iterations.
+  it('replaces an existing same-round iteration instead of appending (BI-043)', () => {
+    let s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));
+    const firstImageId = s.tasks[0]!.iterations[0]!.images[0]!.id;
+    const rewritten: RoundBatch = {
+      ...batch,
+      generatedAt: '2026-06-19T00:00:00Z',
+      tasks: [
+        {
+          ...batch.tasks[0]!,
+          prompt: 'Rewritten hero shot',
+          images: ['hero-banner-001.jpg', 'hero-banner-003.jpg'],
+        },
+      ],
+    };
+    s = ingestRoundBatch(s, rewritten, (f) => roundImageUrl(rewritten.round, f));
+    expect(s.tasks).toHaveLength(1);
+    expect(s.tasks[0]!.iterations).toHaveLength(1);
+    expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Rewritten hero shot');
+    expect(s.tasks[0]!.iterations[0]!.images.map((img) => img.url)).toEqual([
+      roundImageUrl(2, 'hero-banner-001.jpg'),
+      roundImageUrl(2, 'hero-banner-003.jpg'),
+    ]);
+    // Fresh image ids — prior review decisions on the rewritten files do not carry.
+    expect(s.tasks[0]!.iterations[0]!.images[0]!.id).not.toBe(firstImageId);
+  });
+
+  it('still appends when the ingested round number is new (BI-043)', () => {
+    let s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));
+    const nextRound: RoundBatch = {
+      ...batch,
+      round: 3,
+      tasks: [
+        {
+          ...batch.tasks[0]!,
+          prompt: 'Round three',
+          images: ['hero-banner-001.jpg'],
+        },
+      ],
+    };
+    s = ingestRoundBatch(s, nextRound, (f) => roundImageUrl(nextRound.round, f));
+    expect(s.tasks[0]!.iterations).toHaveLength(2);
+    expect(s.tasks[0]!.iterations.map((it) => it.index)).toEqual([0, 1]);
+    expect(s.tasks[0]!.iterations[1]!.prompt).toBe('Round three');
+    expect(s.tasks[0]!.iterations[1]!.images[0]!.url).toBe(
+      roundImageUrl(3, 'hero-banner-001.jpg'),
+    );
+  });
+
+  it('collapses pre-existing same-round duplicate iterations on re-load (BI-043)', () => {
+    // Simulate a session already poisoned by the pre-BI-043 append-only path:
+    // two iterations both carrying round-2 image URLs.
+    let s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));
+    s = appendIteration(s, s.tasks[0]!.id, {
+      prompt: 'stale dup',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images: [newGeneratedImage(roundImageUrl(2, 'hero-banner-dup.jpg'), 'stale dup')],
+    });
+    expect(s.tasks[0]!.iterations).toHaveLength(2);
+
+    s = ingestRoundBatch(s, batch, (f) => roundImageUrl(batch.round, f));
+    expect(s.tasks[0]!.iterations).toHaveLength(1);
+    expect(s.tasks[0]!.iterations[0]!.index).toBe(0);
+    expect(s.tasks[0]!.iterations[0]!.images).toHaveLength(2);
+    expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Warm hero shot');
+  });
 });
 
 describe('renameSlugBreak (BI-030.3)', () => {
