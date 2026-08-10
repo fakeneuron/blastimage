@@ -16,8 +16,8 @@
  *
  * Fixtures render through `<Linked>`, which mounts the image only once the
  * provider reports `linked`. That mirrors the app (round images exist only after
- * a folder is linked) and is *required*, not cosmetic — see the documented quirk
- * at the bottom of this file.
+ * a folder is linked). BI-038 also covers the mount-before-restore path as a
+ * contract; `<Linked>` remains the happy-path fixture for the resolution suite.
  *
  * Deliberately not pinned: the `cancelled` guard's after-unmount half
  * (`ResolvedImage.tsx:32-34`). React 19 no longer warns on setState after
@@ -203,18 +203,13 @@ describe('ResolvedImage — provider requirement (BI-024.1)', () => {
 });
 
 /**
- * Documents a live quirk rather than a contract. `resolveDisplayUrl` is a
- * `useCallback` with an empty dep list, so its identity never changes — which
- * means `ResolvedImage`'s effect never re-runs when the provider's handle
- * restore later completes. An `imagegen:` image mounted *before* the restore
- * settles therefore keeps its raw, unrenderable `imagegen:` src for the life of
- * the mount. Unreachable in the app today (round images exist only after a
- * folder is linked), and the reason this file's fixtures gate on `linked`.
- * Pinned so that adding a `linked` dependency shows up here as a deliberate
- * change instead of passing silently.
+ * Contract (BI-038): an `imagegen:` image mounted before the provider's handle
+ * restore settles must re-resolve once `linked` flips true. Before the fix the
+ * effect only depended on `[src, resolveDisplayUrl]`, and `resolveDisplayUrl`
+ * is a stable `useCallback([])`, so the image stayed on its raw src forever.
  */
-describe('ResolvedImage — mount-before-restore quirk (BI-024.1)', () => {
-  it('never resolves an imagegen: URL mounted before the handle restores', async () => {
+describe('ResolvedImage — mount-before-restore (BI-038)', () => {
+  it('resolves an imagegen: URL after the handle restore settles', async () => {
     stubBlobUrls();
 
     render(
@@ -222,10 +217,11 @@ describe('ResolvedImage — mount-before-restore quirk (BI-024.1)', () => {
         <ResolvedImage src="imagegen:rounds/r1/hero.png" alt="subject" />
       </ImagegenProvider>,
     );
+    // Drain restore + the re-run resolve effect once `linked` becomes true.
     await act(async () => {});
     await act(async () => {});
 
-    expect(hoisted.reads).toEqual([]);
-    expect(src()).toBe('imagegen:rounds/r1/hero.png');
+    expect(hoisted.reads).toEqual(['rounds/r1/hero.png']);
+    expect(src()).toBe('blob:rounds/r1/hero.png');
   });
 });

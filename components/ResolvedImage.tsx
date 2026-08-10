@@ -19,7 +19,10 @@ interface ResolvedImageProps {
 }
 
 export default function ResolvedImage({ src, alt, className, style }: ResolvedImageProps) {
-  const { resolveDisplayUrl } = useImagegen();
+  // `linked` is intentionally in the effect deps (BI-038): `resolveDisplayUrl`
+  // is a stable `useCallback([])`, so without `linked` an `imagegen:` image
+  // mounted before the provider's handle restore settles would never re-resolve.
+  const { resolveDisplayUrl, linked } = useImagegen();
   const [displaySrc, setDisplaySrc] = useState(src);
 
   useEffect(() => {
@@ -32,7 +35,7 @@ export default function ResolvedImage({ src, alt, className, style }: ResolvedIm
     return () => {
       cancelled = true;
     };
-  }, [src, resolveDisplayUrl]);
+  }, [src, resolveDisplayUrl, linked]);
 
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={displaySrc} alt={alt} className={className} style={style} />;
