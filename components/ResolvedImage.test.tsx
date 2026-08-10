@@ -31,7 +31,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
 import ResolvedImage from './ResolvedImage';
-import { ImagegenProvider, useImagegen } from '@/lib/ImagegenContext';
+import { ImagegenProvider, useImagegen, type ImagegenApi } from '@/lib/ImagegenContext';
 
 const hoisted = vi.hoisted(() => ({
   root: { kind: 'directory', name: 'imagegen' } as unknown as FileSystemDirectoryHandle,
@@ -66,9 +66,30 @@ function Linked({ children }: { children: ReactNode }) {
   return linked ? <>{children}</> : null;
 }
 
+/**
+ * Stashes the live `ImagegenApi` into a ref so a test can call `readRound` /
+ * `resolveDisplayUrl` on the same provider the mounted image is under.
+ */
+function Capture({ apiRef }: { apiRef: { current: ImagegenApi | null } }) {
+  apiRef.current = useImagegen();
+  return null;
+}
+
 function image(src: string) {
   return (
     <ImagegenProvider>
+      <Linked>
+        <ResolvedImage src={src} alt="subject" />
+      </Linked>
+    </ImagegenProvider>
+  );
+}
+
+/** Like `image`, but also exposes the provider API for in-test driver calls. */
+function imageWithApi(src: string, apiRef: { current: ImagegenApi | null }) {
+  return (
+    <ImagegenProvider>
+      <Capture apiRef={apiRef} />
       <Linked>
         <ResolvedImage src={src} alt="subject" />
       </Linked>
@@ -100,10 +121,31 @@ afterEach(() => {
   hoisted.release.clear();
 });
 
-/** Stubs the object-URL pair only — happy-dom still needs the rest of `URL`. */
+/**
+ * Stubs the object-URL pair only — happy-dom still needs the rest of `URL`.
+ *
+ * The first mint of a path is `blob:<path>`; re-minting the same path after a
+ * revocation yields `blob:<path>#2`, `#3`, … Without that a revoke-then-resolve
+ * round trip produces a byte-identical string and the recovery in the BI-042.3
+ * suite below would be unassertable. Returned `live` is created-minus-revoked:
+ * the only oracle for "the src on screen still points at something", since the
+ * DOM can't tell a live `blob:` URL from a dead one.
+ */
 function stubBlobUrls() {
-  vi.spyOn(URL, 'createObjectURL').mockImplementation((obj) => `blob:${(obj as File).name}`);
-  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  const mints = new Map<string, number>();
+  const live = new Set<string>();
+  vi.spyOn(URL, 'createObjectURL').mockImplementation((obj) => {
+    const name = (obj as File).name;
+    const nth = (mints.get(name) ?? 0) + 1;
+    mints.set(name, nth);
+    const url = nth === 1 ? `blob:${name}` : `blob:${name}#${nth}`;
+    live.add(url);
+    return url;
+  });
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation((url) => {
+    live.delete(url);
+  });
+  return { live };
 }
 
 describe('ResolvedImage — passthrough (BI-024.1)', () => {
@@ -223,5 +265,97 @@ describe('ResolvedImage — mount-before-restore (BI-038)', () => {
 
     expect(hoisted.reads).toEqual(['rounds/r1/hero.png']);
     expect(src()).toBe('blob:rounds/r1/hero.png');
+  });
+});
+
+/**
+ * Contract (BI-042.3): a mounted `ResolvedImage` must recover from (or survive)
+ * both of the provider's revocation paths, and must not flash its raw
+ * `imagegen:` URL when an *unrelated* round's reload bumps `blobEpoch`.
+ * Provider-level tests in `lib/ImagegenContext.test.tsx` only cover the
+ * revocation itself; this suite pins what the `<img>` shows afterwards.
+ *
+ * `BLOB_CACHE_MAX_ENTRIES` is 200 (`lib/ImagegenContext.tsx`) — not exported,
+ * so the eviction loop hardcodes it (same choice as `ImagegenContext.test.tsx`).
+ */
+describe('ResolvedImage — consumer recovery (BI-042.3)', () => {
+  it('re-resolves onto a live blob URL after its round is reloaded', async () => {
+    const { live } = stubBlobUrls();
+    const apiRef: { current: ImagegenApi | null } = { current: null };
+
+    render(imageWithApi('imagegen:rounds/r1/hero.png', apiRef));
+    await act(async () => {});
+    await act(async () => {});
+
+    const first = src();
+    expect(first).toBe('blob:rounds/r1/hero.png');
+    expect(live.has(first!)).toBe(true);
+
+    await act(async () => {
+      await apiRef.current!.readRound(1);
+    });
+    // Drain the re-resolve the blobEpoch bump kicked off.
+    await act(async () => {});
+
+    const second = src();
+    expect(second).not.toBe(first);
+    expect(live.has(second!)).toBe(true);
+    expect(live.has(first!)).toBe(false);
+  });
+
+  it('keeps its displayed blob URL live through LRU eviction pressure', async () => {
+    const { live } = stubBlobUrls();
+    const apiRef: { current: ImagegenApi | null } = { current: null };
+
+    render(imageWithApi('imagegen:rounds/r1/hero.png', apiRef));
+    await act(async () => {});
+    await act(async () => {});
+
+    const shown = src();
+    expect(shown).toBe('blob:rounds/r1/hero.png');
+    expect(live.has(shown!)).toBe(true);
+
+    // Mounted entry is oldest. BLOB_CACHE_MAX_ENTRIES + 1 further resolves
+    // forces eviction of the oldest *evictable* entry; retain must keep this one.
+    for (let i = 0; i < 201; i++) {
+      await act(async () => {
+        await apiRef.current!.resolveDisplayUrl(`imagegen:rounds/r1/img${i}.png`);
+      });
+    }
+
+    expect(src()).toBe(shown);
+    expect(live.has(shown!)).toBe(true);
+  });
+
+  it('does not flash the raw imagegen: URL on an unrelated round reload', async () => {
+    const { live } = stubBlobUrls();
+    const apiRef: { current: ImagegenApi | null } = { current: null };
+
+    render(imageWithApi('imagegen:rounds/r2/hero.png', apiRef));
+    await act(async () => {});
+    await act(async () => {});
+
+    // Seed r1 so readRound(1) actually revokes something and bumps blobEpoch.
+    await act(async () => {
+      await apiRef.current!.resolveDisplayUrl('imagegen:rounds/r1/seed.png');
+    });
+
+    const shown = src();
+    expect(shown).toBe('blob:rounds/r2/hero.png');
+    expect(live.has(shown!)).toBe(true);
+
+    // Flush the epoch bump (sync setState) without draining the resolve
+    // microtask — the only window where a merged [src] reset would flash.
+    act(() => {
+      void apiRef.current!.readRound(1);
+    });
+
+    expect(src()).toBe(shown);
+    expect(live.has(shown!)).toBe(true);
+
+    await act(async () => {});
+
+    expect(src()).toBe(shown);
+    expect(live.has(shown!)).toBe(true);
   });
 });
