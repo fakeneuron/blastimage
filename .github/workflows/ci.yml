@@ -45,3 +45,30 @@ jobs:
       # surfaces that major as its own PR (BI-034.4).
       - name: Audit
         run: npm audit --omit=dev --audit-level=high
+
+  # Working-tree secret scan (DEPLOY-001). Separate job so it never sees
+  # Build-produced `.next/` — `gitleaks dir .` ignores `.gitignore` and Next's
+  # own previewMode/encryption keys false-positive as generic-api-key (BI-034.5).
+  # Pre-commit hook stops secrets before history; this is the backstop for
+  # clones that never ran `pre-commit install`. Pin deliberately — unpinned
+  # scanner versions change findings between runs (natabula spine / marscharts).
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          mkdir -p "$RUNNER_TEMP/gitleaks"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP/gitleaks" gitleaks
+          echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+
+      - name: Gitleaks (working-tree secret scan)
+        run: gitleaks dir . --config .gitleaks.toml --no-banner --redact

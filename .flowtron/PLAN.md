@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **DEPLOY-001** [light]🔧 | ci-secret-scan — add gitleaks to `ci.yml` as the backstop the per-clone `pre-commit` hook cannot be (arming writes an untracked `.git/hooks/pre-commit`, so a fresh checkout has zero coverage). Must run **before** `Build` or exclude `.next/` — `gitleaks dir .` ignores `.gitignore` and yields 6 false `generic-api-key` hits on Next's own `previewModeSigningKey`/`encryptionKey`. Verify with a `ghp_`-prefixed positive control; see the BI-034.5 archive note. Surfaced by audit-repo 2026-08-09 (Theme: Gates are strong at build time, thinner at commit time)
+(none)
 
 ## Low
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **DEPLOY-001** [light]🔧 | ci-secret-scan — Completed 2026-08-09.
 - [x] **BI-043** [medium]🧩 | round-reingest-idempotence — Completed 2026-08-09.
 - [x] **BI-EPIC-042** [heavy]🧠 | blob-url-lifetime — Completed 2026-08-09.
   - [x] **BI-042.2** [medium]🧩 | revocation-epoch — Completed 2026-08-09.
