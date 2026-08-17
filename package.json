@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "next": "^15.5.23",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -27,10 +27,10 @@
     "eslint": "^9",
     "eslint-config-next": "^15.5.23",
     "eslint-plugin-jsx-a11y": "^6.10.2",
-    "happy-dom": "^20.10.2",
+    "happy-dom": "^20.11.2",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "postcss": "^8.5.26",
