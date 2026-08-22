@@ -8,7 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-044** [light]🔧 | adopt-symlink-path — `docs/ADOPT.md` §5.1 writes `ln -sf ../blastimage/.grok/skills/...`, which resolves to `.grok/blastimage/...` and does not exist; the correct target is `../../blastimage/...` (what adopters actually wire). Anyone following the doc gets two dead symlinks. Filed per cloutomaton CORE-021.N's operator call; re-confirmed at HEAD by CORE-035.3.
 
 ## Medium
 
