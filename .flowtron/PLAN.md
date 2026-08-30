@@ -9,7 +9,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 - [ ] **BI-044** [light]🔧 | adopt-symlink-path — `docs/ADOPT.md` §5.1 writes `ln -sf ../blastimage/.grok/skills/...`, which resolves to `.grok/blastimage/...` and does not exist; the correct target is `../../blastimage/...` (what adopters actually wire). Anyone following the doc gets two dead symlinks. Filed per cloutomaton CORE-021.N's operator call; re-confirmed at HEAD by CORE-035.3.
-- [ ] **BI-045** [heavy]🧠 | imagegen-server-adapter — `showDirectoryPicker` is Chromium-only, so Safari/Brave cannot link imagegen at all. Add localhost Next API routes over Node `fs` plus a second `ImagegenApi` implementation behind the existing seam, selected by a stored imagegen path — read, selection writes and approved promotion then work in every browser.
 
 ## Medium
 
@@ -25,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-045** [heavy]🧠 | imagegen-server-adapter — Completed 2026-08-29.
 - [x] **DEPLOY-001** [light]🔧 | ci-secret-scan — Completed 2026-08-09.
 - [x] **BI-043** [medium]🧩 | round-reingest-idempotence — Completed 2026-08-09.
 - [x] **BI-EPIC-042** [heavy]🧠 | blob-url-lifetime — Completed 2026-08-09.

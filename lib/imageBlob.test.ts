@@ -2,20 +2,24 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resolveImageBlob } from './imageBlob';
 
+const ROOT = '/repo/imagegen';
+
 /**
- * A fake `imagegen/` root holding one file per path, so `readImagegenFile`'s
- * directory walk (`rounds` → `r<N>` → file) resolves without a real FSA.
+ * Stubs `fetch` with a fake `imagegen/` served by the file route, keyed by the
+ * `path` parameter — the shape `/api/imagegen/file` actually answers with.
  */
-function makeFakeRoot(files: Record<string, Blob>): FileSystemDirectoryHandle {
-  const dirAt = (prefix: string) => ({
-    getDirectoryHandle: async (name: string) => dirAt(`${prefix}${name}/`),
-    getFileHandle: async (name: string) => {
-      const blob = files[`${prefix}${name}`];
-      if (!blob) throw new Error(`no such file: ${prefix}${name}`);
-      return { getFile: async () => blob };
-    },
+function stubImagegenServer(files: Record<string, Blob>) {
+  const requested: string[] = [];
+  const fetchMock = vi.fn(async (input: string) => {
+    requested.push(input);
+    const params = new URL(input, 'http://localhost:3003').searchParams;
+    const blob = files[params.get('path') ?? ''];
+    return blob
+      ? { ok: true, blob: async () => blob }
+      : { ok: false, status: 400, blob: async () => new Blob() };
   });
-  return dirAt('') as unknown as FileSystemDirectoryHandle;
+  vi.stubGlobal('fetch', fetchMock);
+  return { fetchMock, requested };
 }
 
 afterEach(() => {
@@ -25,25 +29,24 @@ afterEach(() => {
 describe('resolveImageBlob', () => {
   it('fetches non-imagegen URLs', async () => {
     const blob = new Blob(['remote'], { type: 'image/png' });
-    const fetchMock = vi.fn(async () => ({ blob: async () => blob }));
+    const fetchMock = vi.fn(async () => ({ ok: true, blob: async () => blob }));
     vi.stubGlobal('fetch', fetchMock);
 
     expect(await resolveImageBlob('https://example.test/0', null)).toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith('https://example.test/0');
   });
 
-  it('reads imagegen: URLs through the linked root instead of fetching', async () => {
+  it('reads imagegen: URLs through the file route under the linked root', async () => {
     const onDisk = new Blob(['bytes'], { type: 'image/png' });
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    const { requested } = stubImagegenServer({ 'rounds/r3/hero-01.png': onDisk });
 
-    const resolved = await resolveImageBlob(
-      'imagegen:rounds/r3/hero-01.png',
-      makeFakeRoot({ 'rounds/r3/hero-01.png': onDisk }),
-    );
+    const resolved = await resolveImageBlob('imagegen:rounds/r3/hero-01.png', ROOT);
 
     expect(resolved).toBe(onDisk);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const url = new URL(requested[0]!, 'http://localhost:3003');
+    expect(url.pathname).toBe('/api/imagegen/file');
+    expect(url.searchParams.get('root')).toBe(ROOT);
+    expect(url.searchParams.get('path')).toBe('rounds/r3/hero-01.png');
   });
 
   it('rejects an imagegen: URL when no folder is linked', async () => {
@@ -57,8 +60,10 @@ describe('resolveImageBlob', () => {
   });
 
   it('rejects when the linked root has no such file', async () => {
-    await expect(
-      resolveImageBlob('imagegen:rounds/r9/missing.png', makeFakeRoot({})),
-    ).rejects.toThrow();
+    stubImagegenServer({});
+
+    await expect(resolveImageBlob('imagegen:rounds/r9/missing.png', ROOT)).rejects.toThrow(
+      /Could not read rounds\/r9\/missing\.png/,
+    );
   });
 });

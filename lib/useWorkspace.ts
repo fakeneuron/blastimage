@@ -18,7 +18,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ImagegenApi } from './ImagegenContext';
-import type { LinkImagegenResult } from './imagegenFs';
+import type { LinkImagegenResult } from './imagegenClient';
 import { resolveImageBlob } from './imageBlob';
 import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
 import {

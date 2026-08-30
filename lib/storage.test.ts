@@ -520,20 +520,27 @@ describe('downloadManifestBundle', () => {
 // linked root, so a stub cannot paper over a regression in the seam.
 // ─────────────────────────────────────────────────────────────────────────
 
+/** The linked root these fixtures resolve `imagegen:` URLs against (BI-045). */
+const FAKE_IMAGEGEN_ROOT = '/repo/imagegen';
+
 /**
- * A fake `imagegen/` root holding one blob per path, so `readImagegenFile`'s
- * directory walk (`rounds` → `r<N>` → file) resolves without a real FSA.
+ * Stubs `fetch` with a fake `imagegen/` served by the file route, keyed by the
+ * `path` parameter — so the export paths exercise the real `resolveImageBlob`
+ * against the same URL shape `/api/imagegen/file` answers (BI-045).
  */
-function makeFakeImagegenRoot(files: Record<string, Blob>): FileSystemDirectoryHandle {
-  const dirAt = (prefix: string) => ({
-    getDirectoryHandle: async (name: string) => dirAt(`${prefix}${name}/`),
-    getFileHandle: async (name: string) => {
-      const blob = files[`${prefix}${name}`];
-      if (!blob) throw new Error(`no such file: ${prefix}${name}`);
-      return { getFile: async () => blob };
-    },
-  });
-  return dirAt('') as unknown as FileSystemDirectoryHandle;
+function serveFakeImagegen(files: Record<string, Blob>): void {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string) => {
+      // Parsed with `URLSearchParams`, not `new URL`: `captureDownloads` stubs
+      // the global `URL` down to its object-URL pair, so the constructor is gone.
+      const query = new URLSearchParams(input.slice(input.indexOf('?') + 1));
+      const blob = files[query.get('path') ?? ''];
+      return blob
+        ? { ok: true, blob: async () => blob }
+        : { ok: false, status: 400, blob: async () => new Blob() };
+    }),
+  );
 }
 
 /** The two-image adopter-mode manifest under test: one PNG, one JPEG, both on disk. */
@@ -551,8 +558,8 @@ const IMAGEGEN_FILES = {
 
 /** The production resolver, bound to a linked root — exactly what `ImagegenProvider` injects. */
 function linkedResolver(files = IMAGEGEN_FILES): ImageBlobResolver {
-  const root = makeFakeImagegenRoot(files);
-  return (url) => resolveImageBlob(url, root);
+  serveFakeImagegen(files);
+  return (url) => resolveImageBlob(url, FAKE_IMAGEGEN_ROOT);
 }
 
 /** Stubs the download path and returns the filenames + blobs handed to `downloadBlob`. */

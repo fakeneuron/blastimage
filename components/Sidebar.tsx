@@ -194,7 +194,7 @@ export default function Sidebar({
                 ? 'border-green-500/50 text-green-700 dark:text-green-400'
                 : 'border-black/15 dark:border-white/15'
             }`}
-            title="Link your repo's imagegen/ folder (standard location per ADOPT.md §7)"
+            title="Link your repo's imagegen/ folder by absolute path (standard location per ADOPT.md §7)"
             aria-label={imagegenLinked ? 'imagegen linked' : 'Link imagegen'}
             onClick={onLinkImagegen}
           >

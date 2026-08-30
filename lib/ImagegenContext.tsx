@@ -1,11 +1,23 @@
 'use client';
 
 /**
- * blastimage — linked imagegen folder context (BI-024.1)
+ * blastimage — linked imagegen folder context (BI-024.1 · server adapter BI-045)
  *
- * Restores the persisted `imagegen/` directory handle on mount, resolves
- * `imagegen:` path URLs to blob URLs for display, and exposes the FSA read API
- * the workspace hook uses to load round batches.
+ * Restores the linked `imagegen/` root on mount, turns `imagegen:` path URLs
+ * into servable `/api/imagegen/file` URLs, and exposes the read/write API the
+ * workspace hook uses to load round batches and record decisions.
+ *
+ * BI-045 moved the filesystem work from the browser to the app's own localhost
+ * routes. The File System Access API this originally used is Chromium-only, so
+ * Safari and Brave could not link a folder at all. The public {@link ImagegenApi}
+ * is unchanged across that swap — `useWorkspace` and `ResolvedImage` never knew
+ * which side of the wire the bytes came from.
+ *
+ * Two members are now vestigial by design rather than removed:
+ * `retainDisplayUrl` has nothing to pin (a route URL is not an object URL the
+ * provider must keep alive), and `blobEpoch` survives as the cache-buster
+ * appended to a reloaded round's image URLs — the same staleness signal
+ * BI-042.2 introduced, spent on HTTP caching instead of `URL.revokeObjectURL`.
  */
 
 import {
@@ -20,96 +32,27 @@ import {
 } from 'react';
 
 import {
-  approvedFileConflict,
-  listAvailableRounds,
-  pickAndLinkImagegenFolder,
-  promoteKeeperToApproved,
-  readImagegenFile,
+  approvedConflict as approvedConflictRequest,
+  imagegenFileUrl,
+  listRounds as listRoundsRequest,
+  promoteApproved as promoteApprovedRequest,
+  promptAndLinkImagegenFolder,
   readRoundBatch,
-  removeApprovedFile,
-  restoreLinkedImagegenFolder,
-  writeRoundSelection,
+  removeApproved as removeApprovedRequest,
+  restoreLinkedRoot,
+  writeRoundSelection as writeRoundSelectionRequest,
   type LinkImagegenResult,
-} from './imagegenFs';
+} from './imagegenClient';
 import { resolveImageBlob, type ImageBlobResolver } from './imageBlob';
-import { imagegenPathFromUrl, isImagegenUrl, roundNumberFromImageUrl } from './imagegenUrl';
+import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
 
-/**
- * Eviction threshold for `resolveDisplayUrl`'s blob-URL cache (BI-029.4) —
- * without one it grows for the life of the single `ImagegenProvider` mount,
- * since object URLs are otherwise only revoked on unmount. Sized to comfortably
- * hold a few fully-loaded rounds of review images without visible re-fetch churn.
- *
- * A *soft* bound since BI-042.2: entries a mounted consumer is displaying are
- * never evicted, so the cache may sit above this while more than that many
- * images are on screen at once. It settles back as they unmount.
- */
-const BLOB_CACHE_MAX_ENTRIES = 200;
+/** The message every operation returns before a folder has been linked. */
+const UNLINKED = 'Link your imagegen folder first (🔗 in the sidebar).';
 
-/**
- * Evicts the least-recently-used *evictable* entry (oldest first by `Map`
- * insertion order) and revokes its object URL.
- *
- * `displayed` holds the blob URLs a mounted consumer is currently rendering
- * (BI-042.2). Those are skipped: revoking one strands a live `<img>` on a dead
- * URL, and the bound exists to cap memory, not to break what is on screen. When
- * every entry is held the bound goes soft and nothing is evicted — self-limiting,
- * since an entry becomes evictable the moment its consumer unmounts.
- *
- * Deliberately silent: unlike {@link invalidateRoundBlobs}, an eviction must NOT
- * signal consumers. Waking them would make the evicted image re-read and re-insert,
- * evicting the next held entry in turn — an unbounded loop whenever more images
- * are mounted than the cache can hold.
- */
-function evictOldestBlob(cache: Map<string, string>, displayed: ReadonlyMap<string, number>): void {
-  for (const [url, blobUrl] of cache) {
-    if (displayed.has(blobUrl)) continue;
-    URL.revokeObjectURL(blobUrl);
-    cache.delete(url);
-    return;
-  }
-}
-
-/**
- * Drops and revokes every cached entry belonging to `round` — called before a
- * (re)load so a round rewritten on disk (e.g. a rerun of `/blast-generate`
- * against an existing `rounds/r<N>/`) never serves a stale cached blob. Returns
- * how many entries were revoked, so the caller only wakes consumers when a
- * revocation actually happened (BI-042.2).
- *
- * Revokes unconditionally, including entries a consumer is displaying: staleness
- * outranks the cached bytes, and the `blobEpoch` bump this feeds makes those
- * consumers re-resolve onto the new file rather than strand.
- */
-function invalidateRoundBlobs(cache: Map<string, string>, round: number): number {
-  let revoked = 0;
-  for (const [url, blobUrl] of cache) {
-    if (roundNumberFromImageUrl(url) === round) {
-      URL.revokeObjectURL(blobUrl);
-      cache.delete(url);
-      revoked += 1;
-    }
-  }
-  return revoked;
-}
-
-/** Adds one hold on `blobUrl`; the same blob URL can be rendered by several consumers at once. */
-function retainBlobUrl(displayed: Map<string, number>, blobUrl: string): void {
-  displayed.set(blobUrl, (displayed.get(blobUrl) ?? 0) + 1);
-}
-
-/** Drops one hold on `blobUrl`, forgetting it only once the last consumer releases. */
-function releaseBlobUrl(displayed: Map<string, number>, blobUrl: string): void {
-  const holds = displayed.get(blobUrl);
-  if (holds === undefined) return;
-  if (holds <= 1) displayed.delete(blobUrl);
-  else displayed.set(blobUrl, holds - 1);
-}
-
-/** FSA surface consumed by {@link useWorkspace} for round ingest + selection writes. */
+/** Imagegen surface consumed by {@link useWorkspace} for round ingest + selection writes. */
 export interface ImagegenApi {
   linked: boolean;
   linkFolder: () => Promise<LinkImagegenResult>;
@@ -127,18 +70,16 @@ export interface ImagegenApi {
   approvedConflict: (round: number, keeperFilename: string) => Promise<Result<boolean>>;
   resolveDisplayUrl: (url: string) => Promise<string>;
   /**
-   * Bumped whenever a cached blob URL is revoked for *staleness* (BI-042.2).
-   * Consumers list it in their resolve effect's deps so a round reload
-   * re-resolves them onto the new bytes instead of leaving them on a dead URL —
-   * the same shape BI-038 used with {@link ImagegenApi.linked}. Eviction does
-   * not bump it; see {@link evictOldestBlob}.
+   * Bumped whenever a round is (re)loaded, so images already on screen re-resolve
+   * onto the bytes now on disk instead of a cached copy (BI-042.2). Consumers
+   * list it in their resolve effect's deps; since BI-045 it also rides along as
+   * the `v=` parameter that defeats the browser's own HTTP cache.
    */
   blobEpoch: number;
   /**
-   * Marks `blobUrl` as on screen so eviction won't revoke it, and returns the
-   * matching release — call it from a `useEffect` cleanup so the pair can never
-   * drift apart (BI-042.2). Held blob URLs are refcounted: the same image
-   * rendered in two places stays held until both unmount.
+   * Marks `blobUrl` as on screen. Retained for the consumer contract BI-042.2
+   * established; with images served over HTTP there is no object URL whose
+   * lifetime the provider owns, so this is a no-op returning a no-op release.
    */
   retainDisplayUrl: (blobUrl: string) => () => void;
   /** The sole URL→bytes path (BI-029.2) — see {@link import('./imageBlob').resolveImageBlob}. */
@@ -147,55 +88,47 @@ export interface ImagegenApi {
 
 const ImagegenContext = createContext<ImagegenApi | null>(null);
 
+const NO_RELEASE = (): void => {};
+
 export function ImagegenProvider({ children }: { children: ReactNode }) {
-  const handleRef = useRef<FileSystemDirectoryHandle | null>(null);
-  const blobCacheRef = useRef<Map<string, string>>(new Map());
-  /** Blob URLs currently rendered by a mounted consumer → hold count (BI-042.2). */
-  const displayedRef = useRef<Map<string, number>>(new Map());
+  const rootRef = useRef<string | null>(null);
   const [linked, setLinked] = useState(false);
   const [blobEpoch, setBlobEpoch] = useState(0);
 
   useEffect(() => {
-    const cache = blobCacheRef.current;
     let cancelled = false;
     void (async () => {
-      const handle = await restoreLinkedImagegenFolder();
+      const root = await restoreLinkedRoot();
       if (cancelled) return;
-      handleRef.current = handle;
-      setLinked(!!handle);
+      rootRef.current = root;
+      setLinked(!!root);
     })();
     return () => {
       cancelled = true;
-      for (const blobUrl of cache.values()) {
-        URL.revokeObjectURL(blobUrl);
-      }
-      cache.clear();
     };
   }, []);
 
   const linkFolder = useCallback(async (): Promise<LinkImagegenResult> => {
-    const result = await pickAndLinkImagegenFolder();
+    const result = await promptAndLinkImagegenFolder();
     if (result.status === 'linked') {
-      handleRef.current = result.handle;
+      rootRef.current = result.root;
       setLinked(true);
     }
     return result;
   }, []);
 
   const listRounds = useCallback(async (): Promise<number[]> => {
-    const root = handleRef.current;
+    const root = rootRef.current;
     if (!root) return [];
-    return listAvailableRounds(root);
+    return listRoundsRequest(root);
   }, []);
 
   const readRound = useCallback(async (round: number): Promise<Result<RoundBatch>> => {
-    const root = handleRef.current;
-    if (!root) {
-      return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
-    }
-    // Wake displaying consumers only when something was actually revoked —
-    // an unconditional bump would re-resolve every mounted image on every load.
-    if (invalidateRoundBlobs(blobCacheRef.current, round) > 0) setBlobEpoch((e) => e + 1);
+    const root = rootRef.current;
+    if (!root) return { ok: false, error: UNLINKED };
+    // Wake displaying consumers onto the bytes now on disk — a round rerun in
+    // the terminal rewrites `rounds/r<N>/` under the URLs they are showing.
+    setBlobEpoch((e) => e + 1);
     return readRoundBatch(root, round);
   }, []);
 
@@ -205,80 +138,54 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
       tasks: RoundSelectionTask[],
       selectedAt: string,
     ): Promise<Result<void>> => {
-      const root = handleRef.current;
-      if (!root) {
-        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
-      }
-      return writeRoundSelection(root, round, tasks, selectedAt);
+      const root = rootRef.current;
+      if (!root) return { ok: false, error: UNLINKED };
+      return writeRoundSelectionRequest(root, round, tasks, selectedAt);
     },
     [],
   );
 
   const promoteApproved = useCallback(
     async (round: number, keeperFilename: string): Promise<Result<void>> => {
-      const root = handleRef.current;
-      if (!root) {
-        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
-      }
-      return promoteKeeperToApproved(root, round, keeperFilename);
+      const root = rootRef.current;
+      if (!root) return { ok: false, error: UNLINKED };
+      return promoteApprovedRequest(root, round, keeperFilename);
     },
     [],
   );
 
   const unpromoteApproved = useCallback(
     async (keeperFilename: string): Promise<Result<void>> => {
-      const root = handleRef.current;
-      if (!root) {
-        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
-      }
-      return removeApprovedFile(root, keeperFilename);
+      const root = rootRef.current;
+      if (!root) return { ok: false, error: UNLINKED };
+      return removeApprovedRequest(root, keeperFilename);
     },
     [],
   );
 
   const approvedConflict = useCallback(
     async (round: number, keeperFilename: string): Promise<Result<boolean>> => {
-      const root = handleRef.current;
-      if (!root) {
-        return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
-      }
-      return approvedFileConflict(root, round, keeperFilename);
+      const root = rootRef.current;
+      if (!root) return { ok: false, error: UNLINKED };
+      return approvedConflictRequest(root, round, keeperFilename);
     },
     [],
   );
 
-  const resolveDisplayUrl = useCallback(async (url: string): Promise<string> => {
-    if (!isImagegenUrl(url)) return url;
-    const cache = blobCacheRef.current;
-    const cached = cache.get(url);
-    if (cached) {
-      // Bump recency: delete + re-set moves the key to the end of Map's
-      // insertion-order iteration, which evictOldestBlob relies on.
-      cache.delete(url);
-      cache.set(url, cached);
-      return cached;
-    }
-    const root = handleRef.current;
-    if (!root) return url;
-    try {
-      const file = await readImagegenFile(root, imagegenPathFromUrl(url));
-      const blobUrl = URL.createObjectURL(file);
-      if (cache.size >= BLOB_CACHE_MAX_ENTRIES) evictOldestBlob(cache, displayedRef.current);
-      cache.set(url, blobUrl);
-      return blobUrl;
-    } catch {
-      return url;
-    }
-  }, []);
+  const resolveDisplayUrl = useCallback(
+    async (url: string): Promise<string> => {
+      if (!isImagegenUrl(url)) return url;
+      const root = rootRef.current;
+      if (!root) return url;
+      return imagegenFileUrl(root, imagegenPathFromUrl(url), blobEpoch);
+    },
+    [blobEpoch],
+  );
 
-  const retainDisplayUrl = useCallback((blobUrl: string): (() => void) => {
-    const displayed = displayedRef.current;
-    retainBlobUrl(displayed, blobUrl);
-    return () => releaseBlobUrl(displayed, blobUrl);
-  }, []);
+  const retainDisplayUrl = useCallback((): (() => void) => NO_RELEASE, []);
 
   const resolveBlob = useCallback(
-    async (url: string): Promise<Blob> => resolveImageBlob(url, handleRef.current),
+    async (url: string): Promise<Blob> => resolveImageBlob(url, rootRef.current),
     [],
   );
 
@@ -319,7 +226,7 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
   return <ImagegenContext.Provider value={value}>{children}</ImagegenContext.Provider>;
 }
 
-/** Returns the imagegen FSA API; must run under {@link ImagegenProvider}. */
+/** Returns the imagegen API; must run under {@link ImagegenProvider}. */
 export function useImagegen(): ImagegenApi {
   const ctx = useContext(ImagegenContext);
   if (!ctx) {

@@ -1,13 +1,17 @@
 /**
- * ImagegenContext blob-cache bounds + round invalidation (BI-029.4)
+ * ImagegenContext over the server adapter (BI-045)
  *
- * `resolveDisplayUrl`'s blob-URL cache was unbounded and only revoked on
- * `ImagegenProvider` unmount — which in practice never happens (it mounts
- * once at the top of `Workspace.tsx`), so it grew for the whole session and
- * could serve a stale blob after a round's files were rewritten on disk.
- * This file drives the cache directly through the real provider/hook, with
- * `lib/imagegenFs` mocked (no injection point — same rationale as
- * `components/Workspace.test.tsx`'s `vi.mock` of `useWorkspace`).
+ * BI-024.1's File System Access layer is gone, and with it the blob-URL cache
+ * BI-029.4 / BI-042.2 bounded and invalidated: an `/api/imagegen/file` URL is
+ * renderable as-is, so nothing is minted, held, or revoked. What survives is
+ * the *contract* those tasks established — `blobEpoch` still moves when a round
+ * reload makes on-screen images stale, and the context object still keeps a
+ * stable identity across pure parent re-renders (BI-042.4).
+ *
+ * Drives the real provider/hook with `lib/imagegenClient` mocked (no injection
+ * point — same rationale as `components/Workspace.test.tsx`'s `vi.mock` of
+ * `useWorkspace`). `imagegenFileUrl` is deliberately left unmocked: the URL it
+ * builds is the thing under test.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,22 +20,26 @@ import { useState, type ReactNode } from 'react';
 
 import { ImagegenProvider, useImagegen, type ImagegenApi } from './ImagegenContext';
 
-const hoisted = vi.hoisted(() => ({
-  root: { kind: 'directory', name: 'imagegen' } as unknown as FileSystemDirectoryHandle,
-}));
+const hoisted = vi.hoisted(() => ({ root: '/repo/imagegen' }));
 
-vi.mock('./imagegenFs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./imagegenFs')>();
+vi.mock('./imagegenClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./imagegenClient')>();
   return {
     ...actual,
-    restoreLinkedImagegenFolder: vi.fn(async () => hoisted.root),
-    readImagegenFile: vi.fn(async (_root: unknown, relativePath: string) => {
-      return new File(['x'], relativePath.split('/').pop() ?? relativePath, { type: 'image/png' });
-    }),
-    readRoundBatch: vi.fn(async (_root: unknown, round: number) => ({
-      ok: true,
+    restoreLinkedRoot: vi.fn(async () => hoisted.root),
+    promptAndLinkImagegenFolder: vi.fn(async () => ({
+      status: 'linked' as const,
+      root: hoisted.root,
+    })),
+    listRounds: vi.fn(async () => [1, 2]),
+    readRoundBatch: vi.fn(async (_root: string, round: number) => ({
+      ok: true as const,
       value: { schemaVersion: 1, round, generatedAt: 'x', tasks: [] },
     })),
+    writeRoundSelection: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    promoteApproved: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    removeApproved: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    approvedConflict: vi.fn(async () => ({ ok: true as const, value: false })),
   };
 });
 
@@ -44,186 +52,114 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function stubBlobUrls() {
-  let counter = 0;
-  const revoked: string[] = [];
-  vi.stubGlobal('URL', {
-    createObjectURL: vi.fn(() => `blob:${counter++}`),
-    revokeObjectURL: vi.fn((url: string) => revoked.push(url)),
-  });
-  return { revoked };
+/** Mounts the hook and waits for the on-mount root restore to settle. */
+async function linkedHook() {
+  const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+  await waitFor(() => expect(result.current.linked).toBe(true));
+  return result;
 }
 
-describe('resolveDisplayUrl blob-cache bound (BI-029.4)', () => {
-  it('evicts the oldest entry and revokes its object URL once the cache exceeds its bound', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
+describe('resolveDisplayUrl (BI-045)', () => {
+  it('points an imagegen: URL at the file route under the linked root', async () => {
+    const result = await linkedHook();
 
-    // BLOB_CACHE_MAX_ENTRIES is 200 (lib/ImagegenContext.tsx) — filling it plus
-    // one more forces exactly one eviction of the very first entry inserted.
-    let firstResolved = '';
-    for (let i = 0; i < 201; i++) {
-      const resolved = await act(async () => result.current.resolveDisplayUrl(`imagegen:rounds/r1/img${i}.png`));
-      if (i === 0) firstResolved = resolved;
-    }
-
-    expect(revoked).toEqual([firstResolved]);
-  });
-
-  it('does not evict on a cache hit (recency bump keeps the entry alive)', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
-
-    const url = 'imagegen:rounds/r1/hero.png';
-    const first = await act(async () => result.current.resolveDisplayUrl(url));
-    const second = await act(async () => result.current.resolveDisplayUrl(url));
-
-    expect(second).toBe(first);
-    expect(revoked).toEqual([]);
-  });
-});
-
-describe('readRound invalidates that round\'s cached blobs (BI-029.4)', () => {
-  it('revokes and drops only the reloaded round\'s cache entries', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
-
-    const round1Url = 'imagegen:rounds/r1/hero.png';
-    const round2Url = 'imagegen:rounds/r2/hero.png';
-    const round1Resolved = await act(async () => result.current.resolveDisplayUrl(round1Url));
-    const round2Resolved = await act(async () => result.current.resolveDisplayUrl(round2Url));
-
-    await act(async () => {
-      await result.current.readRound(1);
-    });
-
-    expect(revoked).toEqual([round1Resolved]);
-
-    const round1Reresolved = await act(async () => result.current.resolveDisplayUrl(round1Url));
-    expect(round1Reresolved).not.toBe(round1Resolved);
-
-    const round2Reresolved = await act(async () => result.current.resolveDisplayUrl(round2Url));
-    expect(round2Reresolved).toBe(round2Resolved);
-  });
-});
-
-/** Resolves `count` distinct round-1 URLs in order, returning the blob URL minted for each. */
-async function fillCache(
-  resolveDisplayUrl: (url: string) => Promise<string>,
-  count: number,
-): Promise<string[]> {
-  const resolved: string[] = [];
-  for (let i = 0; i < count; i++) {
-    resolved.push(await act(async () => resolveDisplayUrl(`imagegen:rounds/r1/img${i}.png`)));
-  }
-  return resolved;
-}
-
-/**
- * Eviction is a memory bound, not a correctness event (BI-042.2) — it must never
- * revoke a blob URL a mounted consumer is rendering, because that consumer gets
- * no signal and would strand on a dead URL. Waking it instead is not an option:
- * it would re-read, re-insert, and evict the next held entry in turn.
- */
-describe('eviction skips blob URLs a consumer is displaying (BI-042.2)', () => {
-  it('evicts the oldest *evictable* entry rather than a held one', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
-
-    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
-    result.current.retainDisplayUrl(resolved[0]!);
-
-    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'));
-
-    // Oldest is held, so the *second* oldest is what goes.
-    expect(revoked).toEqual([resolved[1]!]);
-  });
-
-  it('releases a hold so the entry becomes evictable again', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
-
-    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
-    const release = result.current.retainDisplayUrl(resolved[0]!);
-    release();
-
-    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'));
-
-    expect(revoked).toEqual([resolved[0]!]);
-  });
-
-  it('keeps the last hold alive when the same blob URL is displayed twice', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
-
-    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
-    // Two consumers rendering one image (e.g. review grid + gallery); one unmounts.
-    result.current.retainDisplayUrl(resolved[0]!);
-    const releaseSecond = result.current.retainDisplayUrl(resolved[0]!);
-    releaseSecond();
-
-    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'));
-
-    expect(revoked).toEqual([resolved[1]!]);
-  });
-
-  it('leaves the bound soft rather than revoking anything when every entry is held', async () => {
-    const { revoked } = stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
-
-    const resolved = await fillCache(result.current.resolveDisplayUrl, 200);
-    for (const blobUrl of resolved) result.current.retainDisplayUrl(blobUrl);
-
-    const overflow = await act(async () =>
-      result.current.resolveDisplayUrl('imagegen:rounds/r1/img200.png'),
+    const resolved = await act(async () =>
+      result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'),
     );
 
-    expect(revoked).toEqual([]);
-    expect(overflow).not.toBe('');
+    const url = new URL(resolved, 'http://localhost:3003');
+    expect(url.pathname).toBe('/api/imagegen/file');
+    expect(url.searchParams.get('root')).toBe('/repo/imagegen');
+    expect(url.searchParams.get('path')).toBe('rounds/r1/hero.png');
+  });
+
+  it('passes data: and https: URLs through untouched', async () => {
+    const result = await linkedHook();
+
+    for (const url of ['data:image/png;base64,AAAA', 'https://example.test/a.png']) {
+      expect(await act(async () => result.current.resolveDisplayUrl(url))).toBe(url);
+    }
+  });
+
+  it('returns the raw imagegen: URL when no folder is linked', async () => {
+    const client = await import('./imagegenClient');
+    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
+
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(false));
+
+    const raw = 'imagegen:rounds/r1/hero.png';
+    expect(await act(async () => result.current.resolveDisplayUrl(raw))).toBe(raw);
   });
 });
 
 /**
- * Invalidation is the opposite case: the bytes behind a displayed URL are gone,
- * so consumers *must* react. `blobEpoch` is the signal `ResolvedImage` lists in
- * its resolve-effect deps — the same shape BI-038 used with `linked`.
+ * `blobEpoch` outlived the blob cache it was built for (BI-042.2): a round
+ * rerun in the terminal rewrites `rounds/r<N>/` under the URLs already on
+ * screen, and the bump is both the consumer's re-resolve signal and the `v=`
+ * that defeats the browser's own HTTP cache.
  */
-describe('blobEpoch signals a staleness revocation (BI-042.2)', () => {
-  it('bumps when a round reload revokes cached entries', async () => {
-    stubBlobUrls();
-    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
+describe('blobEpoch busts a reloaded round (BI-042.2 · BI-045)', () => {
+  it('bumps on readRound and carries into the next resolved URL', async () => {
+    const result = await linkedHook();
 
-    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'));
     const before = result.current.blobEpoch;
+    const stale = await act(async () =>
+      result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'),
+    );
+    expect(new URL(stale, 'http://x').searchParams.get('v')).toBe(null);
 
     await act(async () => {
       await result.current.readRound(1);
     });
 
     expect(result.current.blobEpoch).toBe(before + 1);
+    const fresh = await act(async () =>
+      result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'),
+    );
+    expect(fresh).not.toBe(stale);
+    expect(new URL(fresh, 'http://x').searchParams.get('v')).toBe(String(before + 1));
   });
+});
 
-  it('does not bump when the reloaded round had nothing cached', async () => {
-    stubBlobUrls();
+describe('unlinked operations report the link prompt', () => {
+  it('fails every folder operation with the sidebar hint', async () => {
+    const client = await import('./imagegenClient');
+    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
+
     const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(true));
+    await waitFor(() => expect(result.current.linked).toBe(false));
 
-    await act(async () => result.current.resolveDisplayUrl('imagegen:rounds/r1/hero.png'));
-    const before = result.current.blobEpoch;
+    const outcomes = await Promise.all([
+      result.current.readRound(1),
+      result.current.writeSelection(1, [], 'now'),
+      result.current.promoteApproved(1, 'hero.png'),
+      result.current.unpromoteApproved('hero.png'),
+      result.current.approvedConflict(1, 'hero.png'),
+    ]);
+
+    for (const outcome of outcomes) {
+      expect(outcome.ok).toBe(false);
+      if (!outcome.ok) expect(outcome.error).toMatch(/Link your imagegen folder first/);
+    }
+    expect(await result.current.listRounds()).toEqual([]);
+  });
+});
+
+describe('linkFolder', () => {
+  it('adopts the linked root so later operations reach the folder', async () => {
+    const client = await import('./imagegenClient');
+    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
+
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.linked).toBe(false));
 
     await act(async () => {
-      await result.current.readRound(2);
+      await result.current.linkFolder();
     });
 
-    expect(result.current.blobEpoch).toBe(before);
+    expect(result.current.linked).toBe(true);
+    expect(await result.current.listRounds()).toEqual([1, 2]);
   });
 });
 

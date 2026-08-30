@@ -155,8 +155,12 @@ keeper→reference + `base + "Refine: <delta>"` composition). Two seams now wire
 terminal loop:
 
 1. **Load a round** (BI-024.1) — Sidebar **🔗 Link imagegen** + **↻ Load round** read
-   `rounds/r<N>/batch.json` + images through the File System Access folder seam (BI-021).
-   Images stay as `imagegen:` path URLs — never embedded in `localStorage`.
+   `rounds/r<N>/batch.json` + images through the app's own localhost API routes
+   (`app/api/imagegen/`, BI-045). **🔗 Link imagegen** asks for the folder's absolute
+   path — pre-filled with a detected `imagegen/` when there is one — and remembers it
+   across refreshes. Any browser can link: the earlier File System Access picker was
+   Chromium-only, so Safari and Brave could not. Images stay as `imagegen:` path URLs —
+   never embedded in `localStorage` — and resolve through `/api/imagegen/file`.
 2. **Emit a next-round request** (BI-024.2) — the iterate modal writes
    `selection.json` (keepers + `promptMode` + `nextPrompt`) instead of calling
    `generateBatch`. Approve promotes keepers to `imagegen/approved/`; clearing an approve
