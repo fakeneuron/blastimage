@@ -1,7 +1,7 @@
 /**
  * imagegenRoute tests (TEST-004.2)
  *
- * This module is the reason six route files cannot each forget to call the
+ * This module is the reason the route files cannot each forget to call the
  * guard, and the only place a `Result` becomes an HTTP status — both claims
  * were until now asserted nowhere. The suite pins the translation layer, not
  * the decisions underneath it: `guardImagegenRequest` and `resolveRoot` are

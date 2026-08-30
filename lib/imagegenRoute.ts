@@ -1,7 +1,7 @@
 /**
  * blastimage — shared plumbing for the imagegen API routes (BI-045)
  *
- * Six route handlers repeat the same three moves: guard the request, resolve
+ * Every route handler repeats the same three moves: guard the request, resolve
  * the linked root the caller named, and serialize a `Result<T>` to JSON. They
  * live here so a route file is just its own verb and arguments — and so the
  * guard cannot be forgotten in one of them.

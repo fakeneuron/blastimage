@@ -3,8 +3,8 @@
 /**
  * imagegen route-surface guard coverage (TEST-004.3)
  *
- * `lib/imagegenRoute.ts` exists so the guard "cannot be forgotten in one of six
- * files" (BI-045), and TEST-004.2 pinned that helper — but nothing asserted the
+ * `lib/imagegenRoute.ts` exists so the guard "cannot be forgotten in one of
+ * them" (BI-045), and TEST-004.2 pinned that helper — but nothing asserted the
  * other half of the claim: that every route actually calls it. This suite is
  * that assertion, and it is deliberately *derived from the filesystem* rather
  * than written against a list of known routes.
@@ -12,7 +12,8 @@
  * Three shape decisions, each of which a reader is likely to want to undo:
  *
  * - **The subjects are discovered, not imported by name.** A hand-written table
- *   of seven handlers passes for an eighth route it has never heard of — which
+ *   of the handlers that exist today passes for the next route it has never
+ *   heard of — which
  *   is the only case anyone is worried about. `import.meta.glob` re-resolves the
  *   tree on every run, so a route added tomorrow is covered without editing this
  *   file. That is the whole point of the task.
