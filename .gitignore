@@ -7,6 +7,7 @@ node_modules/
 dist/
 build/
 .next/
+.next-verify/
 out/
 next-env.d.ts
 **/__pycache__/

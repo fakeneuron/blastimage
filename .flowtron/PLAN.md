@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **CORE-002** [light]🔧 | build-clobbers-dev-server — Phase 3's `npm run build` writes `.next/`, which the operator's live `next dev -p 3003` serves from — it returns 500 until the dev server is restarted. Hit in BI-046 and again in BI-047. Give verification builds their own `distDir`, or document the hazard in the quick commands.
+(none)
 
 ## Future Opportunities
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-002** [light]🔧 | build-clobbers-dev-server — Completed 2026-08-30.
 - [x] **BI-044** [light]🔧 | adopt-symlink-path — Completed 2026-08-30.
 - [x] **BI-047** [heavy]🧠 | imagegen-project-binding — Completed 2026-08-30.
 - [x] **BI-046** [medium]🧩 | imagegen-folder-picker — Completed 2026-08-30.

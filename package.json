@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack -p 3003",
     "build": "next build --turbopack",
+    "build:verify": "NEXT_VERIFY_BUILD=1 next build --turbopack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
