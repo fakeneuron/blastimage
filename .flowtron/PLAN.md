@@ -12,7 +12,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-048** [light]🔧 | file-route-hardening — in `app/api/imagegen/file/route.ts`, reject extensions outside `CONTENT_TYPES` instead of defaulting to `application/octet-stream`, and add `X-Content-Type-Options: nosniff` beside the existing `Cache-Control: no-store`. Defense in depth, not a boundary fix — the loopback/origin guard and realpath confinement already hold. Surfaced by audit-repo 2026-08-30 (Theme: file route thinner than it could be)
 - [ ] **BI-049** [heavy]🧠 | useworkspace-decomposition-survey — `/ft-refactor` survey of `lib/useWorkspace.ts` (1164 L, 40-member `UseWorkspace` interface, 2.7x the next-largest non-test source file). Deliverable is a sequenced behavior-preserving split plan **or** a recorded keep-it-whole decision in `CLAUDE.md` — the hook is cohesive by purpose and the seams below it are already clean, so the survey may legitimately conclude "leave it". Surfaced by audit-repo 2026-08-30 (Theme: useWorkspace gravity well)
 
 ## Low
@@ -25,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-048** [light]🔧 | file-route-hardening — Completed 2026-08-30.
 - [x] **TEST-EPIC-004** [medium]🧩 | imagegen-server-surface-tests — Completed 2026-08-30.
   - [x] **TEST-004.2** [medium]🧩 | imagegen-route-tests — Completed 2026-08-30.
   - [x] **TEST-004.3** [medium]🧩 | route-guard-coverage — Completed 2026-08-30.

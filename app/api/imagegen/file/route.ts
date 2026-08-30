@@ -24,9 +24,10 @@ const CONTENT_TYPES: Record<string, string> = {
   md: 'text/markdown; charset=utf-8',
 };
 
-function contentTypeFor(path: string): string {
+/** The content type for a known extension, or `null` for anything else. */
+export function contentTypeFor(path: string): string | null {
   const ext = path.slice(path.lastIndexOf('.') + 1).toLowerCase();
-  return CONTENT_TYPES[ext] ?? 'application/octet-stream';
+  return CONTENT_TYPES[ext] ?? null;
 }
 
 export async function GET(req: Request) {
@@ -37,12 +38,15 @@ export async function GET(req: Request) {
   if (!root.ok) return resultResponse(root);
   const path = params.get('path');
   if (!path) return resultResponse({ ok: false, error: 'Empty imagegen path.' });
+  const contentType = contentTypeFor(path);
+  if (!contentType) return resultResponse({ ok: false, error: `Unsupported file type: ${path}` });
   const bytes = await readImagegenBytes(root.value, path);
   if (!bytes.ok) return resultResponse(bytes);
   return new NextResponse(new Uint8Array(bytes.value), {
     headers: {
-      'Content-Type': contentTypeFor(path),
+      'Content-Type': contentType,
       'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }
