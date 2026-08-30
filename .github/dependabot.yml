@@ -9,6 +9,16 @@ updates:
         update-types:
           - "patch"
           - "minor"
+    ignore:
+      # ESLint majors are held at 9 until `eslint-plugin-react` supports
+      # ESLint 10. That plugin arrives transitively with `eslint-config-next`
+      # and crashes at rule load on 10 (`context.getFilename` was removed);
+      # 7.37.5 is `latest`, so there is nothing to bump to. Measured in
+      # DEPLOY-003 — see `.flowtron/tasknote/archive/deployment/DEPLOY-003.md`
+      # for the probe. Drop this entry when DEPLOY-005 lands.
+      - dependency-name: "eslint"
+        update-types:
+          - "version-update:semver-major"
 
   # Workflow action pins (`/` means `.github/workflows`). Ungrouped on purpose:
   # the pins are major tags (`@v4`), so nearly every update Dependabot raises
