@@ -8,11 +8,17 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **TEST-EPIC-004** [medium]🧩 | imagegen-server-surface-tests — the BI-045/046/047 server surface writes to the operator's repo and has no tests on the layer that invokes its guard. Discovery supplied by audit-repo 2026-08-30. Surfaced by audit-repo 2026-08-30 (Theme: newest surface is the least tested)
+  - [ ] **TEST-004.2** [medium]🧩 | imagegen-route-tests — cover `lib/imagegenRoute.ts`: `rootFrom` / `roundFrom` / `filenameFrom` / `jsonBody` / `resultResponse` / `refuseUnguarded`.
+  - [ ] **TEST-004.3** [medium]🧩 | route-guard-coverage — table-driven test importing every exported handler in `app/api/imagegen/**`, asserting 403 on a cross-origin `Request`, so a new route added without `refuseUnguarded` fails CI.
+  - [ ] **TEST-004.4** [light]🔧 | imagegen-client-tests — cover `lib/imagegenClient.ts` (URL/query construction, `Result` unwrapping, stored-root handling) via `vi.stubGlobal('fetch', ...)`.
+  - [ ] **TEST-004.N** [light]🔧 | audit
+- [ ] **CORE-003** [light]🔧 | eslint-next-verify-ignore — add `".next-verify/**"` beside `".next/**"` in `eslint.config.mjs` ignores; CORE-002 wired `.next-verify` into next.config/tsconfig/.gitignore but not ESLint, which does not auto-ignore dot-directories. Surfaced by audit-repo 2026-08-30 (Theme: config fanout)
 
 ## Medium
 
-(none)
+- [ ] **BI-048** [light]🔧 | file-route-hardening — in `app/api/imagegen/file/route.ts`, reject extensions outside `CONTENT_TYPES` instead of defaulting to `application/octet-stream`, and add `X-Content-Type-Options: nosniff` beside the existing `Cache-Control: no-store`. Defense in depth, not a boundary fix — the loopback/origin guard and realpath confinement already hold. Surfaced by audit-repo 2026-08-30 (Theme: file route thinner than it could be)
+- [ ] **BI-049** [heavy]🧠 | useworkspace-decomposition-survey — `/ft-refactor` survey of `lib/useWorkspace.ts` (1164 L, 40-member `UseWorkspace` interface, 2.7x the next-largest non-test source file). Deliverable is a sequenced behavior-preserving split plan **or** a recorded keep-it-whole decision in `CLAUDE.md` — the hook is cohesive by purpose and the seams below it are already clean, so the survey may legitimately conclude "leave it". Surfaced by audit-repo 2026-08-30 (Theme: useWorkspace gravity well)
 
 ## Low
 
@@ -20,7 +26,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Future Opportunities
 
-(none)
+- [ ] **DEPLOY-002** [medium]🧩 | next-16-and-override-drop — ride Dependabot's Next 15→16 PR and drop the `postcss`/`sharp` `overrides` block that `.github/workflows/ci.yml`'s audit-step comment marks as droppable at Next 16 (today that cleanup instruction lives only in the comment). Assess ESLint 9→10 and TypeScript 5→7 separately. Surfaced by audit-repo 2026-08-30 (Theme: config fanout)
 
 ## Completed
 
