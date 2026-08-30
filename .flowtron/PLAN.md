@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-(none)
+- [ ] **BI-045** [light]🔧 | imagegen-link-unsupported — `Link imagegen` is offered in every browser, but `showDirectoryPicker` is Chromium-only — Safari/Firefox users click it and get a red error banner. Gate the button on `supportsDirectoryPicker()`: render it disabled with a tooltip naming the Chromium requirement, and note the browser requirement in the docs.
 
 ## Low
 
