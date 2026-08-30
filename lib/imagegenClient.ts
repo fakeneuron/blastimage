@@ -1,5 +1,5 @@
 /**
- * blastimage — browser half of the imagegen folder link (BI-045)
+ * blastimage — browser half of the imagegen folder link (BI-045 · picker BI-046)
  *
  * Talks to the `app/api/imagegen/*` routes and remembers the linked root in
  * localStorage, replacing the File System Access picker + IndexedDB handle
@@ -17,17 +17,12 @@
  * `ImagegenApi` surface in `lib/ImagegenContext.tsx` is unchanged.
  */
 
+import type { DirectoryListing } from './imagegenServerFs';
 import { parseRoundBatch, type RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
 
 const ROOT_KEY = 'blastimage:imagegen-root';
-
-/** Outcome of linking the imagegen folder. */
-export type LinkImagegenResult =
-  | { status: 'linked'; root: string }
-  | { status: 'cancelled' }
-  | { status: 'error'; error: string };
 
 /** Shape every route hands back — `resultResponse` in `lib/imagegenRoute.ts`. */
 interface RouteEnvelope<T> {
@@ -113,10 +108,15 @@ async function sendJson<T>(
   }
 }
 
-/** Absolute paths the server thinks are worth pre-filling the prompt with. */
-async function suggestedRoots(): Promise<string[]> {
+/** Absolute paths the server thinks are worth offering as picker shortcuts. */
+export async function suggestedRoots(): Promise<string[]> {
   const result = await getJson<string[]>('/api/imagegen/link', {});
   return result.ok ? result.value : [];
+}
+
+/** Subdirectories of `path` for the picker's tree; absent `path` starts at home (BI-046). */
+export async function browseDirectory(path?: string): Promise<Result<DirectoryListing>> {
+  return getJson<DirectoryListing>('/api/imagegen/browse', path ? { path } : {});
 }
 
 /** Validates a candidate root against the server, returning its canonical path. */
@@ -125,24 +125,16 @@ export async function linkRoot(path: string): Promise<Result<{ root: string; rec
 }
 
 /**
- * Asks the operator for their `imagegen/` path — pre-filled with the server's
- * best guess — then validates and stores it. `cancelled` on a dismissed
- * prompt, mirroring the picker-dismissed case it replaces.
+ * Validates the folder the operator picked and remembers it. The path arrives
+ * from the picker modal (BI-046); until then this asked for it with
+ * `window.prompt`, which is why a dismissed-prompt outcome no longer exists —
+ * cancelling is closing the dialog, and never reaches here.
  */
-export async function promptAndLinkImagegenFolder(): Promise<LinkImagegenResult> {
-  if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
-    return { status: 'error', error: 'Linking an imagegen folder needs a browser prompt.' };
-  }
-  const suggestions = await suggestedRoots();
-  const entered = window.prompt(
-    'Absolute path to your repo’s imagegen/ folder:',
-    suggestions[0] ?? loadStoredRoot() ?? '',
-  );
-  if (entered === null) return { status: 'cancelled' };
-  const linked = await linkRoot(entered);
-  if (!linked.ok) return { status: 'error', error: linked.error };
+export async function linkImagegenRoot(path: string): Promise<Result<string>> {
+  const linked = await linkRoot(path);
+  if (!linked.ok) return linked;
   saveStoredRoot(linked.value.root);
-  return { status: 'linked', root: linked.value.root };
+  return { ok: true, value: linked.value.root };
 }
 
 /**

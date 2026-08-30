@@ -27,10 +27,12 @@ vi.mock('./imagegenClient', async (importOriginal) => {
   return {
     ...actual,
     restoreLinkedRoot: vi.fn(async () => hoisted.root),
-    promptAndLinkImagegenFolder: vi.fn(async () => ({
-      status: 'linked' as const,
-      root: hoisted.root,
+    linkImagegenRoot: vi.fn(async () => ({ ok: true as const, value: hoisted.root })),
+    browseDirectory: vi.fn(async () => ({
+      ok: true as const,
+      value: { path: '/repo', parent: '/', entries: [] },
     })),
+    suggestedRoots: vi.fn(async () => [hoisted.root]),
     listRounds: vi.fn(async () => [1, 2]),
     readRoundBatch: vi.fn(async (_root: string, round: number) => ({
       ok: true as const,
@@ -146,8 +148,8 @@ describe('unlinked operations report the link prompt', () => {
   });
 });
 
-describe('linkFolder', () => {
-  it('adopts the linked root so later operations reach the folder', async () => {
+describe('linkFolder (BI-046)', () => {
+  it('adopts the root the picker handed it so later operations reach the folder', async () => {
     const client = await import('./imagegenClient');
     vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
 
@@ -155,9 +157,10 @@ describe('linkFolder', () => {
     await waitFor(() => expect(result.current.linked).toBe(false));
 
     await act(async () => {
-      await result.current.linkFolder();
+      await result.current.linkFolder('/repo/imagegen');
     });
 
+    expect(vi.mocked(client.linkImagegenRoot)).toHaveBeenCalledWith('/repo/imagegen');
     expect(result.current.linked).toBe(true);
     expect(await result.current.listRounds()).toEqual([1, 2]);
   });

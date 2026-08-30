@@ -9,7 +9,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 - [ ] **BI-044** [light]🔧 | adopt-symlink-path — `docs/ADOPT.md` §5.1 writes `ln -sf ../blastimage/.grok/skills/...`, which resolves to `.grok/blastimage/...` and does not exist; the correct target is `../../blastimage/...` (what adopters actually wire). Anyone following the doc gets two dead symlinks. Filed per cloutomaton CORE-021.N's operator call; re-confirmed at HEAD by CORE-035.3.
-- [ ] **BI-046** [medium]🧩 | imagegen-folder-picker — Linking still means pasting an absolute path (`window.prompt`), since no browser API yields one. Add a `GET /api/imagegen/browse` directory-listing route and a picker modal: server-detected `imagegen/` shortcuts on top, a navigable tree below, typing a path kept as the fallback.
 
 ## Medium
 
@@ -25,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-046** [medium]🧩 | imagegen-folder-picker — Completed 2026-08-30.
 - [x] **BI-045** [heavy]🧠 | imagegen-server-adapter — Completed 2026-08-29.
 - [x] **DEPLOY-001** [light]🔧 | ci-secret-scan — Completed 2026-08-09.
 - [x] **BI-043** [medium]🧩 | round-reingest-idempotence — Completed 2026-08-09.

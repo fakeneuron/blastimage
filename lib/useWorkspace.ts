@@ -18,7 +18,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ImagegenApi } from './ImagegenContext';
-import type { LinkImagegenResult } from './imagegenClient';
+import type { DirectoryListing } from './imagegenServerFs';
 import { resolveImageBlob } from './imageBlob';
 import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
 import {
@@ -47,6 +47,7 @@ import {
   parseTaskImport,
   slugify,
   supportsDirectoryPicker,
+  type Result,
   type SessionLoad,
   type SessionMeta,
 } from './storage';
@@ -90,10 +91,9 @@ const PROVIDER_PROBE_MS = 1500;
 /** Stand-in when the hook runs outside {@link ImagegenProvider} (unit tests). */
 const NOOP_IMAGEGEN: ImagegenApi = {
   linked: false,
-  linkFolder: async () => ({
-    status: 'error',
-    error: 'Imagegen folder linking is unavailable.',
-  }) as LinkImagegenResult,
+  linkFolder: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  browse: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  suggestRoots: async () => [],
   listRounds: async () => [],
   readRound: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   writeSelection: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
@@ -308,8 +308,15 @@ export interface UseWorkspace {
   generationAvailable: boolean;
   /** True when an `imagegen/` folder handle is linked (persisted FSA permission). */
   imagegenLinked: boolean;
-  /** Prompts a directory picker for the repo's `imagegen/` folder and persists it. */
-  linkImagegenFolder: () => Promise<void>;
+  /**
+   * Links the `imagegen/` folder the picker returned and persists it, resolving
+   * to the failure message or `null` on success (BI-046).
+   */
+  linkImagegenFolder: (path: string) => Promise<string | null>;
+  /** Subdirectories of `path` for the picker's tree; absent `path` starts at home (BI-046). */
+  browseImagegen: (path?: string) => Promise<Result<DirectoryListing>>;
+  /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
+  suggestImagegenRoots: () => Promise<string[]>;
   /**
    * Loads `rounds/r<N>/batch.json` into the session as review batches. Defaults
    * to the highest available round when `round` is omitted.
@@ -961,16 +968,18 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     setError(null);
   }
 
-  async function linkImagegenFolder(): Promise<void> {
-    const result = await imagegen.linkFolder();
-    if (result.status === 'cancelled') return;
-    if (result.status === 'error') {
-      setError(result.error);
-      return;
-    }
+  /**
+   * Links the folder the picker returned. Resolves to the failure message so
+   * the modal can show it and stay open (BI-046) — a mistyped path belongs
+   * next to the field that produced it, not in the global banner.
+   */
+  async function linkImagegenFolder(path: string): Promise<string | null> {
+    const result = await imagegen.linkFolder(path);
+    if (!result.ok) return result.error;
     const rounds = await imagegen.listRounds();
     setAvailableRounds(rounds);
     setError(null);
+    return null;
   }
 
   async function refreshAvailableRounds(): Promise<void> {
@@ -1049,6 +1058,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     generationAvailable,
     imagegenLinked: imagegen.linked,
     linkImagegenFolder,
+    browseImagegen: imagegen.browse,
+    suggestImagegenRoots: imagegen.suggestRoots,
     loadRound,
     loadedRound,
     requestNextRound,

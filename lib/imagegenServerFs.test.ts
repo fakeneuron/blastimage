@@ -15,6 +15,7 @@ import { join, resolve } from 'node:path';
 
 import {
   approvedConflict,
+  listDirectories,
   listRounds,
   looksLikeImagegenRoot,
   promoteApproved,
@@ -268,5 +269,73 @@ describe('suggestRoots', () => {
 
     expect(await suggestRoots(app)).toEqual([join(workspace, 'repo', 'imagegen')]);
     expect(await suggestRoots(join(workspace, 'unrelated'))).toEqual([]);
+  });
+});
+
+/**
+ * The folder picker's listing (BI-046). Deliberately unconfined — the guard,
+ * not this function, is the trust boundary — so the assertions here are about
+ * what the tree *shows*, not what it refuses.
+ */
+describe('listDirectories', () => {
+  it('lists only sub-directories, sorted, with the parent to navigate up to', async () => {
+    await mkdir(join(workspace, 'repo', 'zeta'));
+    await mkdir(join(workspace, 'repo', 'alpha'));
+    await writeFile(join(workspace, 'repo', 'notes.txt'), 'x', 'utf8');
+
+    const listed = await listDirectories(join(workspace, 'repo'));
+
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) return;
+    expect(listed.value.path).toBe(join(workspace, 'repo'));
+    expect(listed.value.parent).toBe(workspace);
+    expect(listed.value.entries.map((e) => e.name)).toEqual(['alpha', 'imagegen', 'zeta']);
+    expect(listed.value.entries.map((e) => e.path)).toContain(root);
+  });
+
+  it('marks entries that look like an imagegen root', async () => {
+    await put('tasks.json', '{}');
+    await mkdir(join(workspace, 'repo', 'other'));
+
+    const listed = await listDirectories(join(workspace, 'repo'));
+
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) return;
+    const marked = Object.fromEntries(listed.value.entries.map((e) => [e.name, e.recognized]));
+    expect(marked).toEqual({ imagegen: true, other: false });
+  });
+
+  it('skips dot-directories — an imagegen/ folder is never hidden', async () => {
+    await mkdir(join(workspace, 'repo', '.git'));
+
+    const listed = await listDirectories(join(workspace, 'repo'));
+
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) return;
+    expect(listed.value.entries.map((e) => e.name)).not.toContain('.git');
+  });
+
+  it('follows a symlinked directory rather than dropping it from the tree', async () => {
+    await symlink(root, join(workspace, 'repo', 'linked'));
+
+    const listed = await listDirectories(join(workspace, 'repo'));
+
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) return;
+    expect(listed.value.entries.map((e) => e.name)).toContain('linked');
+  });
+
+  it('reports a missing folder and a file, and has no parent at the filesystem root', async () => {
+    expect(await listDirectories(join(workspace, 'nope'))).toEqual({
+      ok: false,
+      error: `No such folder: ${join(workspace, 'nope')}`,
+    });
+    await put('tasks.json', '{}');
+    const asFile = await listDirectories(join(root, 'tasks.json'));
+    expect(asFile.ok).toBe(false);
+
+    const top = await listDirectories('/');
+    expect(top.ok).toBe(true);
+    if (top.ok) expect(top.value.parent).toBeNull();
   });
 });

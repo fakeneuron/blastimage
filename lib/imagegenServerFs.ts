@@ -14,7 +14,9 @@
  * a `../` segment or a symlink pointing outside the root fails rather than
  * escaping. Callers are the route
  * handlers in `app/api/imagegen/`; nothing here is importable from a client
- * component.
+ * component. The one exception is type-only: {@link DirectoryListing} is the
+ * shape `/api/imagegen/browse` puts on the wire, so `lib/imagegenClient.ts`
+ * imports it with `import type` — erased at build, no `node:fs` in the bundle.
  *
  * Parse/validate stays in the pure modules (`roundBatch`, `roundSelection`) —
  * this module reads and writes bytes, and the client keeps running the same
@@ -23,6 +25,7 @@
 
 import { constants } from 'node:fs';
 import { access, copyFile, mkdir, readFile, readdir, realpath, stat, unlink, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { isAbsolute, join, resolve, sep } from 'node:path';
 
 import {
@@ -285,11 +288,87 @@ export async function removeApproved(root: string, filename: string): Promise<Re
   }
 }
 
+/** One navigable subdirectory in the folder picker's tree (BI-046). */
+export interface DirectoryEntry {
+  name: string;
+  /** Absolute path, so navigating into it needs no client-side path joining. */
+  path: string;
+  /** Advisory {@link looksLikeImagegenRoot} marker — the picker badges these. */
+  recognized: boolean;
+}
+
+/** Where the picker is, where "up" goes, and what is inside (BI-046). */
+export interface DirectoryListing {
+  path: string;
+  /** `null` at the filesystem root, where there is nowhere further up. */
+  parent: string | null;
+  entries: DirectoryEntry[];
+}
+
+/**
+ * True when `entry` is a directory to offer in the tree. Symlinked directories
+ * count — people symlink project folders, and one silently missing from the
+ * picker is the confusion this replaced a typed path to avoid — so the link is
+ * followed with a `stat` rather than trusted from the dirent alone.
+ */
+async function isNavigableDir(parent: string, entry: { name: string; isDirectory(): boolean; isSymbolicLink(): boolean }): Promise<boolean> {
+  if (entry.isDirectory()) return true;
+  if (!entry.isSymbolicLink()) return false;
+  try {
+    return (await stat(join(parent, entry.name))).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Lists the subdirectories of `candidate` for the folder picker (BI-046), so
+ * linking is navigation rather than a typed absolute path — no browser API
+ * hands one out, and the FSA picker that used to was Chromium-only (BI-045).
+ *
+ * Deliberately **unconfined**: any readable directory, `/` included. The trust
+ * boundary is `lib/imagegenGuard.ts` — loopback `Host`, same origin — and
+ * anything past it can already name any root on the other routes. Confinement
+ * belongs where it does real work, under the *linked* root
+ * ({@link resolveUnderRoot}), not over the operator's own machine.
+ *
+ * Dot-directories are skipped: an `imagegen/` folder is never hidden, and the
+ * picker keeps a typed path as the fallback for anything the tree omits.
+ * An absent `candidate` starts at the home directory.
+ */
+export async function listDirectories(candidate?: string | null): Promise<Result<DirectoryListing>> {
+  const start = candidate?.trim() ? candidate : homedir();
+  const root = await resolveRoot(start);
+  if (!root.ok) return root;
+  let dirents;
+  try {
+    dirents = await readdir(root.value, { withFileTypes: true });
+  } catch {
+    return { ok: false, error: `Could not read ${root.value}.` };
+  }
+  const named = dirents.filter((entry) => !entry.name.startsWith('.'));
+  const navigable = await Promise.all(named.map((entry) => isNavigableDir(root.value, entry)));
+  const entries = await Promise.all(
+    named
+      .filter((_, i) => navigable[i])
+      .map(async (entry): Promise<DirectoryEntry> => {
+        const path = join(root.value, entry.name);
+        return { name: entry.name, path, recognized: await looksLikeImagegenRoot(path) };
+      }),
+  );
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  const parent = resolve(root.value, '..');
+  return {
+    ok: true,
+    value: { path: root.value, parent: parent === root.value ? null : parent, entries },
+  };
+}
+
 /**
  * Absolute paths worth offering as the linked root, newest guess first: an
  * `imagegen/` beside the running app (the adopter-submodule layout of
  * `docs/ADOPT.md` §7) and one inside it. Only existing directories are
- * returned, so the picker prompt pre-fills with something real or nothing.
+ * returned, so the picker's shortcut row holds something real or nothing.
  */
 export async function suggestRoots(cwd: string): Promise<string[]> {
   const candidates = [resolve(cwd, '..', 'imagegen'), resolve(cwd, 'imagegen')];

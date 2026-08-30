@@ -65,9 +65,9 @@ In a **Grok Build terminal session**, run **`/blast-generate`**. The skill reads
 `batch.json`. Install and invoke details: [`docs/ADOPT.md`](ADOPT.md) §5.1; full
 loop diagram and file contracts: [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1–§3.
 
-Back in blastimage, **🔗 Link imagegen** (once per host repo — paste the folder's
-absolute path when prompted) then **↻ Load round** to ingest the batch into the
-review UI. Images stay on disk as path references —
+Back in blastimage, **🔗 Link imagegen** (once per host repo — pick the folder in
+the picker, or type its absolute path) then **↻ Load round** to ingest the batch
+into the review UI. Images stay on disk as path references —
 never embedded in `localStorage` (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §5).
 
 ### 6. Review

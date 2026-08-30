@@ -26,6 +26,7 @@ import DeleteTaskModal from '@/components/DeleteTaskModal';
 import FeedbackModal from '@/components/FeedbackModal';
 import GalleryPanel from '@/components/GalleryPanel';
 import IterateModal from '@/components/IterateModal';
+import ImagegenLinkModal from '@/components/ImagegenLinkModal';
 import ImportBuilder from '@/components/ImportBuilder';
 
 export default function Workspace() {
@@ -51,6 +52,8 @@ function WorkspaceInner() {
   const [bulkTaskIds, setBulkTaskIds] = useState<ID[] | null>(null);
   // Open state for the in-app task-import builder modal (BI-021.3).
   const [showBuilder, setShowBuilder] = useState(false);
+  // Open state for the imagegen folder picker (BI-046).
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
 
   // Auto-load the latest round once the imagegen folder link and round list
   // resolve, so a linked session shows its images without a manual "↻ Load round"
@@ -170,7 +173,7 @@ function WorkspaceInner() {
           }}
           imagegenLinked={ws.imagegenLinked}
           availableRounds={ws.availableRounds}
-          onLinkImagegen={ws.linkImagegenFolder}
+          onLinkImagegen={() => setShowLinkPicker(true)}
           onLoadRound={async (round) => {
             const loaded = await ws.loadRound(round);
             if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
@@ -244,6 +247,14 @@ function WorkspaceInner() {
         />
       )}
       {showBuilder && <ImportBuilder onClose={() => setShowBuilder(false)} />}
+      {showLinkPicker && (
+        <ImagegenLinkModal
+          onBrowse={ws.browseImagegen}
+          onSuggest={ws.suggestImagegenRoots}
+          onLink={ws.linkImagegenFolder}
+          onClose={() => setShowLinkPicker(false)}
+        />
+      )}
     </main>
   );
 }

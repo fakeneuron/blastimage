@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * blastimage — linked imagegen folder context (BI-024.1 · server adapter BI-045)
+ * blastimage — linked imagegen folder context (BI-024.1 · server adapter BI-045 · picker BI-046)
  *
  * Restores the linked `imagegen/` root on mount, turns `imagegen:` path URLs
  * into servable `/api/imagegen/file` URLs, and exposes the read/write API the
@@ -33,17 +33,19 @@ import {
 
 import {
   approvedConflict as approvedConflictRequest,
+  browseDirectory,
   imagegenFileUrl,
+  linkImagegenRoot,
   listRounds as listRoundsRequest,
   promoteApproved as promoteApprovedRequest,
-  promptAndLinkImagegenFolder,
   readRoundBatch,
   removeApproved as removeApprovedRequest,
   restoreLinkedRoot,
+  suggestedRoots,
   writeRoundSelection as writeRoundSelectionRequest,
-  type LinkImagegenResult,
 } from './imagegenClient';
 import { resolveImageBlob, type ImageBlobResolver } from './imageBlob';
+import type { DirectoryListing } from './imagegenServerFs';
 import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
@@ -55,7 +57,12 @@ const UNLINKED = 'Link your imagegen folder first (🔗 in the sidebar).';
 /** Imagegen surface consumed by {@link useWorkspace} for round ingest + selection writes. */
 export interface ImagegenApi {
   linked: boolean;
-  linkFolder: () => Promise<LinkImagegenResult>;
+  /** Validates and stores the folder the picker returned; yields its canonical path. */
+  linkFolder: (path: string) => Promise<Result<string>>;
+  /** Subdirectories of `path` for the picker's tree; absent `path` starts at home (BI-046). */
+  browse: (path?: string) => Promise<Result<DirectoryListing>>;
+  /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
+  suggestRoots: () => Promise<string[]>;
   listRounds: () => Promise<number[]>;
   readRound: (round: number) => Promise<Result<RoundBatch>>;
   writeSelection: (
@@ -108,14 +115,21 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const linkFolder = useCallback(async (): Promise<LinkImagegenResult> => {
-    const result = await promptAndLinkImagegenFolder();
-    if (result.status === 'linked') {
-      rootRef.current = result.root;
+  const linkFolder = useCallback(async (path: string): Promise<Result<string>> => {
+    const result = await linkImagegenRoot(path);
+    if (result.ok) {
+      rootRef.current = result.value;
       setLinked(true);
     }
     return result;
   }, []);
+
+  const browse = useCallback(
+    async (path?: string): Promise<Result<DirectoryListing>> => browseDirectory(path),
+    [],
+  );
+
+  const suggestRoots = useCallback(async (): Promise<string[]> => suggestedRoots(), []);
 
   const listRounds = useCallback(async (): Promise<number[]> => {
     const root = rootRef.current;
@@ -196,6 +210,8 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     () => ({
       linked,
       linkFolder,
+      browse,
+      suggestRoots,
       listRounds,
       readRound,
       writeSelection,
@@ -210,6 +226,8 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
     [
       linked,
       linkFolder,
+      browse,
+      suggestRoots,
       listRounds,
       readRound,
       writeSelection,

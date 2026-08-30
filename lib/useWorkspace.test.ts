@@ -368,7 +368,9 @@ function recordingImagegen(batches: Record<number, RoundBatch>): {
   const conflicts: string[] = [];
   const api: ImagegenApi = {
     linked: true,
-    linkFolder: async () => ({ status: 'cancelled' }),
+    linkFolder: async () => ({ ok: true, value: '/imagegen' }),
+    browse: async () => ({ ok: true, value: { path: '/home', parent: null, entries: [] } }),
+    suggestRoots: async () => [],
     listRounds: async () => Object.keys(batches).map(Number),
     readRound: async (round) =>
       batches[round]
