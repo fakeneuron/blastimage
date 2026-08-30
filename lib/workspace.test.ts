@@ -7,11 +7,13 @@ import {
   addRefImage,
   addTask,
   appendIteration,
+  bindImagegenRoot,
   buildApprovedImages,
   buildExportManifest,
   cloneSessionWithNewIds,
   countGeneratedImageBytes,
   deleteSlugBreak,
+  imagegenRootLabel,
   deleteTask,
   importTasks,
   ingestRoundBatch,
@@ -20,6 +22,7 @@ import {
   newRefImage,
   newSession,
   newTask,
+  projectNameFromRoot,
   removeRefImage,
   renameSession,
   renameSlugBreak,
@@ -733,5 +736,47 @@ describe('deleteSlugBreak (BI-033)', () => {
 
   it('is silent for an unknown task id', () => {
     expect(deleteSlugBreak(withRound(2), 'nope')).toBeNull();
+  });
+});
+
+describe('imagegen folder binding (BI-047)', () => {
+  it('binds and clears the project\'s root, touching updatedAt each time', () => {
+    const session = newSession('Acme');
+    expect(session.imagegenRoot).toBeUndefined();
+
+    const bound = bindImagegenRoot(session, '/Code/acme/imagegen');
+    expect(bound.imagegenRoot).toBe('/Code/acme/imagegen');
+
+    expect(bindImagegenRoot(bound, null).imagegenRoot).toBe(null);
+  });
+});
+
+describe('projectNameFromRoot (BI-047)', () => {
+  it('names the repo that contains the folder, not the folder', () => {
+    // Every repo's folder is called `imagegen`, so the folder's own name would
+    // give every auto-named project the same one.
+    expect(projectNameFromRoot('/Users/dev/Code/spinalcord/imagegen')).toBe('spinalcord');
+    expect(projectNameFromRoot('/Users/dev/Code/spinalcord/imagegen/')).toBe('spinalcord');
+    expect(projectNameFromRoot('/Users/dev/Code/spinalcord/ImageGen')).toBe('spinalcord');
+  });
+
+  it('falls back to the folder itself when it is named something else', () => {
+    expect(projectNameFromRoot('/Users/dev/Code/renders')).toBe('renders');
+  });
+
+  it('yields nothing worth naming a project after a rootless path', () => {
+    expect(projectNameFromRoot('/')).toBe('');
+    expect(projectNameFromRoot('/imagegen')).toBe('imagegen');
+  });
+});
+
+describe('imagegenRootLabel (BI-047)', () => {
+  it('keeps the two segments that tell one repo\'s folder from another\'s', () => {
+    expect(imagegenRootLabel('/Users/dev/Code/spinalcord/imagegen')).toBe('spinalcord/imagegen');
+  });
+
+  it('falls back to the path when there are not two segments to keep', () => {
+    expect(imagegenRootLabel('/imagegen')).toBe('imagegen');
+    expect(imagegenRootLabel('/')).toBe('/');
   });
 });

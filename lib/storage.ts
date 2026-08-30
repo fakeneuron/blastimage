@@ -43,6 +43,14 @@ export interface SessionMeta {
   id: ID;
   name: string;
   updatedAt: Timestamp;
+  /**
+   * The project's bound `imagegen/` root (BI-047), or `null`/absent when it has
+   * none. Carried on the index entry so finding which project owns a folder
+   * stays a scan of the index — the reason the index exists is that listing
+   * projects must never deserialize every full workspace. Entries written
+   * before BI-047 simply lack it, and gain it on that project's next save.
+   */
+  imagegenRoot?: string | null;
 }
 
 /** Discriminated result for operations that can fail with a user-facing reason. */
@@ -182,7 +190,12 @@ export function saveSession(session: Session): Result<SessionMeta> {
   if (!storage) {
     return { ok: false, error: 'localStorage is unavailable (server-side or disabled).' };
   }
-  const meta: SessionMeta = { id: session.id, name: session.name, updatedAt: session.updatedAt };
+  const meta: SessionMeta = {
+    id: session.id,
+    name: session.name,
+    updatedAt: session.updatedAt,
+    imagegenRoot: session.imagegenRoot ?? null,
+  };
   try {
     storage.setItem(sessionKey(session.id), JSON.stringify(session));
     const index = readIndex(storage).filter((m) => m.id !== session.id);

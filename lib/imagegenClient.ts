@@ -1,10 +1,16 @@
 /**
- * blastimage — browser half of the imagegen folder link (BI-045 · picker BI-046)
+ * blastimage — browser half of the imagegen folder link (BI-045 · picker BI-046 · binding BI-047)
  *
- * Talks to the `app/api/imagegen/*` routes and remembers the linked root in
- * localStorage, replacing the File System Access picker + IndexedDB handle
- * store BI-024.1 built. The FSA version worked only in Chromium; a localhost
- * route works wherever the app itself loads, Safari and Brave included.
+ * Talks to the `app/api/imagegen/*` routes, replacing the File System Access
+ * picker + IndexedDB handle store BI-024.1 built. The FSA version worked only
+ * in Chromium; a localhost route works wherever the app itself loads, Safari
+ * and Brave included.
+ *
+ * It no longer *remembers* the linked root: BI-047 made the folder a property
+ * of the project, so the root of record lives on the `Session` and the live
+ * link follows whichever project is open. The old app-wide key survives
+ * read-only, as the one-time adoption path for a folder linked before that
+ * change ({@link loadStoredRoot} / {@link clearStoredRoot}).
  *
  * The root is passed on every call rather than held server-side: Next's dev
  * server hot-reloads route modules, so module-level state there would vanish
@@ -22,7 +28,8 @@ import { parseRoundBatch, type RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
 
-const ROOT_KEY = 'blastimage:imagegen-root';
+/** Pre-BI-047 app-wide linked root. Read once on startup to adopt, then cleared. */
+const LEGACY_ROOT_KEY = 'blastimage:imagegen-root';
 
 /** Shape every route hands back — `resultResponse` in `lib/imagegenRoute.ts`. */
 interface RouteEnvelope<T> {
@@ -41,24 +48,15 @@ function safeStorage(): Storage | null {
   }
 }
 
-/** The imagegen root this browser last linked, or `null`. */
+/** The app-wide root linked before BI-047, or `null`. Adoption reads this once. */
 export function loadStoredRoot(): string | null {
-  return safeStorage()?.getItem(ROOT_KEY) ?? null;
+  return safeStorage()?.getItem(LEGACY_ROOT_KEY) ?? null;
 }
 
-/** Persists the linked root so the link survives a refresh. */
-export function saveStoredRoot(root: string): void {
-  try {
-    safeStorage()?.setItem(ROOT_KEY, root);
-  } catch {
-    // Session-only link; the operator re-links after a refresh.
-  }
-}
-
-/** Forgets the linked root (the folder moved, or was never valid). */
+/** Drops the pre-BI-047 app-wide root once a project has adopted it. */
 export function clearStoredRoot(): void {
   try {
-    safeStorage()?.removeItem(ROOT_KEY);
+    safeStorage()?.removeItem(LEGACY_ROOT_KEY);
   } catch {
     // Nothing to clear.
   }
@@ -125,33 +123,16 @@ export async function linkRoot(path: string): Promise<Result<{ root: string; rec
 }
 
 /**
- * Validates the folder the operator picked and remembers it. The path arrives
- * from the picker modal (BI-046); until then this asked for it with
- * `window.prompt`, which is why a dismissed-prompt outcome no longer exists —
- * cancelling is closing the dialog, and never reaches here.
+ * Validates the folder the operator picked and yields its canonical path. The
+ * path arrives from the picker modal (BI-046); until then this asked for it
+ * with `window.prompt`, which is why a dismissed-prompt outcome no longer
+ * exists — cancelling is closing the dialog, and never reaches here. Since
+ * BI-047 it only validates: where the root is *remembered* is the project.
  */
 export async function linkImagegenRoot(path: string): Promise<Result<string>> {
   const linked = await linkRoot(path);
   if (!linked.ok) return linked;
-  saveStoredRoot(linked.value.root);
   return { ok: true, value: linked.value.root };
-}
-
-/**
- * Re-validates the stored root on startup — the folder may have been moved or
- * renamed since the last session. Returns `null` (and forgets it) when it no
- * longer resolves, which is how the FSA restore reported a revoked handle.
- */
-export async function restoreLinkedRoot(): Promise<string | null> {
-  const stored = loadStoredRoot();
-  if (!stored) return null;
-  const linked = await linkRoot(stored);
-  if (!linked.ok) {
-    clearStoredRoot();
-    return null;
-  }
-  saveStoredRoot(linked.value.root);
-  return linked.value.root;
 }
 
 /** Round numbers under `rounds/` that carry a `batch.json`, ascending. */

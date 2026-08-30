@@ -176,6 +176,49 @@ export function renameSession(session: Session, name: string): Session {
   return { ...touch(session), name };
 }
 
+/**
+ * Binds the project to an `imagegen/` root, or clears the binding with `null`
+ * (BI-047). The binding is what scopes the folder link to this project: the
+ * `imagegen:` URLs in its iterations are relative to *this* root, so the live
+ * link follows the binding rather than the other way round.
+ */
+export function bindImagegenRoot(session: Session, root: string | null): Session {
+  return { ...touch(session), imagegenRoot: root };
+}
+
+/**
+ * Splits an absolute path into its non-empty segments. Deliberately a string
+ * operation rather than `node:path` — these run in the browser, and BI-046
+ * established that the server is the only side that joins or resolves paths.
+ */
+function pathSegments(path: string): string[] {
+  return path.split('/').filter((segment) => segment.length > 0);
+}
+
+/**
+ * The project name an `imagegen/` root implies (BI-047) — the repo folder that
+ * *contains* it (`~/Code/spinalcord/imagegen` → `spinalcord`), since the folder
+ * itself is named the same in every repo. Falls back to the folder's own name
+ * when it is not called `imagegen`, and to `''` when the path has no segments
+ * (`/`), which callers read as "nothing worth naming a project after".
+ */
+export function projectNameFromRoot(root: string): string {
+  const segments = pathSegments(root);
+  const last = segments[segments.length - 1];
+  if (!last) return '';
+  if (last.toLowerCase() !== 'imagegen') return last;
+  return segments[segments.length - 2] ?? last;
+}
+
+/**
+ * Short label for a bound root (BI-047) — its last two segments
+ * (`spinalcord/imagegen`), which is what distinguishes one repo's folder from
+ * another's in the sidebar. The absolute path stays available as the tooltip.
+ */
+export function imagegenRootLabel(root: string): string {
+  return pathSegments(root).slice(-2).join('/') || root;
+}
+
 /** Appends a task to the session. */
 export function addTask(session: Session, task: PromptTask): Session {
   return { ...touch(session), tasks: [...session.tasks, task] };

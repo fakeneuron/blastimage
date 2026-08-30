@@ -1,11 +1,18 @@
 'use client';
 
 /**
- * blastimage — linked imagegen folder context (BI-024.1 · server adapter BI-045 · picker BI-046)
+ * blastimage — linked imagegen folder context (BI-024.1 · server adapter BI-045 · picker BI-046 · binding BI-047)
  *
- * Restores the linked `imagegen/` root on mount, turns `imagegen:` path URLs
- * into servable `/api/imagegen/file` URLs, and exposes the read/write API the
- * workspace hook uses to load round batches and record decisions.
+ * Serves whichever `imagegen/` root is currently live: turns `imagegen:` path
+ * URLs into servable `/api/imagegen/file` URLs, and exposes the read/write API
+ * the workspace hook uses to load round batches and record decisions.
+ *
+ * It no longer *decides* which root that is. BI-047 made the folder a property
+ * of the project, so `lib/useWorkspace.ts` points the link at the active
+ * project's bound root through {@link ImagegenApi.setLinkedRoot} — on mount, on
+ * every project switch, and when the operator links a folder. Holding the
+ * choice here is what let one project's stored `imagegen:` URLs resolve against
+ * another repo's folder.
  *
  * BI-045 moved the filesystem work from the browser to the app's own localhost
  * routes. The File System Access API this originally used is Chromium-only, so
@@ -24,7 +31,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -40,7 +46,6 @@ import {
   promoteApproved as promoteApprovedRequest,
   readRoundBatch,
   removeApproved as removeApprovedRequest,
-  restoreLinkedRoot,
   suggestedRoots,
   writeRoundSelection as writeRoundSelectionRequest,
 } from './imagegenClient';
@@ -56,9 +61,17 @@ const UNLINKED = 'Link your imagegen folder first (🔗 in the sidebar).';
 
 /** Imagegen surface consumed by {@link useWorkspace} for round ingest + selection writes. */
 export interface ImagegenApi {
+  /** Absolute path of the folder currently being served, or `null`. */
+  root: string | null;
+  /** Convenience for `root !== null`, which is what most consumers actually ask. */
   linked: boolean;
-  /** Validates and stores the folder the picker returned; yields its canonical path. */
-  linkFolder: (path: string) => Promise<Result<string>>;
+  /**
+   * Points the live link at `path`, or unlinks with `null` (BI-047); yields the
+   * canonical root. A path the server rejects leaves the link **cleared**, never
+   * pointing at whatever was live before — a project whose folder has moved must
+   * not silently inherit the previous project's.
+   */
+  setLinkedRoot: (path: string | null) => Promise<Result<string | null>>;
   /** Subdirectories of `path` for the picker's tree; absent `path` starts at home (BI-046). */
   browse: (path?: string) => Promise<Result<DirectoryListing>>;
   /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
@@ -98,31 +111,30 @@ const ImagegenContext = createContext<ImagegenApi | null>(null);
 const NO_RELEASE = (): void => {};
 
 export function ImagegenProvider({ children }: { children: ReactNode }) {
+  // `rootRef` is what the callbacks read, so linking a folder does not re-mint
+  // every one of them; `root` is the same value as state, for rendering.
   const rootRef = useRef<string | null>(null);
-  const [linked, setLinked] = useState(false);
+  const [root, setRoot] = useState<string | null>(null);
   const [blobEpoch, setBlobEpoch] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const root = await restoreLinkedRoot();
-      if (cancelled) return;
-      rootRef.current = root;
-      setLinked(!!root);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const linkFolder = useCallback(async (path: string): Promise<Result<string>> => {
-    const result = await linkImagegenRoot(path);
-    if (result.ok) {
-      rootRef.current = result.value;
-      setLinked(true);
-    }
-    return result;
-  }, []);
+  const setLinkedRoot = useCallback(
+    async (path: string | null): Promise<Result<string | null>> => {
+      const apply = (next: string | null): void => {
+        rootRef.current = next;
+        setRoot(next);
+      };
+      if (path === null) {
+        apply(null);
+        return { ok: true, value: null };
+      }
+      const result = await linkImagegenRoot(path);
+      // Clear on failure rather than leaving the previous project's folder live
+      // under a project that does not own it (BI-047).
+      apply(result.ok ? result.value : null);
+      return result;
+    },
+    [],
+  );
 
   const browse = useCallback(
     async (path?: string): Promise<Result<DirectoryListing>> => browseDirectory(path),
@@ -208,8 +220,9 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
   // useWorkspace's [imagegen, imagegen.linked] listRounds() effect (BI-042.4).
   const value = useMemo<ImagegenApi>(
     () => ({
-      linked,
-      linkFolder,
+      root,
+      linked: root !== null,
+      setLinkedRoot,
       browse,
       suggestRoots,
       listRounds,
@@ -224,8 +237,8 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
       resolveBlob,
     }),
     [
-      linked,
-      linkFolder,
+      root,
+      setLinkedRoot,
       browse,
       suggestRoots,
       listRounds,

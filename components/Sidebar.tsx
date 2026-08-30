@@ -28,6 +28,7 @@ import { useRef } from 'react';
 
 import type { ID, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
+import { imagegenRootLabel } from '@/lib/workspace';
 
 interface SidebarProps {
   session: Session;
@@ -59,8 +60,12 @@ interface SidebarProps {
   onDeleteTask: (id: ID) => void;
   /** Fires generation for every eligible task and opens bulk review (BI-015). */
   onGenerateAll: () => void;
-  /** True when the repo's `imagegen/` folder is linked via the File System Access API. */
-  imagegenLinked: boolean;
+  /**
+   * The `imagegen/` folder this project is bound to, or `null` when it has none
+   * (BI-047). Replaces the earlier boolean: the state is derivable from it, and
+   * naming the folder is what tells the operator which repo they are reviewing.
+   */
+  imagegenRoot: string | null;
   /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
   availableRounds: number[];
   onLinkImagegen: () => void;
@@ -86,11 +91,15 @@ export default function Sidebar({
   onRenameTask,
   onDeleteTask,
   onGenerateAll,
-  imagegenLinked,
+  imagegenRoot,
   availableRounds,
   onLinkImagegen,
   onLoadRound,
 }: SidebarProps) {
+  const imagegenLinked = imagegenRoot !== null;
+  // Visible text and accessible name share the folder label for the same reason
+  // the round chips do (BI-035.3): the name must contain the visible text.
+  const imagegenLabel = imagegenRoot ? imagegenRootLabel(imagegenRoot) : '';
   const latestRound = availableRounds.length ? availableRounds[availableRounds.length - 1] : undefined;
   // Shared by the button's visible text and its accessible name (BI-035.3), so the
   // two cannot drift apart — the name must contain the visible text (WCAG 2.5.3).
@@ -194,11 +203,15 @@ export default function Sidebar({
                 ? 'border-green-500/50 text-green-700 dark:text-green-400'
                 : 'border-black/15 dark:border-white/15'
             }`}
-            title="Link your repo's imagegen/ folder by absolute path (standard location per ADOPT.md §7)"
-            aria-label={imagegenLinked ? 'imagegen linked' : 'Link imagegen'}
+            title={
+              imagegenRoot
+                ? `This project is linked to ${imagegenRoot} — click to link a different folder`
+                : "Link this project's imagegen/ folder (standard location per ADOPT.md §7)"
+            }
+            aria-label={imagegenRoot ? `imagegen linked: ${imagegenLabel}` : 'Link imagegen'}
             onClick={onLinkImagegen}
           >
-            {imagegenLinked ? '🔗 imagegen linked' : '🔗 Link imagegen'}
+            {imagegenLinked ? `🔗 ${imagegenLabel}` : '🔗 Link imagegen'}
           </button>
           <button
             disabled={!imagegenLinked || availableRounds.length === 0}

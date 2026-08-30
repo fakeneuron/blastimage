@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * blastimage — imagegen folder picker (BI-046)
+ * blastimage — imagegen folder picker (BI-046 · binding BI-047)
  *
  * Replaces the `window.prompt` that asked for an absolute path. BI-045 moved
  * the filesystem work to localhost API routes so linking works in every
@@ -17,6 +17,11 @@
  * the workspace's error banner — a mistyped path belongs next to the field
  * that produced it, and the picker stays open to correct it.
  *
+ * BI-047 made the folder a property of the project, which gives this dialog a
+ * second thing to report in place: a folder another project already owns. That
+ * is not an error to correct but a choice to make, so it renders as an offer to
+ * switch to the owning project, and nothing is linked until the operator picks.
+ *
  * Focus (BI-039): {@link useFocusTrap} moves focus to the first control on
  * open, traps Tab, and restores the opener on close.
  */
@@ -25,6 +30,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { DirectoryListing } from '@/lib/imagegenServerFs';
 import type { Result } from '@/lib/storage';
+import type { ID } from '@/lib/types';
+import type { LinkOutcome } from '@/lib/useWorkspace';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 
 interface ImagegenLinkModalProps {
@@ -32,8 +39,10 @@ interface ImagegenLinkModalProps {
   onBrowse: (path?: string) => Promise<Result<DirectoryListing>>;
   /** Absolute paths worth offering as one-click shortcuts. */
   onSuggest: () => Promise<string[]>;
-  /** Links the folder; resolves to a failure message, or `null` on success. */
-  onLink: (path: string) => Promise<string | null>;
+  /** Binds the folder to the active project; reports what happened (BI-047). */
+  onLink: (path: string) => Promise<LinkOutcome>;
+  /** Opens the project that already owns a folder the operator picked (BI-047). */
+  onSwitchProject: (id: ID) => void;
   onClose: () => void;
 }
 
@@ -41,12 +50,15 @@ export default function ImagegenLinkModal({
   onBrowse,
   onSuggest,
   onLink,
+  onSwitchProject,
   onClose,
 }: ImagegenLinkModalProps) {
   const [listing, setListing] = useState<DirectoryListing | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // The folder the operator picked and the project that already owns it (BI-047).
+  const [owned, setOwned] = useState<{ id: ID; name: string; root: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -84,10 +96,16 @@ export default function ImagegenLinkModal({
 
   async function link(path: string): Promise<void> {
     setBusy(true);
-    const failure = await onLink(path);
+    const outcome = await onLink(path);
     setBusy(false);
-    if (failure) {
-      setError(failure);
+    if (outcome.status === 'error') {
+      setOwned(null);
+      setError(outcome.message);
+      return;
+    }
+    if (outcome.status === 'owned') {
+      setError(null);
+      setOwned({ id: outcome.ownerId, name: outcome.ownerName, root: outcome.root });
       return;
     }
     onClose();
@@ -208,6 +226,31 @@ export default function ImagegenLinkModal({
           <p role="alert" className="rounded border border-red-500/40 bg-red-500/5 p-2 text-xs">
             {error}
           </p>
+        )}
+
+        {owned && (
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded border border-amber-500/40 bg-amber-500/5 p-2 text-xs"
+          >
+            <p>
+              <span className="font-medium">{owned.root}</span> is already the folder for project{' '}
+              <span className="font-medium">“{owned.name}”</span>. Nothing was linked — open that
+              project to review its rounds, or pick a different folder.
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  onSwitchProject(owned.id);
+                  onClose();
+                }}
+                className="rounded border border-amber-500/50 px-2 py-1 text-xs hover:bg-amber-500/10"
+              >
+                Switch to “{owned.name}”
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">

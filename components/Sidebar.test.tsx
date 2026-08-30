@@ -76,7 +76,7 @@ function makeProps(
     onRenameTask: () => {},
     onDeleteTask: () => {},
     onGenerateAll: () => {},
-    imagegenLinked: false,
+    imagegenRoot: null,
     availableRounds: [],
     onLinkImagegen: () => {},
     onLoadRound: () => {},
@@ -198,7 +198,7 @@ describe('Sidebar accessible names (BI-035.3)', () => {
   });
 
   it('names the round chips with the round they load', () => {
-    render(<Sidebar {...makeProps({ imagegenLinked: true, availableRounds: [1, 2, 3] })} />);
+    render(<Sidebar {...makeProps({ imagegenRoot: '/repo/imagegen', availableRounds: [1, 2, 3] })} />);
 
     // The chips render bare "r1"/"r2"/"r3". The name keeps that visible text
     // inside it (WCAG 2.5.3) rather than replacing it with "Load round 1".
@@ -209,18 +209,33 @@ describe('Sidebar accessible names (BI-035.3)', () => {
   });
 
   it('drops the round suffix from the load button when no rounds exist', () => {
-    render(<Sidebar {...makeProps({ imagegenLinked: true, availableRounds: [] })} />);
+    render(<Sidebar {...makeProps({ imagegenRoot: '/repo/imagegen', availableRounds: [] })} />);
 
     expect(screen.getByRole('button', { name: 'Load round' })).toBeTruthy();
   });
 
   it('names the imagegen link button for its current state', () => {
-    const { unmount } = render(<Sidebar {...makeProps({ imagegenLinked: false })} />);
+    const { unmount } = render(<Sidebar {...makeProps({ imagegenRoot: null })} />);
     expect(screen.getByRole('button', { name: 'Link imagegen' })).toBeTruthy();
 
     unmount();
-    render(<Sidebar {...makeProps({ imagegenLinked: true })} />);
-    expect(screen.getByRole('button', { name: 'imagegen linked' })).toBeTruthy();
+    // The name contains the button's visible text — the folder label, not a bare
+    // "linked" state, since BI-047 gave each project its own folder.
+    render(<Sidebar {...makeProps({ imagegenRoot: '/Users/dev/Code/spinalcord/imagegen' })} />);
+    expect(screen.getByRole('button', { name: 'imagegen linked: spinalcord/imagegen' })).toBeTruthy();
+  });
+
+  /**
+   * The state-only "🔗 imagegen linked" gave the operator no way to notice they
+   * were reviewing one repo's rounds while another project was selected — the
+   * observation that filed BI-047.
+   */
+  it('names the bound folder and keeps the absolute path in the tooltip', () => {
+    render(<Sidebar {...makeProps({ imagegenRoot: '/Users/dev/Code/spinalcord/imagegen' })} />);
+
+    const button = screen.getByRole('button', { name: /imagegen linked/ });
+    expect(button.textContent).toBe('🔗 spinalcord/imagegen');
+    expect(button.getAttribute('title')).toContain('/Users/dev/Code/spinalcord/imagegen');
   });
 
   it('keeps title alongside the name where the title carries extra detail', () => {

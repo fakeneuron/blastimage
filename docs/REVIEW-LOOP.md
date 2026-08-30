@@ -158,9 +158,17 @@ terminal loop:
    `rounds/r<N>/batch.json` + images through the app's own localhost API routes
    (`app/api/imagegen/`, BI-045). **🔗 Link imagegen** opens a folder picker (BI-046):
    detected `imagegen/` folders on top, a browsable tree below, and a typed absolute
-   path as the fallback. The choice is remembered across refreshes. Any browser can link: the earlier File System Access picker was
+   path as the fallback. Any browser can link: the earlier File System Access picker was
    Chromium-only, so Safari and Brave could not. Images stay as `imagegen:` path URLs —
    never embedded in `localStorage` — and resolve through `/api/imagegen/file`.
+
+   The folder is bound to the **project** (BI-047), stored on the session and
+   carried on its index entry. Switching project re-points the link at that
+   project's folder — which is what keeps the root-relative `imagegen:` URLs, the
+   `selection.json` merges, and the `approved/` copies aimed at the repo they came
+   from. One folder belongs to one project: naming a folder another project owns
+   reports the owner and offers to switch to it rather than linking. A folder
+   linked before BI-047 is adopted by whichever project is open at first load.
 2. **Emit a next-round request** (BI-024.2) — the iterate modal writes
    `selection.json` (keepers + `promptMode` + `nextPrompt`) instead of calling
    `generateBatch`. Approve promotes keepers to `imagegen/approved/`; clearing an approve

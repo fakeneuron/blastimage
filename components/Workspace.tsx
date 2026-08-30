@@ -171,7 +171,7 @@ function WorkspaceInner() {
             const fired = ws.generateAll();
             if (fired.length > 0) setBulkTaskIds(fired);
           }}
-          imagegenLinked={ws.imagegenLinked}
+          imagegenRoot={ws.imagegenRoot}
           availableRounds={ws.availableRounds}
           onLinkImagegen={() => setShowLinkPicker(true)}
           onLoadRound={async (round) => {
@@ -252,6 +252,10 @@ function WorkspaceInner() {
           onBrowse={ws.browseImagegen}
           onSuggest={ws.suggestImagegenRoots}
           onLink={ws.linkImagegenFolder}
+          onSwitchProject={(id) => {
+            setBulkTaskIds(null);
+            ws.switchSession(id);
+          }}
           onClose={() => setShowLinkPicker(false)}
         />
       )}

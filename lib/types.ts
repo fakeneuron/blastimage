@@ -162,6 +162,18 @@ export interface Session {
   updatedAt: Timestamp;
   /** Persisted-model version; compared against {@link SCHEMA_VERSION} on load. */
   schemaVersion: number;
+  /**
+   * Absolute path of the `imagegen/` folder this project is bound to (BI-047),
+   * or absent/`null` when it is not bound to one. The binding is what makes the
+   * link project-scoped: switching project re-points the live link here, so the
+   * root-relative `imagegen:` URLs in this project's iterations always resolve
+   * against the folder they were ingested from.
+   *
+   * Optional on purpose — {@link import('./storage').isSession} is a structural
+   * check, so projects written before BI-047 load unchanged and {@link
+   * SCHEMA_VERSION} stays where it is.
+   */
+  imagegenRoot?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

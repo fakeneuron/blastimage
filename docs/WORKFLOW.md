@@ -67,7 +67,9 @@ loop diagram and file contracts: [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1–�
 
 Back in blastimage, **🔗 Link imagegen** (once per host repo — pick the folder in
 the picker, or type its absolute path) then **↻ Load round** to ingest the batch
-into the review UI. Images stay on disk as path references —
+into the review UI. The link is a property of the **project**: one blastimage
+project per host repo, its folder named in the sidebar, re-linked automatically
+when you switch projects. Images stay on disk as path references —
 never embedded in `localStorage` (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §5).
 
 ### 6. Review

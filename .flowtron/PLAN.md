@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-047** [heavy]🧠 | imagegen-project-binding — Linking an `imagegen/` folder and the session it loads into are unrelated: `loadRound` ingests `batch.json` into whatever project is selected, and the sidebar never names the repo. Explore keying a project to the linked root, and whether one browser holds several.
+(none)
 
 ## Low
 
@@ -24,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-047** [heavy]🧠 | imagegen-project-binding — Completed 2026-08-30.
 - [x] **BI-046** [medium]🧩 | imagegen-folder-picker — Completed 2026-08-30.
 - [x] **BI-045** [heavy]🧠 | imagegen-server-adapter — Completed 2026-08-29.
 - [x] **DEPLOY-001** [light]🔧 | ci-secret-scan — Completed 2026-08-09.

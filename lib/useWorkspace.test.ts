@@ -23,6 +23,7 @@ import { ROUND_BATCH_SCHEMA_VERSION, type RoundBatch } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import { loadSession } from './storage';
 import { SCHEMA_VERSION, type Session } from './types';
+import type { LinkOutcome } from './useWorkspace';
 
 /** Installs a provider gated on a promise; `release()` lets the batch resolve. */
 function installDeferredProvider(): { release: () => void } {
@@ -367,8 +368,9 @@ function recordingImagegen(batches: Record<number, RoundBatch>): {
   const selections: Array<{ round: number; tasks: RoundSelectionTask[] }> = [];
   const conflicts: string[] = [];
   const api: ImagegenApi = {
+    root: '/imagegen',
     linked: true,
-    linkFolder: async () => ({ ok: true, value: '/imagegen' }),
+    setLinkedRoot: async (path) => ({ ok: true, value: path }),
     browse: async () => ({ ok: true, value: { path: '/home', parent: null, entries: [] } }),
     suggestRoots: async () => [],
     listRounds: async () => Object.keys(batches).map(Number),
@@ -856,5 +858,249 @@ describe('delete-task retraction (BI-033)', () => {
     expect(result.current.session!.tasks.find((t) => t.id === taskId)).toBeUndefined();
     expect(unpromoted).toEqual([]);
     expect(selections).toHaveLength(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Project ↔ imagegen folder binding (BI-047)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * An `ImagegenApi` whose live root is its own state — which is what the real
+ * provider holds — so "the link follows the open project" is observable without
+ * going through React. `rejects` makes named paths fail the way a folder that
+ * has been moved or deleted does.
+ */
+function bindingImagegen(rejects: string[] = []): {
+  api: ImagegenApi;
+  live: () => string | null;
+  pointedAt: Array<string | null>;
+} {
+  const pointedAt: Array<string | null> = [];
+  let live: string | null = null;
+  const api: ImagegenApi = {
+    get root() {
+      return live;
+    },
+    get linked() {
+      return live !== null;
+    },
+    setLinkedRoot: async (path) => {
+      pointedAt.push(path);
+      if (path !== null && rejects.includes(path)) {
+        live = null;
+        return { ok: false, error: `No such folder: ${path}` };
+      }
+      live = path;
+      return { ok: true, value: path };
+    },
+    browse: async () => ({ ok: true, value: { path: '/home', parent: null, entries: [] } }),
+    suggestRoots: async () => [],
+    listRounds: async () => [],
+    readRound: async () => ({ ok: false, error: 'no rounds' }),
+    writeSelection: async () => ({ ok: true, value: undefined }),
+    promoteApproved: async () => ({ ok: true, value: undefined }),
+    unpromoteApproved: async () => ({ ok: true, value: undefined }),
+    approvedConflict: async () => ({ ok: true, value: false }),
+    resolveDisplayUrl: async (url) => url,
+    blobEpoch: 0,
+    retainDisplayUrl: () => () => {},
+    resolveBlob: async () => new Blob(),
+  };
+  return { api, live: () => live, pointedAt };
+}
+
+/** A stored session at the current schema, optionally already bound to a folder. */
+function storedSessionJson(id: string, name: string, imagegenRoot?: string): string {
+  const now = '2026-08-08T00:00:00.000Z';
+  return JSON.stringify({
+    id,
+    name,
+    tasks: [],
+    refLibrary: [],
+    createdAt: now,
+    updatedAt: now,
+    schemaVersion: SCHEMA_VERSION,
+    ...(imagegenRoot ? { imagegenRoot } : {}),
+  });
+}
+
+/** Links `path` for the active project and hands back what the picker would see. */
+async function link(
+  result: { current: ReturnType<typeof useWorkspace> },
+  path: string,
+): Promise<LinkOutcome> {
+  let outcome!: LinkOutcome;
+  await act(async () => {
+    outcome = await result.current.linkImagegenFolder(path);
+  });
+  return outcome;
+}
+
+describe('binding a folder to a project (BI-047)', () => {
+  it('binds the folder and names a still-default, empty project after the repo', async () => {
+    const { api, live } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    expect(await link(result, '/Code/spinalcord/imagegen')).toEqual({ status: 'linked' });
+
+    expect(result.current.session!.imagegenRoot).toBe('/Code/spinalcord/imagegen');
+    expect(result.current.session!.name).toBe('spinalcord');
+    expect(live()).toBe('/Code/spinalcord/imagegen');
+    // Persisted, not just held: the binding has to survive a refresh.
+    const stored = loadSession(result.current.session!.id);
+    expect(stored.status === 'ok' && stored.session.imagegenRoot).toBe('/Code/spinalcord/imagegen');
+  });
+
+  it('leaves a project the operator named alone', async () => {
+    const { api } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => result.current.renameSession('Acme Site'));
+
+    await link(result, '/Code/spinalcord/imagegen');
+
+    expect(result.current.session!.name).toBe('Acme Site');
+    expect(result.current.session!.imagegenRoot).toBe('/Code/spinalcord/imagegen');
+  });
+
+  it('leaves a default-named project that already has tasks alone', async () => {
+    const { api } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => result.current.addTask('Hero'));
+
+    await link(result, '/Code/spinalcord/imagegen');
+
+    expect(result.current.session!.name).toBe('My Website');
+  });
+});
+
+/**
+ * The bug the binding closes. Round images are stored as root-relative
+ * `imagegen:` URLs, so whichever folder is live is the one they resolve
+ * against — and the one selections and approvals are written into. If the link
+ * did not follow the project, a switch would silently re-point the project on
+ * screen at another repo's folder.
+ */
+describe('the live link follows the open project (BI-047)', () => {
+  it('re-points at each project\'s own folder across a switch, and unlinks for an unbound one', async () => {
+    const { api, live } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await link(result, '/Code/alpha/imagegen');
+    const alphaId = result.current.session!.id;
+
+    await act(async () => result.current.createSession('Beta'));
+    // A project nobody has linked a folder for shows none.
+    expect(live()).toBe(null);
+    await link(result, '/Code/beta/imagegen');
+    const betaId = result.current.session!.id;
+    expect(live()).toBe('/Code/beta/imagegen');
+
+    await act(async () => result.current.switchSession(alphaId));
+    await waitFor(() => expect(result.current.session!.id).toBe(alphaId));
+    expect(live()).toBe('/Code/alpha/imagegen');
+
+    await act(async () => result.current.switchSession(betaId));
+    await waitFor(() => expect(result.current.session!.id).toBe(betaId));
+    expect(live()).toBe('/Code/beta/imagegen');
+  });
+
+  it('drops the round the previous project had loaded', async () => {
+    const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await loadHero(result, 1);
+    expect(result.current.loadedRound).toBe(1);
+
+    await act(async () => result.current.createSession('Beta'));
+    const betaId = result.current.session!.id;
+    await act(async () => result.current.switchSession(betaId));
+
+    // Carried over, it would be the fallback round for an approve or an iterate
+    // written into a project that never loaded it.
+    await waitFor(() => expect(result.current.loadedRound).toBe(null));
+  });
+
+  it('reports a bound folder that no longer resolves, and links nothing instead', async () => {
+    seedStoredSession('gone-1', 'Acme Site', storedSessionJson('gone-1', 'Acme Site', '/gone/imagegen'));
+    localStorage.setItem('blastimage:active', 'gone-1');
+    const { api, live } = bindingImagegen(['/gone/imagegen']);
+
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.error).toBeTruthy());
+
+    expect(result.current.error).toContain('Acme Site');
+    expect(result.current.error).toContain('/gone/imagegen');
+    expect(live()).toBe(null);
+    // The binding survives — the folder may come back; the link does not guess.
+    expect(result.current.session!.imagegenRoot).toBe('/gone/imagegen');
+  });
+});
+
+describe('a folder another project already owns (BI-047)', () => {
+  it('names the owner, links nothing, and leaves the active project unbound', async () => {
+    const { api, live } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await link(result, '/Code/shared/imagegen');
+    const ownerId = result.current.session!.id;
+    const ownerName = result.current.session!.name;
+    await act(async () => result.current.createSession('Beta'));
+
+    const outcome = await link(result, '/Code/shared/imagegen');
+
+    expect(outcome).toEqual({
+      status: 'owned',
+      ownerId,
+      ownerName,
+      root: '/Code/shared/imagegen',
+    });
+    expect(result.current.session!.imagegenRoot ?? null).toBe(null);
+    // Reverted: the picker left the live link where the active project had it.
+    expect(live()).toBe(null);
+  });
+
+  it('lets a project re-link the folder it already owns', async () => {
+    const { api } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await link(result, '/Code/alpha/imagegen');
+    expect(await link(result, '/Code/alpha/imagegen')).toEqual({ status: 'linked' });
+  });
+});
+
+/**
+ * Before BI-047 the root lived in one app-wide key. Adopting it means an
+ * operator who had linked a folder does not have to link it again; clearing it
+ * means a second project never inherits the same folder silently.
+ */
+describe('adopting the pre-BI-047 app-wide root', () => {
+  it('binds it to the project open at first load, then forgets the key', async () => {
+    localStorage.setItem('blastimage:imagegen-root', '/Code/legacy/imagegen');
+    const { api, live } = bindingImagegen();
+
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.session?.imagegenRoot).toBe('/Code/legacy/imagegen'));
+
+    expect(live()).toBe('/Code/legacy/imagegen');
+    expect(localStorage.getItem('blastimage:imagegen-root')).toBe(null);
+  });
+
+  it('does not hand the same folder to a project created afterwards', async () => {
+    localStorage.setItem('blastimage:imagegen-root', '/Code/legacy/imagegen');
+    const { api, live } = bindingImagegen();
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.session?.imagegenRoot).toBe('/Code/legacy/imagegen'));
+
+    await act(async () => result.current.createSession('Beta'));
+
+    expect(result.current.session!.imagegenRoot ?? null).toBe(null);
+    expect(live()).toBe(null);
   });
 });

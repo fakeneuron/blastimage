@@ -12,11 +12,16 @@
  * point — same rationale as `components/Workspace.test.tsx`'s `vi.mock` of
  * `useWorkspace`). `imagegenFileUrl` is deliberately left unmocked: the URL it
  * builds is the thing under test.
+ *
+ * BI-047 moved the *choice* of root out of here: the provider no longer restores
+ * one on mount, it serves whichever one `useWorkspace` points it at. So every
+ * fixture below links explicitly, and "unlinked" is simply a provider nobody has
+ * pointed anywhere — the state a project with no bound folder is in.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { ImagegenProvider, useImagegen, type ImagegenApi } from './ImagegenContext';
 
@@ -26,7 +31,6 @@ vi.mock('./imagegenClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./imagegenClient')>();
   return {
     ...actual,
-    restoreLinkedRoot: vi.fn(async () => hoisted.root),
     linkImagegenRoot: vi.fn(async () => ({ ok: true as const, value: hoisted.root })),
     browseDirectory: vi.fn(async () => ({
       ok: true as const,
@@ -49,14 +53,26 @@ function Wrapper({ children }: { children: ReactNode }) {
   return <ImagegenProvider>{children}</ImagegenProvider>;
 }
 
+/** Stands in for `useWorkspace` pointing the link at the project's root (BI-047). */
+function AutoLink() {
+  const { setLinkedRoot } = useImagegen();
+  useEffect(() => {
+    void setLinkedRoot(hoisted.root);
+  }, [setLinkedRoot]);
+  return null;
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-/** Mounts the hook and waits for the on-mount root restore to settle. */
+/** Mounts the hook and points it at the fixture root, as `useWorkspace` does. */
 async function linkedHook() {
   const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+  await act(async () => {
+    await result.current.setLinkedRoot(hoisted.root);
+  });
   await waitFor(() => expect(result.current.linked).toBe(true));
   return result;
 }
@@ -84,11 +100,8 @@ describe('resolveDisplayUrl (BI-045)', () => {
   });
 
   it('returns the raw imagegen: URL when no folder is linked', async () => {
-    const client = await import('./imagegenClient');
-    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
-
     const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(false));
+    expect(result.current.linked).toBe(false);
 
     const raw = 'imagegen:rounds/r1/hero.png';
     expect(await act(async () => result.current.resolveDisplayUrl(raw))).toBe(raw);
@@ -126,11 +139,8 @@ describe('blobEpoch busts a reloaded round (BI-042.2 · BI-045)', () => {
 
 describe('unlinked operations report the link prompt', () => {
   it('fails every folder operation with the sidebar hint', async () => {
-    const client = await import('./imagegenClient');
-    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
-
     const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(false));
+    expect(result.current.linked).toBe(false);
 
     const outcomes = await Promise.all([
       result.current.readRound(1),
@@ -148,21 +158,51 @@ describe('unlinked operations report the link prompt', () => {
   });
 });
 
-describe('linkFolder (BI-046)', () => {
-  it('adopts the root the picker handed it so later operations reach the folder', async () => {
+describe('setLinkedRoot (BI-046 · BI-047)', () => {
+  it('adopts the root it is handed so later operations reach that folder', async () => {
     const client = await import('./imagegenClient');
-    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
-
     const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.linked).toBe(false));
 
     await act(async () => {
-      await result.current.linkFolder('/repo/imagegen');
+      await result.current.setLinkedRoot('/repo/imagegen');
     });
 
     expect(vi.mocked(client.linkImagegenRoot)).toHaveBeenCalledWith('/repo/imagegen');
+    expect(result.current.root).toBe('/repo/imagegen');
     expect(result.current.linked).toBe(true);
     expect(await result.current.listRounds()).toEqual([1, 2]);
+  });
+
+  it('unlinks on null, so a project with no bound folder shows none', async () => {
+    const result = await linkedHook();
+
+    await act(async () => {
+      await result.current.setLinkedRoot(null);
+    });
+
+    expect(result.current.root).toBe(null);
+    expect(result.current.linked).toBe(false);
+  });
+
+  /**
+   * The failure that made this a project property: leaving the previous
+   * project's folder live under a project that does not own it would resolve
+   * its `imagegen:` URLs against the wrong repo.
+   */
+  it('clears the link when the new root is rejected, rather than keeping the old one', async () => {
+    const client = await import('./imagegenClient');
+    const result = await linkedHook();
+    expect(result.current.root).toBe('/repo/imagegen');
+
+    vi.mocked(client.linkImagegenRoot).mockResolvedValueOnce({
+      ok: false as const,
+      error: 'No such folder: /gone/imagegen',
+    });
+    const outcome = await act(async () => result.current.setLinkedRoot('/gone/imagegen'));
+
+    expect(outcome.ok).toBe(false);
+    expect(result.current.root).toBe(null);
+    expect(result.current.linked).toBe(false);
   });
 });
 
@@ -188,6 +228,7 @@ describe('ImagegenApi value identity (BI-042.4)', () => {
             bump {n}
           </button>
           <ImagegenProvider>
+            <AutoLink />
             <Capture />
           </ImagegenProvider>
         </div>

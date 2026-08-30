@@ -6,6 +6,9 @@
  * shortcut, a browsed directory, a typed fallback — plus the reason the modal
  * exists at all: a bad path reports inside the dialog and leaves it open,
  * which a prompt could not do.
+ *
+ * BI-047 added a second thing that reports in place: a folder another project
+ * already owns, which offers to switch to that project instead of linking.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -14,6 +17,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import ImagegenLinkModal from './ImagegenLinkModal';
 import type { DirectoryListing } from '@/lib/imagegenServerFs';
 import type { Result } from '@/lib/storage';
+import type { LinkOutcome } from '@/lib/useWorkspace';
 
 const HOME: DirectoryListing = {
   path: '/home/dev',
@@ -45,17 +49,20 @@ function renderModal(
 ) {
   const onBrowse = overrides.onBrowse ?? browser();
   const onSuggest = overrides.onSuggest ?? vi.fn(async () => ['/repo/imagegen']);
-  const onLink = overrides.onLink ?? vi.fn(async () => null);
+  const onLink =
+    overrides.onLink ?? vi.fn(async (): Promise<LinkOutcome> => ({ status: 'linked' }));
+  const onSwitchProject = overrides.onSwitchProject ?? vi.fn();
   const onClose = overrides.onClose ?? vi.fn();
   render(
     <ImagegenLinkModal
       onBrowse={onBrowse}
       onSuggest={onSuggest}
       onLink={onLink}
+      onSwitchProject={onSwitchProject}
       onClose={onClose}
     />,
   );
-  return { onBrowse, onSuggest, onLink, onClose };
+  return { onBrowse, onSuggest, onLink, onSwitchProject, onClose };
 }
 
 const dialog = () => screen.getByRole('dialog', { name: 'Link imagegen folder' });
@@ -119,7 +126,9 @@ describe('naming a folder', () => {
 
 describe('failures stay inside the dialog', () => {
   it('shows a link failure and does not close', async () => {
-    const onLink = vi.fn(async () => 'No such folder: /nope');
+    const onLink = vi.fn(
+      async (): Promise<LinkOutcome> => ({ status: 'error', message: 'No such folder: /nope' }),
+    );
     const { onClose } = renderModal({ onLink });
 
     await screen.findByText('/home/dev');
@@ -164,5 +173,69 @@ describe('dismissal (BI-039 idiom)', () => {
     await screen.findByText('/home/dev');
 
     expect(dialog().contains(document.activeElement)).toBe(true);
+  });
+});
+
+/**
+ * The collision BI-047 exists to make visible: two projects cannot share one
+ * `imagegen/` folder, because whichever loaded a round would ingest the other's
+ * images. The picker names the owner and offers to open it — nothing is linked.
+ */
+describe('a folder another project owns (BI-047)', () => {
+  const owned = vi.fn(
+    async (): Promise<LinkOutcome> => ({
+      status: 'owned',
+      ownerId: 'p2',
+      ownerName: 'spinalcord',
+      root: '/repo/imagegen',
+    }),
+  );
+
+  it('names the owning project and stays open instead of linking', async () => {
+    const { onClose } = renderModal({ onLink: owned });
+
+    fireEvent.click(await screen.findByRole('button', { name: '📁 /repo/imagegen' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('/repo/imagegen');
+    expect(alert.textContent).toContain('spinalcord');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(dialog()).toBeTruthy();
+  });
+
+  it('switches to the owning project and closes when offered', async () => {
+    const { onSwitchProject, onClose } = renderModal({ onLink: owned });
+
+    fireEvent.click(await screen.findByRole('button', { name: '📁 /repo/imagegen' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch to “spinalcord”' }));
+
+    expect(onSwitchProject).toHaveBeenCalledWith('p2');
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('clears the offer when a later pick fails outright', async () => {
+    const onLink = vi
+      .fn<(path: string) => Promise<LinkOutcome>>()
+      .mockResolvedValueOnce({
+        status: 'owned',
+        ownerId: 'p2',
+        ownerName: 'spinalcord',
+        root: '/repo/imagegen',
+      })
+      .mockResolvedValueOnce({ status: 'error', message: 'No such folder: /nope' });
+    renderModal({ onLink });
+
+    fireEvent.click(await screen.findByRole('button', { name: '📁 /repo/imagegen' }));
+    await screen.findByRole('button', { name: 'Switch to “spinalcord”' });
+
+    fireEvent.change(screen.getByLabelText('Or type an absolute path'), {
+      target: { value: '/nope' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Link path' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Switch to “spinalcord”' })).toBeNull(),
+    );
+    expect((await screen.findByRole('alert')).textContent).toBe('No such folder: /nope');
   });
 });

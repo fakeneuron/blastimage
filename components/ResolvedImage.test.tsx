@@ -15,8 +15,12 @@
  *
  * Fixtures render through `<Linked>`, which mounts the image only once the
  * provider reports `linked`. That mirrors the app (round images exist only after
- * a folder is linked). BI-038 also covers the mount-before-restore path as a
+ * a folder is linked). BI-038 also covers the mount-before-link path as a
  * contract; `<Linked>` remains the happy-path fixture for the resolution suite.
+ *
+ * Since BI-047 the provider links nothing on its own — the root is a property of
+ * the project, and `lib/useWorkspace.ts` points the link at it. `<AutoLink>`
+ * plays that part here, which is why the fixtures need it at all.
  *
  * **What BI-045 retired.** Resolution used to read a `File` off an FSA handle
  * and mint an object URL, so this file pinned an eviction/revocation dance and
@@ -31,7 +35,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 import ResolvedImage from './ResolvedImage';
 import { ImagegenProvider, useImagegen, type ImagegenApi } from '@/lib/ImagegenContext';
@@ -42,7 +46,7 @@ vi.mock('@/lib/imagegenClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/imagegenClient')>();
   return {
     ...actual,
-    restoreLinkedRoot: vi.fn(async () => hoisted.root),
+    linkImagegenRoot: vi.fn(async () => ({ ok: true as const, value: hoisted.root })),
     readRoundBatch: vi.fn(async (_root: string, round: number) => ({
       ok: true as const,
       value: { schemaVersion: 1, round, generatedAt: 'x', tasks: [] },
@@ -50,10 +54,19 @@ vi.mock('@/lib/imagegenClient', async (importOriginal) => {
   };
 });
 
-/** Mounts children only once the root restore has settled — see the file header. */
+/** Mounts children only once the link has settled — see the file header. */
 function Linked({ children }: { children: ReactNode }) {
   const { linked } = useImagegen();
   return linked ? <>{children}</> : null;
+}
+
+/** Stands in for `useWorkspace` pointing the link at the project's root (BI-047). */
+function AutoLink() {
+  const { setLinkedRoot } = useImagegen();
+  useEffect(() => {
+    void setLinkedRoot(hoisted.root);
+  }, [setLinkedRoot]);
+  return null;
 }
 
 /**
@@ -68,6 +81,7 @@ function Capture({ apiRef }: { apiRef: { current: ImagegenApi | null } }) {
 function image(src: string) {
   return (
     <ImagegenProvider>
+      <AutoLink />
       <Linked>
         <ResolvedImage src={src} alt="subject" />
       </Linked>
@@ -79,6 +93,7 @@ function image(src: string) {
 function imageWithApi(src: string, apiRef: { current: ImagegenApi | null }) {
   return (
     <ImagegenProvider>
+      <AutoLink />
       <Capture apiRef={apiRef} />
       <Linked>
         <ResolvedImage src={src} alt="subject" />
@@ -87,7 +102,7 @@ function imageWithApi(src: string, apiRef: { current: ImagegenApi | null }) {
   );
 }
 
-/** Renders through `<Linked>` and drains both the restore and the resolve effect. */
+/** Renders through `<Linked>` and drains both the link and the resolve effect. */
 async function renderResolved(src: string) {
   const { rerender, unmount } = render(image(src));
   await act(async () => {});
@@ -151,9 +166,8 @@ describe('ResolvedImage — imagegen: resolution (BI-024.1 · BI-045)', () => {
   });
 
   it('falls back to the raw URL when no folder is linked', async () => {
-    const client = await import('@/lib/imagegenClient');
-    vi.mocked(client.restoreLinkedRoot).mockResolvedValueOnce(null);
-
+    // No `<AutoLink>`: since BI-047 a provider nobody has pointed at a folder is
+    // unlinked, which is exactly the state a project with no binding is in.
     render(
       <ImagegenProvider>
         <ResolvedImage src="imagegen:rounds/r1/gone.png" alt="subject" />
@@ -178,14 +192,15 @@ describe('ResolvedImage — provider requirement (BI-024.1)', () => {
   });
 });
 
-describe('ResolvedImage — mount-before-restore (BI-038)', () => {
-  it('resolves an imagegen: URL after the root restore settles', async () => {
+describe('ResolvedImage — mount-before-link (BI-038)', () => {
+  it('resolves an imagegen: URL once the root arrives', async () => {
     render(
       <ImagegenProvider>
+        <AutoLink />
         <ResolvedImage src="imagegen:rounds/r1/hero.png" alt="subject" />
       </ImagegenProvider>,
     );
-    // Drain restore + the re-run resolve effect once `linked` becomes true.
+    // Drain the link + the re-run resolve effect once `linked` becomes true.
     await act(async () => {});
     await act(async () => {});
 

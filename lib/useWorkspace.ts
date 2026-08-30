@@ -13,11 +13,19 @@
  * `activeTaskId` is UI-only selection state — the model has no "active task"
  * field — so it is not persisted and resets to the first task on a session
  * switch.
+ *
+ * Since BI-047 this hook also owns *which* `imagegen/` folder is live. The root
+ * is a property of the project (`Session.imagegenRoot`), so every path that
+ * changes the open project — mount, switch, create, import — re-points the link
+ * through `imagegen.setLinkedRoot`. Keeping those in step is what guarantees the
+ * root-relative `imagegen:` URLs on screen resolve against the folder they were
+ * ingested from.
  */
 
 import { useEffect, useRef, useState } from 'react';
 
 import type { ImagegenApi } from './ImagegenContext';
+import { clearStoredRoot, loadStoredRoot } from './imagegenClient';
 import type { DirectoryListing } from './imagegenServerFs';
 import { resolveImageBlob } from './imageBlob';
 import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
@@ -56,6 +64,7 @@ import {
   addRefImage as addRefImageTo,
   addTask as addTaskTo,
   appendIteration as appendIterationTo,
+  bindImagegenRoot,
   buildApprovedImages,
   buildExportManifest,
   cloneSessionWithNewIds,
@@ -67,6 +76,7 @@ import {
   newGeneratedImage,
   newSession,
   newTask,
+  projectNameFromRoot,
   removeRefImage as removeRefImageFrom,
   renameSession as renameSessionName,
   renameSlugBreak,
@@ -90,8 +100,9 @@ const PROVIDER_PROBE_MS = 1500;
 
 /** Stand-in when the hook runs outside {@link ImagegenProvider} (unit tests). */
 const NOOP_IMAGEGEN: ImagegenApi = {
+  root: null,
   linked: false,
-  linkFolder: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
+  setLinkedRoot: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   browse: async () => ({ ok: false, error: 'Imagegen folder linking is unavailable.' }),
   suggestRoots: async () => [],
   listRounds: async () => [],
@@ -195,6 +206,16 @@ function unreadableSessionReason(load: SessionLoad): string | null {
       return null;
   }
 }
+
+/**
+ * What linking a folder did (BI-047). `owned` is the one case the operator has
+ * to resolve: the folder belongs to another project, so nothing was linked and
+ * nothing was ingested — the picker names the owner and offers to switch to it.
+ */
+export type LinkOutcome =
+  | { status: 'linked' }
+  | { status: 'error'; message: string }
+  | { status: 'owned'; ownerId: ID; ownerName: string; root: string };
 
 export interface UseWorkspace {
   /** False until the mount-time load completes (render a neutral shell while false). */
@@ -306,13 +327,16 @@ export interface UseWorkspace {
    * of letting the user discover the mode by failing.
    */
   generationAvailable: boolean;
-  /** True when an `imagegen/` folder handle is linked (persisted FSA permission). */
+  /** True when the active project's `imagegen/` folder is linked. */
   imagegenLinked: boolean;
+  /** The active project's bound `imagegen/` root, or `null` when unbound (BI-047). */
+  imagegenRoot: string | null;
   /**
-   * Links the `imagegen/` folder the picker returned and persists it, resolving
-   * to the failure message or `null` on success (BI-046).
+   * Binds the `imagegen/` folder the picker returned to the active project and
+   * links it (BI-046 · BI-047). Reports the owner instead of linking when the
+   * folder already belongs to another project.
    */
-  linkImagegenFolder: (path: string) => Promise<string | null>;
+  linkImagegenFolder: (path: string) => Promise<LinkOutcome>;
   /** Subdirectories of `path` for the picker's tree; absent `path` starts at home (BI-046). */
   browseImagegen: (path?: string) => Promise<Result<DirectoryListing>>;
   /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
@@ -398,6 +422,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
         if (cancelled) return;
         setActiveTaskId(existing.session.tasks[0]?.id ?? null);
         setReady(true);
+        const adopted = await syncImagegenLink(existing.session);
+        if (!cancelled && adopted) commit(adopted);
         return;
       }
       // A rejected session is not an absent one: bootstrapping over it would
@@ -412,6 +438,9 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
         if (cancelled) return;
         setSession(fresh);
         setSessions(await persistence.listSessions());
+        const adopted = await syncImagegenLink(fresh);
+        if (cancelled) return;
+        if (adopted) commit(adopted);
         if (unreadable) {
           setError(`${unreadable} A new project was started; the old data is still in browser storage.`);
         }
@@ -426,6 +455,9 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     return () => {
       cancelled = true;
     };
+    // Mount-only: listing syncImagegenLink would re-run the whole bootstrap
+    // every time the link moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -450,6 +482,39 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     })();
   }
 
+  /**
+   * Points the live link at `project`'s bound folder (BI-047) — the one call
+   * every path that changes the open project makes, so the link can never lag
+   * behind the project whose `imagegen:` URLs are on screen.
+   *
+   * A project with no binding adopts the pre-BI-047 app-wide root if one is
+   * still stored, so an operator who linked a folder before this change does not
+   * have to link it again; the key is cleared either way, since a second
+   * adoption would hand the same folder to a second project. Returns the session
+   * to persist when that happens, and `null` otherwise.
+   */
+  async function syncImagegenLink(project: Session): Promise<Session | null> {
+    const bound = project.imagegenRoot ?? null;
+    if (bound) {
+      const linked = await imagegen.setLinkedRoot(bound);
+      if (!linked.ok) {
+        setError(
+          `Project “${project.name}” is linked to ${bound}, which is no longer readable — ` +
+            're-link it with 🔗 in the sidebar.',
+        );
+      }
+      return null;
+    }
+    const legacy = loadStoredRoot();
+    if (!legacy) {
+      await imagegen.setLinkedRoot(null);
+      return null;
+    }
+    const linked = await imagegen.setLinkedRoot(legacy);
+    clearStoredRoot();
+    return linked.ok && linked.value ? bindImagegenRoot(project, linked.value) : null;
+  }
+
   function createSession(name: string): void {
     const fresh = newSession(name.trim() || DEFAULT_SESSION_NAME);
     setError(null);
@@ -465,6 +530,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       await persistence.setActiveSessionId(fresh.id);
       setSessions(await persistence.listSessions());
     })();
+    // A project nobody has linked a folder for yet shows no folder (BI-047).
+    void imagegen.setLinkedRoot(null);
   }
 
   function switchSession(id: ID): void {
@@ -482,6 +549,9 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       sessionRef.current = loaded.session;
       setSession(loaded.session);
       setActiveTaskId(loaded.session.tasks[0]?.id ?? null);
+      setLoadedRound(null);
+      const adopted = await syncImagegenLink(loaded.session);
+      if (adopted) commit(adopted);
     })();
   }
 
@@ -518,7 +588,9 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     }
     // Land a fresh copy (new ids throughout) so a re-import never collides with
     // an existing session. Mirrors createSession's optimistic-then-persist shape.
-    const fresh = cloneSessionWithNewIds(parsed.value);
+    // The copy lands unbound (BI-047): the backup's folder path is the *original*
+    // project's, and may not even exist on the machine doing the import.
+    const fresh = bindImagegenRoot(cloneSessionWithNewIds(parsed.value), null);
     setError(null);
     sessionRef.current = fresh;
     setSession(fresh);
@@ -532,6 +604,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       await persistence.setActiveSessionId(fresh.id);
       setSessions(await persistence.listSessions());
     })();
+    void imagegen.setLinkedRoot(null);
   }
 
   function renameTask(taskId: ID, name: string): boolean {
@@ -969,17 +1042,38 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   }
 
   /**
-   * Links the folder the picker returned. Resolves to the failure message so
-   * the modal can show it and stay open (BI-046) — a mistyped path belongs
-   * next to the field that produced it, not in the global banner.
+   * Binds the folder the picker returned to the active project and links it.
+   * Every outcome resolves to the modal rather than the global banner (BI-046) —
+   * a mistyped path, and now a folder owned by another project, both belong next
+   * to the control that produced them, with the picker still open to act on it.
    */
-  async function linkImagegenFolder(path: string): Promise<string | null> {
-    const result = await imagegen.linkFolder(path);
-    if (!result.ok) return result.error;
-    const rounds = await imagegen.listRounds();
-    setAvailableRounds(rounds);
-    setError(null);
-    return null;
+  async function linkImagegenFolder(path: string): Promise<LinkOutcome> {
+    const project = sessionRef.current;
+    if (!project) return { status: 'error', message: 'No project is open.' };
+    const linked = await imagegen.setLinkedRoot(path);
+    if (!linked.ok) return { status: 'error', message: linked.error };
+    const root = linked.value;
+    if (!root) return { status: 'error', message: 'The server named no folder.' };
+    // Two projects pointing at one folder is the ambiguity this task exists to
+    // remove: whichever loads a round would ingest the other's images. Compared
+    // canonically, because both sides come back from `resolveRoot`.
+    const owner = sessions.find((meta) => meta.id !== project.id && meta.imagegenRoot === root);
+    if (owner) {
+      // Nothing bound, nothing ingested — put the live link back where this
+      // project left it and let the operator switch to the owner instead.
+      await syncImagegenLink(project);
+      return { status: 'owned', ownerId: owner.id, ownerName: owner.name, root };
+    }
+    let next = bindImagegenRoot(project, root);
+    // A project still carrying its bootstrap name with nothing in it is named
+    // after the repo it just linked; one the operator named or filled is not.
+    if (next.name === DEFAULT_SESSION_NAME && next.tasks.length === 0) {
+      const derived = projectNameFromRoot(root);
+      if (derived) next = renameSessionName(next, derived);
+    }
+    commit(next);
+    setAvailableRounds(await imagegen.listRounds());
+    return { status: 'linked' };
   }
 
   async function refreshAvailableRounds(): Promise<void> {
@@ -1057,6 +1151,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     exportReviewSheet,
     generationAvailable,
     imagegenLinked: imagegen.linked,
+    imagegenRoot: imagegen.root,
     linkImagegenFolder,
     browseImagegen: imagegen.browse,
     suggestImagegenRoots: imagegen.suggestRoots,

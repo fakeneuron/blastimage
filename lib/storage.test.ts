@@ -69,6 +69,38 @@ describe('save / load round-trip', () => {
     expect(metas).toHaveLength(1);
     expect(metas[0]!.name).toBe('Renamed');
   });
+
+  /**
+   * The index carries the bound folder (BI-047) so finding which project owns
+   * one never deserializes every workspace — the reason the index exists.
+   */
+  it('carries the bound imagegen root on the index entry', () => {
+    saveSession(makeSession({ id: 'a', name: 'A', imagegenRoot: '/Code/a/imagegen' }));
+    saveSession(makeSession({ id: 'b', name: 'B' }));
+
+    const byId = new Map(listSessions().map((m) => [m.id, m.imagegenRoot]));
+    expect(byId.get('a')).toBe('/Code/a/imagegen');
+    expect(byId.get('b')).toBe(null);
+  });
+
+  /**
+   * `isSession` is structural, so a project written before BI-047 added the
+   * field loads unchanged — which is why `SCHEMA_VERSION` did not have to move.
+   */
+  it('loads a session stored without the imagegen binding', () => {
+    const session = makeSession({ id: 'legacy' });
+    saveSession(session);
+    const raw = JSON.parse(localStorage.getItem('blastimage:session:legacy')!) as Record<
+      string,
+      unknown
+    >;
+    delete raw.imagegenRoot;
+    localStorage.setItem('blastimage:session:legacy', JSON.stringify(raw));
+
+    const load = loadSession('legacy');
+    expect(load.status).toBe('ok');
+    expect(load.status === 'ok' && load.session.imagegenRoot).toBeUndefined();
+  });
 });
 
 // Each guard reports *why* it rejected the session (BI-030.4) — collapsing them
