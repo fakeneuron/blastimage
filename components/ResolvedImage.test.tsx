@@ -74,11 +74,12 @@ function AutoLink() {
  * `resolveDisplayUrl` on the same provider the mounted image is under.
  */
 function Capture({ apiRef }: { apiRef: { current: ImagegenApi | null } }) {
-  // Deliberate: a test-only probe that hands the live provider value back to
-  // the assertion; it renders null, so there is nothing for the ref write to
-  // tear. Revisit in BI-050.
-  // eslint-disable-next-line react-hooks/refs
-  apiRef.current = useImagegen();
+  const api = useImagegen();
+  // Written from an effect, never during render (BI-050): every caller drains
+  // effects with `act` before reaching for `apiRef.current`.
+  useEffect(() => {
+    apiRef.current = api;
+  }, [api, apiRef]);
   return null;
 }
 

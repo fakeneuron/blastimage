@@ -1104,3 +1104,51 @@ describe('adopting the pre-BI-047 app-wide root', () => {
     expect(live()).toBe(null);
   });
 });
+
+/**
+ * The round list belongs to the folder that produced it. BI-047 made the
+ * folder a property of the project, so an unlink (or a switch to a project
+ * with no folder) has to empty the list *immediately* — a switched project
+ * showing the previous repo's rounds is the failure this pins.
+ *
+ * Characterization coverage added by BI-050 before rewriting where the clear
+ * happens: it passes against the discover effect's `!linked` branch and
+ * against the render-time adjustment that replaced it.
+ */
+describe('availableRounds tracks the linked folder (BI-047)', () => {
+  it('discovers rounds while linked and empties the list the moment the link drops', async () => {
+    const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']), 2: roundBatch(2, []) });
+
+    const { result, rerender } = renderHook(({ a }: { a: ImagegenApi }) => useWorkspace(a), {
+      initialProps: { a: api },
+    });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await waitFor(() => expect(result.current.availableRounds).toEqual([1, 2]));
+
+    // A project switch to one with no folder: same shape the provider serves
+    // when `root` goes back to null.
+    const unlinked: ImagegenApi = { ...api, root: null, linked: false, listRounds: async () => [] };
+    await act(async () => {
+      rerender({ a: unlinked });
+    });
+
+    expect(result.current.availableRounds).toEqual([]);
+  });
+
+  it('re-discovers when a folder is linked again', async () => {
+    const { api } = recordingImagegen({ 3: roundBatch(3, ['hero-003.jpg']) });
+    const unlinked: ImagegenApi = { ...api, root: null, linked: false, listRounds: async () => [] };
+
+    const { result, rerender } = renderHook(({ a }: { a: ImagegenApi }) => useWorkspace(a), {
+      initialProps: { a: unlinked },
+    });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(result.current.availableRounds).toEqual([]);
+
+    await act(async () => {
+      rerender({ a: api });
+    });
+
+    await waitFor(() => expect(result.current.availableRounds).toEqual([3]));
+  });
+});

@@ -9,7 +9,7 @@
  * star ratings and a feedback button (the feedback modal lands in BI-006).
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import type { ID, PromptTask, RefImage, ReviewDecision, StarRating } from '@/lib/types';
 import { DEFAULT_BATCH_SIZE } from '@/lib/useWorkspace';
@@ -60,12 +60,15 @@ export default function TaskDetail({
   // generate time (fixes BI-007's known gap). Resyncs only on task switch, so an
   // in-progress edit survives external session updates (e.g. a finished round).
   const [promptDraft, setPromptDraft] = useState(task?.basePrompt ?? '');
-  useEffect(() => {
-    // Deliberate: resyncs the draft on task switch only; deriving during
-    // render would discard an in-progress edit (BI-007). Revisit in BI-050.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Adjusted during render rather than in an effect (BI-050). The guard is
+  // what preserves the invariant: it keys on task *identity*, so a session
+  // write that rewrites `basePrompt` under an unchanged task leaves the
+  // in-progress edit alone.
+  const [draftFor, setDraftFor] = useState(task?.id);
+  if (draftFor !== task?.id) {
+    setDraftFor(task?.id);
     setPromptDraft(task?.basePrompt ?? '');
-  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   if (!task) {
     return (

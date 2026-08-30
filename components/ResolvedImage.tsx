@@ -32,15 +32,15 @@ export default function ResolvedImage({ src, alt, className, style }: ResolvedIm
   const [displaySrc, setDisplaySrc] = useState(src);
 
   // A new subject drops the old blob immediately — never render the previous
-  // image against the new `src`. Split from the resolve effect below so a
-  // `blobEpoch` bump does not flash every mounted image back to its raw URL.
-  useEffect(() => {
-    // Deliberate: drops the stale blob before the new `src` paints, which is
-    // the whole point of splitting this from the resolve effect (BI-042).
-    // Revisit in BI-050.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  // image against the new `src`. Adjusted during render rather than in an
+  // effect (BI-050) so the swap lands before paint instead of one committed
+  // render later; keying it on `src` alone is what keeps a `blobEpoch` bump
+  // from flashing every mounted image back to its raw URL (BI-042.2).
+  const [resetFor, setResetFor] = useState(src);
+  if (resetFor !== src) {
+    setResetFor(src);
     setDisplaySrc(src);
-  }, [src]);
+  }
 
   useEffect(() => {
     let cancelled = false;

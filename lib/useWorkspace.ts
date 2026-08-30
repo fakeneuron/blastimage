@@ -392,16 +392,15 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     return () => clearInterval(timer);
   }, [generationAvailable]);
 
+  // Clears stale rounds the instant the link drops, so a switched project never
+  // shows the previous repo's rounds (BI-047). Adjusted during render rather
+  // than on the discover effect's `!linked` branch (BI-050) — the guard keeps
+  // it to the one render where the link actually goes away.
+  if (!imagegen.linked && availableRounds.length > 0) setAvailableRounds([]);
+
   // Discover loadable rounds when the imagegen folder link becomes available.
   useEffect(() => {
-    if (!imagegen.linked) {
-      // Deliberate: clears stale rounds the instant the link drops, so a
-      // switched project never shows the previous repo's rounds (BI-047).
-      // Revisit in BI-050.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAvailableRounds([]);
-      return;
-    }
+    if (!imagegen.linked) return;
     let cancelled = false;
     void (async () => {
       const rounds = await imagegen.listRounds();

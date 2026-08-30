@@ -64,34 +64,50 @@ export default function ImagegenLinkModal({
 
   useFocusTrap(dialogRef, { onEscape: onClose });
 
+  // Split from `navigate` so the mount effect below can apply its own in-flight
+  // browse without duplicating this (BI-050): `set-state-in-effect` bans any
+  // setState reachable synchronously from an effect body, so the effect cannot
+  // call `navigate` — but it can call this after awaiting.
+  const applyBrowse = useCallback((result: Result<DirectoryListing>): void => {
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setError(null);
+    setListing(result.value);
+  }, []);
+
   const navigate = useCallback(
     async (path?: string): Promise<void> => {
       setBusy(true);
-      const result = await onBrowse(path);
-      setBusy(false);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setError(null);
-      setListing(result.value);
+      applyBrowse(await onBrowse(path));
     },
-    [onBrowse],
+    [onBrowse, applyBrowse],
   );
 
   // Open at the home directory (or wherever the server starts) and fetch the
-  // shortcut row alongside it. Both are one-shot: the picker unmounts on close.
+  // shortcut row alongside it — both requests in flight at once. Both are
+  // one-shot: the picker unmounts on close. The browse is started here and
+  // applied in its own continuation so no state is set synchronously.
+  //
+  // Deliberately does *not* raise `busy` for this first load, unlike a later
+  // `navigate()`: `useFocusTrap` picks the first *enabled* focusable at mount,
+  // so disabling the path field here would move opening focus onto Cancel
+  // (BI-039). Nothing the mount fetch feeds is on screen yet anyway — only the
+  // type-a-path fallback, which is exactly what should stay usable while the
+  // tree loads.
   useEffect(() => {
     let cancelled = false;
+    const browsing = onBrowse();
     void (async () => {
       const found = await onSuggest();
       if (!cancelled) setSuggestions(found);
     })();
-    // Deliberate: one-shot mount fetch that populates the picker; the modal
-    // unmounts on close so there is no cascading re-render (BI-046).
-    // Revisit in BI-050.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void navigate();
+    void (async () => {
+      const result = await browsing;
+      if (!cancelled) applyBrowse(result);
+    })();
     return () => {
       cancelled = true;
     };

@@ -174,6 +174,15 @@ describe('dismissal (BI-039 idiom)', () => {
 
     expect(dialog().contains(document.activeElement)).toBe(true);
   });
+
+  // `useFocusTrap` picks the first *enabled* focusable at mount, so anything
+  // that disables the path field while the opening browse is in flight moves
+  // focus onto Cancel instead. BI-050 nearly did exactly that.
+  it('opens with focus on the path field, before the first listing arrives', () => {
+    renderModal();
+
+    expect(document.activeElement).toBe(screen.getByLabelText('Or type an absolute path'));
+  });
 });
 
 /**
