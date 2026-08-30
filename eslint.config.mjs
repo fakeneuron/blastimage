@@ -20,7 +20,11 @@ const eslintConfig = [
   {
     ignores: [
       "node_modules/**",
+      // Both `distDir` outputs: `.next/` (dev + prod builds) and `.next-verify/`
+      // (CORE-002's isolated verification build). Flat config does not
+      // auto-ignore dot-directories, so each needs an explicit entry (BI-001).
       ".next/**",
+      ".next-verify/**",
       "out/**",
       "build/**",
       "next-env.d.ts",

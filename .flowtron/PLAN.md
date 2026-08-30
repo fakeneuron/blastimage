@@ -13,7 +13,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **TEST-004.3** [medium]🧩 | route-guard-coverage — table-driven test importing every exported handler in `app/api/imagegen/**`, asserting 403 on a cross-origin `Request`, so a new route added without `refuseUnguarded` fails CI.
   - [ ] **TEST-004.4** [light]🔧 | imagegen-client-tests — cover `lib/imagegenClient.ts` (URL/query construction, `Result` unwrapping, stored-root handling) via `vi.stubGlobal('fetch', ...)`.
   - [ ] **TEST-004.N** [light]🔧 | audit
-- [ ] **CORE-003** [light]🔧 | eslint-next-verify-ignore — add `".next-verify/**"` beside `".next/**"` in `eslint.config.mjs` ignores; CORE-002 wired `.next-verify` into next.config/tsconfig/.gitignore but not ESLint, which does not auto-ignore dot-directories. Surfaced by audit-repo 2026-08-30 (Theme: config fanout)
 
 ## Medium
 
@@ -30,6 +29,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-003** [light]🔧 | eslint-next-verify-ignore — Completed 2026-08-30.
 - [x] **CORE-002** [light]🔧 | build-clobbers-dev-server — Completed 2026-08-30.
 - [x] **BI-044** [light]🔧 | adopt-symlink-path — Completed 2026-08-30.
 - [x] **BI-047** [heavy]🧠 | imagegen-project-binding — Completed 2026-08-30.
