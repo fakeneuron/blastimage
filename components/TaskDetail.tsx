@@ -61,6 +61,9 @@ export default function TaskDetail({
   // in-progress edit survives external session updates (e.g. a finished round).
   const [promptDraft, setPromptDraft] = useState(task?.basePrompt ?? '');
   useEffect(() => {
+    // Deliberate: resyncs the draft on task switch only; deriving during
+    // render would discard an in-progress edit (BI-007). Revisit in BI-050.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPromptDraft(task?.basePrompt ?? '');
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

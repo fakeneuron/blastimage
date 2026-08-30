@@ -39,10 +39,12 @@ jobs:
         run: npm run build
 
       # Runtime dependencies only — dev-tooling advisories never reach a built
-      # artifact. The Next 15 tree's postcss/sharp advisories are held clear by
-      # the `overrides` block in package.json (BI-034.3). Drop those overrides
-      # when the tree moves to Next 16, which fixes them upstream — Dependabot
-      # surfaces that major as its own PR (BI-034.4).
+      # artifact, so the dev tree stays deliberately ungated (BI-034.3).
+      # Next 15 could only pass this gate with a postcss/sharp `overrides`
+      # block in package.json; Next 16 pins both safely on its own, so
+      # DEPLOY-002 deleted it. This gate now runs against the unmodified
+      # resolved tree — a failure here is a genuinely new advisory, not a
+      # local pin that fell behind.
       - name: Audit
         run: npm audit --omit=dev --audit-level=high
 

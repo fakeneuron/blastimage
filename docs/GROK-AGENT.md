@@ -10,7 +10,7 @@ delegates to an agent-installed provider (`globalThis.__grokImagineProvider`).
 
 ## App context
 
-blastimage is a local **Next.js 15** (App Router, TypeScript) app for coordinating
+blastimage is a local **Next.js 16** (App Router, TypeScript) app for coordinating
 AI image generation workflows. It runs entirely in the browser — no backend, no
 server, no API proxy. All state is persisted to **localStorage**.
 

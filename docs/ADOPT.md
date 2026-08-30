@@ -5,7 +5,7 @@ This guide walks through adding blastimage as a git submodule so you can generat
 ## Prerequisites
 
 - Git
-- Node.js ≥ 18 (Next.js 15 requirement)
+- Node.js ≥ 20.9 (Next.js 16 requirement)
 - npm
 - **For real image generation:** a Grok Build session with a SuperGrok subscription — see [`docs/GROK-AGENT.md`](GROK-AGENT.md)
 - **blastimage must be pushed to GitHub first.** If the remote repository is empty, `git submodule add` will fail with "fatal: unable to checkout submodule". Confirm at least one push has been made to `origin/main` before proceeding.

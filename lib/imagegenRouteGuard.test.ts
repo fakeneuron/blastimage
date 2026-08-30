@@ -49,9 +49,14 @@ const HTTP_VERBS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
 type Handler = (req: Request) => Response | Promise<Response>;
 
-const routeModules = import.meta.glob<Record<string, unknown>>(
-  '../app/api/imagegen/**/route.ts',
-);
+/**
+ * Untyped on purpose. Next 16 ships its own non-generic `ImportMeta.glob`
+ * overloads (`next/types/global.d.ts`, for Turbopack) which merge with — and
+ * win over — Vite's generic `glob<T>()`, so a type argument here is a
+ * compile error under the Next 16 tree. The module shape is asserted at the
+ * point of use instead (DEPLOY-002).
+ */
+const routeModules = import.meta.glob('../app/api/imagegen/**/route.ts');
 
 /** Glob keys are `../app/...`; normalize to repo-relative for readable names. */
 function repoRelative(globKey: string): string {
@@ -88,7 +93,7 @@ const handlers: Array<{ route: string; verb: string; handler: Handler }> = [];
 
 for (const [globKey, load] of Object.entries(routeModules)) {
   const route = repoRelative(globKey);
-  const mod = await load();
+  const mod = (await load()) as Record<string, unknown>;
   for (const verb of HTTP_VERBS) {
     const exported = mod[verb];
     if (typeof exported === 'function') {

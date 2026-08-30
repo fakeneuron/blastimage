@@ -35,6 +35,10 @@ export default function ResolvedImage({ src, alt, className, style }: ResolvedIm
   // image against the new `src`. Split from the resolve effect below so a
   // `blobEpoch` bump does not flash every mounted image back to its raw URL.
   useEffect(() => {
+    // Deliberate: drops the stale blob before the new `src` paints, which is
+    // the whole point of splitting this from the resolve effect (BI-042).
+    // Revisit in BI-050.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDisplaySrc(src);
   }, [src]);
 

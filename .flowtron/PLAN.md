@@ -20,10 +20,13 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Future Opportunities
 
-- [ ] **DEPLOY-002** [medium]🧩 | next-16-and-override-drop — ride Dependabot's Next 15→16 PR and drop the `postcss`/`sharp` `overrides` block that `.github/workflows/ci.yml`'s audit-step comment marks as droppable at Next 16 (today that cleanup instruction lives only in the comment). Assess ESLint 9→10 and TypeScript 5→7 separately. Surfaced by audit-repo 2026-08-30 (Theme: config fanout)
+- [ ] **BI-050** [medium]🧩 | react-hooks-7-effect-cleanup — resolve the 5 `eslint-plugin-react-hooks@7` violations that DEPLOY-002 suppressed with per-site disables: `set-state-in-effect` in `components/ResolvedImage.tsx` (BI-042 blob swap), `components/TaskDetail.tsx` (BI-007 prompt draft), `components/ImagegenLinkModal.tsx` (BI-046 mount fetch), `lib/useWorkspace.ts` (BI-047 round reset), plus `refs` in `components/ResolvedImage.test.tsx`. Each is a deliberate, working pattern — a proper fix means `key`-prop or derive-during-render rewrites with real regression risk to blob-URL lifetime and unsaved-prompt behavior, so it needs characterization tests first. Rules are at error, so new violations still fail CI
+- [ ] **DEPLOY-003** [medium]🧩 | eslint-10-upgrade — assess and land ESLint 9→10 (Dependabot PR #4; latest 10.9.1). Not forced by any peer — `eslint-config-next@16` declares `eslint: >=9.0.0`. DEPLOY-002 already removed `@eslint/eslintrc`/FlatCompat, so `eslint.config.mjs` is now pure flat config, which should make this materially simpler than it would have been
+- [ ] **DEPLOY-004** [heavy]🧠 | typescript-7-upgrade — assess and land TypeScript 5→7 (Dependabot PR #5; latest 7.0.2), the native-port compiler rewrite. Not forced by any peer — `eslint-config-next@16` declares `typescript: >=3.3.1`. Highest-risk of the three majors against this repo's `strict` + `noUncheckedIndexedAccess` posture (BI-036); expect diagnostic differences rather than a clean swap
 
 ## Completed
 
+- [x] **DEPLOY-002** [medium]🧩 | next-16-and-override-drop — Completed 2026-08-30.
 - [x] **BI-049** [heavy]🧠 | useworkspace-decomposition-survey — Completed 2026-08-30.
 - [x] **BI-048** [light]🔧 | file-route-hardening — Completed 2026-08-30.
 - [x] **TEST-EPIC-004** [medium]🧩 | imagegen-server-surface-tests — Completed 2026-08-30.

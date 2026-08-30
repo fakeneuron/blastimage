@@ -87,6 +87,10 @@ export default function ImagegenLinkModal({
       const found = await onSuggest();
       if (!cancelled) setSuggestions(found);
     })();
+    // Deliberate: one-shot mount fetch that populates the picker; the modal
+    // unmounts on close so there is no cascading re-render (BI-046).
+    // Revisit in BI-050.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void navigate();
     return () => {
       cancelled = true;
