@@ -75,8 +75,8 @@ bundled terminal skills from the submodule into your **host repo**:
 ```bash
 # From the host project root (sibling to blastimage/)
 mkdir -p .grok/skills
-ln -sf ../blastimage/.grok/skills/blast-generate .grok/skills/blast-generate
-ln -sf ../blastimage/.grok/skills/blast-iterate .grok/skills/blast-iterate
+ln -sf ../../blastimage/.grok/skills/blast-generate .grok/skills/blast-generate
+ln -sf ../../blastimage/.grok/skills/blast-iterate .grok/skills/blast-iterate
 ```
 
 Copy instead of symlink if your tooling does not follow symlinks. Skills appear
