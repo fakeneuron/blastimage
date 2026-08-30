@@ -9,7 +9,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 - [ ] **TEST-EPIC-004** [medium]🧩 | imagegen-server-surface-tests — the BI-045/046/047 server surface writes to the operator's repo and has no tests on the layer that invokes its guard. Discovery supplied by audit-repo 2026-08-30. Surfaced by audit-repo 2026-08-30 (Theme: newest surface is the least tested)
-  - [ ] **TEST-004.2** [medium]🧩 | imagegen-route-tests — cover `lib/imagegenRoute.ts`: `rootFrom` / `roundFrom` / `filenameFrom` / `jsonBody` / `resultResponse` / `refuseUnguarded`.
+  - [x] **TEST-004.2** [medium]🧩 | imagegen-route-tests — Completed 2026-08-30.
   - [ ] **TEST-004.3** [medium]🧩 | route-guard-coverage — table-driven test importing every exported handler in `app/api/imagegen/**`, asserting 403 on a cross-origin `Request`, so a new route added without `refuseUnguarded` fails CI.
   - [ ] **TEST-004.4** [light]🔧 | imagegen-client-tests — cover `lib/imagegenClient.ts` (URL/query construction, `Result` unwrapping, stored-root handling) via `vi.stubGlobal('fetch', ...)`.
   - [ ] **TEST-004.N** [light]🔧 | audit

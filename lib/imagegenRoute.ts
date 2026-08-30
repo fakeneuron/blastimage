@@ -49,9 +49,21 @@ export async function jsonBody(req: Request): Promise<Result<Record<string, unkn
   }
 }
 
-/** Reads a positive integer round number from a raw query/body value. */
+/**
+ * Reads a non-negative integer round number from a raw query/body value.
+ * Blank strings are rejected rather than coerced: `Number('')` is `0`, so
+ * `?round=` or a `{round: ''}` body would otherwise resolve to a real round
+ * directory — and on the write path, create one.
+ */
 export function roundFrom(raw: unknown): Result<number> {
-  const n = typeof raw === 'string' ? Number(raw) : typeof raw === 'number' ? raw : NaN;
+  const n =
+    typeof raw === 'string'
+      ? raw.trim() === ''
+        ? NaN
+        : Number(raw)
+      : typeof raw === 'number'
+        ? raw
+        : NaN;
   if (!Number.isInteger(n) || n < 0) return { ok: false, error: `Invalid round: ${String(raw)}` };
   return { ok: true, value: n };
 }
