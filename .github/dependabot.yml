@@ -19,6 +19,17 @@ updates:
       - dependency-name: "eslint"
         update-types:
           - "version-update:semver-major"
+      # TypeScript majors are held at 5 until `typescript-eslint` supports
+      # TS 7 (the 7.1 compiler API). `eslint-config-next`'s typescript-eslint
+      # throws at config load on 7.0 (`does not support TS 7.0`; no
+      # `createProgram`). Microsoft's dual-install (typescript →
+      # @typescript/typescript6) then breaks Next 16.3.3 package detection.
+      # tsc and next build are already clean on 7.0.2. Measured in
+      # DEPLOY-004 — see `.flowtron/tasknote/archive/deployment/DEPLOY-004.md`
+      # for the probe. Drop this entry when DEPLOY-006 lands.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
 
   # Workflow action pins (`/` means `.github/workflows`). Ungrouped on purpose:
   # the pins are major tags (`@v4`), so nearly every update Dependabot raises

@@ -21,10 +21,11 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Future Opportunities
 
 - [ ] **DEPLOY-005** [light]🔧 | eslint-10-revisit — retry ESLint 9→10 once `eslint-plugin-react` supports ESLint 10. DEPLOY-003 measured the blocker: that plugin (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 — `context.getFilename is not a function` — and 7.37.5 is `latest`, so there is nothing to bump to. Everything else in the tree is already 10-ready; with `react/*` off, ESLint 10 lint this repo clean. Unblock check: `npm view eslint-plugin-react peerDependencies`. On landing, also drop the `eslint` major-ignore from `.github/dependabot.yml`
-- [ ] **DEPLOY-004** [heavy]🧠 | typescript-7-upgrade — assess and land TypeScript 5→7 (Dependabot PR #5; latest 7.0.2), the native-port compiler rewrite. Not forced by any peer — `eslint-config-next@16` declares `typescript: >=3.3.1`. Highest-risk of the three majors against this repo's `strict` + `noUncheckedIndexedAccess` posture (BI-036); expect diagnostic differences rather than a clean swap
+- [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`
 
 ## Completed
 
+- [x] **DEPLOY-004** [heavy]🧠 | typescript-7-upgrade — Completed 2026-08-31.
 - [x] **DEPLOY-003** [medium]🧩 | eslint-10-upgrade — Completed 2026-08-30.
 - [x] **BI-050** [medium]🧩 | react-hooks-7-effect-cleanup — Completed 2026-08-30.
 - [x] **DEPLOY-002** [medium]🧩 | next-16-and-override-drop — Completed 2026-08-30.
