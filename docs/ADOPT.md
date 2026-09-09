@@ -58,7 +58,10 @@ npm install
 npm run dev   # → http://localhost:3003
 ```
 
-blastimage is entirely frontend — no backend, no accounts. All session state persists in the browser's `localStorage`.
+No accounts. Session state persists in the browser's `localStorage`. The Next.js
+dev server is required: 🔗 Link imagegen and ↻ Load round talk to
+`/api/imagegen/*` on this origin (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md)
+§4).
 
 Port **3003** is dedicated; it doesn't conflict with common project ports (Next.js 3000–3002, Astro 4321).
 
