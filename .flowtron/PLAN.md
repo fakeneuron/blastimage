@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **BI-051** [light]🔧 | focusable-tabindex-gap — FOCUSABLE (lib/useFocusTrap.ts) doesn't exclude tabIndex={-1} button/[href] elements from the Tab cycle — only input/select/textarea are guarded — contradicting its own doc comment. No live consumer affected; surfaced writing TEST-005's exclusion test.
+(none)
 
 ## Future Opportunities
 
@@ -25,6 +25,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-051** [light]🔧 | focusable-tabindex-gap — Completed 2026-09-09.
 - [x] **TEST-005** [light]🔧 | focus-trap-direct-tests — Completed 2026-09-09.
 - [x] **CORE-004** [light]🔧 | just-e2e-inert-verb — Completed 2026-09-09.
 - [x] **TEST-006** [light]🔧 | vitest-config-esm — Completed 2026-09-09.

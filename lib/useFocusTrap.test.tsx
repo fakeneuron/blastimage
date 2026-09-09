@@ -18,7 +18,7 @@ import { useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 
-import { useFocusTrap, type FocusTarget } from './useFocusTrap';
+import { FOCUSABLE, useFocusTrap, type FocusTarget } from './useFocusTrap';
 
 afterEach(cleanup);
 
@@ -38,11 +38,16 @@ function Dialog({ onEscape, focusTarget, withFocusables = true }: DialogProps) {
         <>
           <button>first</button>
           <button>second</button>
+          {/* Every opt-out shape FOCUSABLE promises to skip, in one run between
+              `second` and `third`: disabled, and tabIndex={-1} on each of the
+              element kinds the selector names. The input is ImportBuilder's
+              real shape; the button and link cover the clauses BI-051 fixed. */}
           <button disabled>disabled</button>
-          {/* ImportBuilder's real opt-out shape: tabIndex={-1} only excludes
-              input/select/textarea in FOCUSABLE, not button/[href] — see
-              Discovery Notes / Testing Notes. */}
           <input tabIndex={-1} aria-hidden="true" readOnly value="inert" />
+          <button tabIndex={-1}>inert button</button>
+          <a href="#inert" tabIndex={-1}>
+            inert link
+          </a>
           <button>third</button>
         </>
       )}
@@ -127,14 +132,29 @@ describe('useFocusTrap — Tab cycling', () => {
     expect(document.activeElement).toBe(getByText('third'));
   });
 
-  it('excludes a disabled button and a tabIndex={-1} input from the cycle', () => {
+  it('excludes disabled and tabIndex={-1} controls from the cycle', () => {
     const { getByText, rerender } = render(<Harness open={false} onEscape={vi.fn()} />);
     rerender(<Harness open={true} onEscape={vi.fn()} />);
 
+    // One Tab hops the whole opt-out run: disabled button, inert input,
+    // inert button, inert link (BI-051 closed the last two).
     getByText('second').focus();
     fireEvent.keyDown(window, { key: 'Tab' });
 
     expect(document.activeElement).toBe(getByText('third'));
+  });
+
+  it('excludes a tabIndex={-1} button and [href] from the trap targets (BI-051)', () => {
+    const { getByText, getByTestId, rerender } = render(
+      <Harness open={false} onEscape={vi.fn()} />,
+    );
+    rerender(<Harness open={true} onEscape={vi.fn()} />);
+
+    const targets = Array.from(getByTestId('dialog').querySelectorAll(FOCUSABLE));
+
+    expect(targets).toEqual([getByText('first'), getByText('second'), getByText('third')]);
+    expect(targets).not.toContain(getByText('inert button'));
+    expect(targets).not.toContain(getByText('inert link'));
   });
 
   it('enters at the first focusable on Tab when focus sits on the dialog container', () => {

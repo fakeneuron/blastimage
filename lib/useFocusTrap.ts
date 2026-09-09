@@ -16,13 +16,29 @@
 
 import { type RefObject, useEffect } from 'react';
 
+/** Appended to every clause below, so no clause can silently omit it (BI-051). */
+const NOT_OPTED_OUT = ':not([tabindex="-1"])';
+
 /**
  * Everything inside the dialog that can hold focus. Disabled controls and
  * explicit `tabIndex={-1}` opt out (e.g. ImportBuilder's hidden file input,
  * which is activated via a labeled button rather than the tab cycle).
+ *
+ * The opt-out guard is derived rather than hand-written per clause: BI-039
+ * wrote it out six times and missed `button` and `[href]`, so a
+ * `tabIndex={-1}` button or link stayed in the cycle despite the contract
+ * above (BI-051; no consumer relied on it, latent since 2026-08-09).
  */
-export const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+export const FOCUSABLE = [
+  'button:not([disabled])',
+  '[href]',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]',
+]
+  .map((clause) => clause + NOT_OPTED_OUT)
+  .join(', ');
 export type FocusTarget = 'dialog' | 'first';
 
 export interface UseFocusTrapOptions {
