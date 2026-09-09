@@ -11,8 +11,20 @@ delegates to an agent-installed provider (`globalThis.__grokImagineProvider`).
 ## App context
 
 blastimage is a local **Next.js 16** (App Router, TypeScript) app for coordinating
-AI image generation workflows. It runs entirely in the browser — no backend, no
-server, no API proxy. All state is persisted to **localStorage**.
+AI image generation workflows. Session state persists in **localStorage** — no
+accounts, no cloud project.
+
+This document is the contract for **in-app generation**: you install a provider
+on `globalThis.__grokImagineProvider` and `lib/generate.ts` `generateBatch` calls
+it inside the Grok Build sandbox.
+
+The rest of the app talks to a **localhost imagegen API** (`app/api/imagegen/`,
+BI-045) — Next.js routes over Node `fs` that link a project's `imagegen/` folder,
+load rounds, and write `selection.json` / `approved/`. Those routes are not this
+bridge; they are the file surface the viewer/selector already uses. See
+[`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §4. There is no hosted backend and no
+credentials on either surface; the Next dev server (`next dev -p 3003`) must be
+running for the imagegen routes to exist.
 
 **User flow:**
 
@@ -111,7 +123,7 @@ export async function generateBatch(req: GenerationRequest): Promise<GeneratedCa
 ### The only caller
 
 ```typescript
-// lib/useWorkspace.ts  (inside generate(); the call site is ~line 239)
+// lib/useWorkspace.ts  (inside generate(); the call site is ~line 731)
 
 const candidates = await generateBatch({
   prompt,                       // trimmed string; may be empty if refs are present
@@ -131,7 +143,7 @@ The mock once used `referenceSeeds?: string[]` (opaque ID strings). That is gone
 `GenerationRequest` now carries **`referenceImages?: string[]`** — actual base64
 `data:` URLs the imagine backend can consume. The caller already resolves IDs to
 data URLs before calling `generateBatch`, so the provider receives ready-to-use
-bytes. This is what `lib/useWorkspace.ts` does inside `generate()` (~line 232):
+bytes. This is what `lib/useWorkspace.ts` does inside `generate()` (~line 711):
 
 ```typescript
 // Resolve reference IDs → base64 data URLs. Covers both library RefImages

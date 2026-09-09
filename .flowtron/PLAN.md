@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 - [ ] **BI-EPIC-052** [medium]🧩 | post-server-doc-currency — Bring adopter/agent runbooks and the Phase-4 walk list in line with the BI-045/046/047 localhost imagegen API. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Server-surface doc lag)
-  - [ ] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Rewrite docs/GROK-AGENT.md “no backend, no server, no API proxy” so the in-app provider contract sits next to the localhost imagegen API the rest of the app uses.
+  - [x] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Completed 2026-09-09.
   - [ ] **BI-052.3** [light]🔧 | adopt-no-backend-claim — Replace docs/ADOPT.md §4 “entirely frontend — no backend” with: no accounts; session in localStorage; Next dev server + /api/imagegen/* required to link/load rounds.
   - [ ] **BI-052.4** [light]🔧 | ai-referenced-docs-list — Add REVIEW-LOOP, GROK-AGENT, ADOPT, WORKFLOW, VISION to `.flowtron/tasknote/README.md` §AI-referenced docs.
   - [ ] **BI-052.5** [light]🔧 | comment-claim-fossils — types.ts picsum comment; generate.ts mock-era header; CLAUDE.md 1164→1167 and PersistenceAdapter-as-singleton; optional `"engines": { "node": ">=20.9" }`.
