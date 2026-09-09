@@ -22,7 +22,7 @@
  *   fewer entries, and a table-driven suite over an empty table passes silently.
  *   The walk below turns that into a red test.
  * - **The file lives in `lib/`, beside the helper whose invocation it pins, not
- *   in `app/` beside the routes.** `vitest.config.ts`'s include glob is
+ *   in `app/` beside the routes.** `vitest.config.mts`'s include glob is
  *   `{lib,components}/**` (TEST-001.2), so a colocated test would not be
  *   discovered at all without widening it. Since the subjects come from the
  *   filesystem, this file's own location changes nothing about what it covers.
