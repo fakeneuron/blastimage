@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **TEST-005** [light]🔧 | focus-trap-direct-tests — `lib/useFocusTrap.ts` (96 L) has no sibling test; its focus cycling and restore-on-close logic is exercised only incidentally through modal component tests, so a regression surfaces as a confusing failure elsewhere or not at all. Add a direct `lib/useFocusTrap.test.ts`. (`lib/persistence.ts` is the other untested file and is deliberately left alone — a pass-through adapter whose behavior is `storage.ts`'s, already covered.) Surfaced by audit-repo 2026-09-09 (Theme: Residual polish)
+(none)
 
 ## Future Opportunities
 
@@ -25,6 +25,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **TEST-005** [light]🔧 | focus-trap-direct-tests — Completed 2026-09-09.
 - [x] **CORE-004** [light]🔧 | just-e2e-inert-verb — Completed 2026-09-09.
 - [x] **TEST-006** [light]🔧 | vitest-config-esm — Completed 2026-09-09.
 - [x] **DEPLOY-EPIC-007** [medium]🧩 | ci-gate-recovery — Completed 2026-09-09.
