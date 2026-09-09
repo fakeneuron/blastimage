@@ -8,7 +8,10 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **DEPLOY-EPIC-007** [medium]🧩 | ci-gate-recovery — restore the shared verification gate: the CI `Audit` step currently exits 1 (`sharp@0.35.3` < 0.35.4, GHSA-rgj7-g3m4-5g8c), and 27 commits have sat unpushed on `main` since 2026-08-29 — the whole BI-045/046/047 imagegen server-`fs` surface, TEST-EPIC-004, the Next 16 upgrade, and BI-048/049/050 — so CI has not verified any of it (last run on `main`: 2026-08-30). Fix the gate first, then land the backlog behind it. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Dependency currency / Verification boundary)
+  - [ ] **DEPLOY-007.2** [light]🔧 | sharp-audit-gate — bump `next` 16.3.3 → 16.3.4 (its optional pin is already `sharp@^0.35.4`) plus the pending patch/minor group; acceptance: `npm audit --omit=dev --audit-level=high` exits 0 with lint/typecheck/test/build still green. Exposure is ~nil (`next/image` is unused repo-wide, so `sharp` never decodes untrusted input) — this is a red required gate, not a live vulnerability.
+  - [ ] **DEPLOY-007.3** [medium]🧩 | push-backlog-ci-verify — push the 27-commit backlog once .2 is green; acceptance: `git status -sb` shows no ahead-count and `gh run list --workflow ci.yml --branch main --limit 1` is `success` on HEAD (both `ci` and `secrets` jobs).
+  - [ ] **DEPLOY-007.N** [light]🔧 | ci-gate-recovery audit
 
 ## Medium
 
@@ -16,7 +19,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-(none)
+- [ ] **TEST-005** [light]🔧 | focus-trap-direct-tests — `lib/useFocusTrap.ts` (96 L) has no sibling test; its focus cycling and restore-on-close logic is exercised only incidentally through modal component tests, so a regression surfaces as a confusing failure elsewhere or not at all. Add a direct `lib/useFocusTrap.test.ts`. (`lib/persistence.ts` is the other untested file and is deliberately left alone — a pass-through adapter whose behavior is `storage.ts`'s, already covered.) Surfaced by audit-repo 2026-09-09 (Theme: Residual polish)
+- [ ] **CORE-004** [light]🔧 | just-e2e-inert-verb — `justfile:70-75` `just e2e` runs `npx playwright test` with no Playwright config anywhere in the repo, so the standardized verb silently does nothing. Make the recipe state the absence, or deposit the natabula Tier-2 harness if e2e is actually wanted. Surfaced by audit-repo 2026-09-09 (Theme: Residual polish)
 
 ## Future Opportunities
 
