@@ -12,7 +12,12 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-(none)
+- [ ] **BI-EPIC-052** [medium]🧩 | post-server-doc-currency — Bring adopter/agent runbooks and the Phase-4 walk list in line with the BI-045/046/047 localhost imagegen API. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Server-surface doc lag)
+  - [ ] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Rewrite docs/GROK-AGENT.md “no backend, no server, no API proxy” so the in-app provider contract sits next to the localhost imagegen API the rest of the app uses.
+  - [ ] **BI-052.3** [light]🔧 | adopt-no-backend-claim — Replace docs/ADOPT.md §4 “entirely frontend — no backend” with: no accounts; session in localStorage; Next dev server + /api/imagegen/* required to link/load rounds.
+  - [ ] **BI-052.4** [light]🔧 | ai-referenced-docs-list — Add REVIEW-LOOP, GROK-AGENT, ADOPT, WORKFLOW, VISION to `.flowtron/tasknote/README.md` §AI-referenced docs.
+  - [ ] **BI-052.5** [light]🔧 | comment-claim-fossils — types.ts picsum comment; generate.ts mock-era header; CLAUDE.md 1164→1167 and PersistenceAdapter-as-singleton; optional `"engines": { "node": ">=20.9" }`.
+  - [ ] **BI-052.N** [light]🔧 | post-server-doc-currency audit
 
 ## Low
 
@@ -22,6 +27,11 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **DEPLOY-005** [light]🔧 | eslint-10-revisit — retry ESLint 9→10 once `eslint-plugin-react` supports ESLint 10. DEPLOY-003 measured the blocker: that plugin (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 — `context.getFilename is not a function` — and 7.37.5 is `latest`, so there is nothing to bump to. Everything else in the tree is already 10-ready; with `react/*` off, ESLint 10 lint this repo clean. Unblock check: `npm view eslint-plugin-react peerDependencies`. On landing, also drop the `eslint` major-ignore from `.github/dependabot.yml`. Checked 2026-09-09: still 7.37.5, peer still `^9.7`.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-09: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
+- [ ] **TEST-EPIC-007** [heavy]🧠 | playwright-e2e — Real-browser harness for folder picker, round load, and review keyboard paths. Reverses CORE-004's inert `just e2e`. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Test pyramid stops at happy-dom)
+  - [ ] **TEST-007.2** [medium]🧩 | playwright-harness — Add playwright.config, npm script, a dedicated e2e port (not 3003; `reuseExistingServer: false` so `just dev` can stay up), wire `just e2e` to run it, add a CI job.
+  - [ ] **TEST-007.3** [medium]🧩 | imagegen-link-load-e2e — Exercise 🔗 Link imagegen + ↻ Load round against `test-fixtures/imagegen/` through the running Next server.
+  - [ ] **TEST-007.4** [medium]🧩 | review-keyboard-e2e — Lightbox, keep/approve/discard, and focus-trap paths in a real browser (the happy-dom suite cannot see actual focus).
+  - [ ] **TEST-007.N** [light]🔧 | playwright-e2e audit
 
 ## Completed
 
