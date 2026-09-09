@@ -66,13 +66,13 @@ test:
       else echo "no tests"; fi
     fi
 
-# run end-to-end tests (Playwright) — frontend subdir, else root, if present
+# run end-to-end tests (Playwright) — frontend subdir, else root, if a config exists
 e2e:
     #!/usr/bin/env bash
     set -euo pipefail
-    if   [ -d frontend ];     then cd frontend && npx playwright test
-    elif [ -f package.json ]; then npx playwright test
-    else echo "no e2e tests"; fi
+    if   [ -d frontend ] && ls frontend/playwright.config.* >/dev/null 2>&1; then cd frontend && npx playwright test
+    elif [ -f package.json ] && ls playwright.config.* >/dev/null 2>&1; then npx playwright test
+    else echo "no Playwright config found — e2e not wired up for this repo"; fi
 
 # lint / type-check every stack present
 lint:
