@@ -8,10 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **DEPLOY-EPIC-007** [medium]🧩 | ci-gate-recovery — restore the shared verification gate: the CI `Audit` step currently exits 1 (`sharp@0.35.3` < 0.35.4, GHSA-rgj7-g3m4-5g8c), and 27 commits have sat unpushed on `main` since 2026-08-29 — the whole BI-045/046/047 imagegen server-`fs` surface, TEST-EPIC-004, the Next 16 upgrade, and BI-048/049/050 — so CI has not verified any of it (last run on `main`: 2026-08-30). Fix the gate first, then land the backlog behind it. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Dependency currency / Verification boundary)
-  - [x] **DEPLOY-007.2** [light]🔧 | sharp-audit-gate — Completed 2026-09-09.
-  - [x] **DEPLOY-007.3** [medium]🧩 | push-backlog-ci-verify — Completed 2026-09-09.
-  - [ ] **DEPLOY-007.N** [light]🔧 | ci-gate-recovery audit
+(none)
 
 ## Medium
 
@@ -28,6 +25,11 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-09: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **DEPLOY-EPIC-007** [medium]🧩 | ci-gate-recovery — Completed 2026-09-09.
+  - [x] **DEPLOY-007.2** [light]🔧 | sharp-audit-gate — Completed 2026-09-09.
+  - [x] **DEPLOY-007.3** [medium]🧩 | push-backlog-ci-verify — Completed 2026-09-09.
+  - [x] **DEPLOY-007.N** [light]🔧 | ci-gate-recovery audit — Completed 2026-09-09.
 
 - [x] **DEPLOY-004** [heavy]🧠 | typescript-7-upgrade — Completed 2026-08-31.
 - [x] **DEPLOY-003** [medium]🧩 | eslint-10-upgrade — Completed 2026-08-30.
