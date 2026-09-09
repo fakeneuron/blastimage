@@ -10,7 +10,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **DEPLOY-EPIC-007** [medium]🧩 | ci-gate-recovery — restore the shared verification gate: the CI `Audit` step currently exits 1 (`sharp@0.35.3` < 0.35.4, GHSA-rgj7-g3m4-5g8c), and 27 commits have sat unpushed on `main` since 2026-08-29 — the whole BI-045/046/047 imagegen server-`fs` surface, TEST-EPIC-004, the Next 16 upgrade, and BI-048/049/050 — so CI has not verified any of it (last run on `main`: 2026-08-30). Fix the gate first, then land the backlog behind it. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Dependency currency / Verification boundary)
   - [x] **DEPLOY-007.2** [light]🔧 | sharp-audit-gate — Completed 2026-09-09.
-  - [ ] **DEPLOY-007.3** [medium]🧩 | push-backlog-ci-verify — push the 27-commit backlog once .2 is green; acceptance: `git status -sb` shows no ahead-count and `gh run list --workflow ci.yml --branch main --limit 1` is `success` on HEAD (both `ci` and `secrets` jobs).
+  - [x] **DEPLOY-007.3** [medium]🧩 | push-backlog-ci-verify — Completed 2026-09-09.
   - [ ] **DEPLOY-007.N** [light]🔧 | ci-gate-recovery audit
 
 ## Medium
