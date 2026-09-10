@@ -7,6 +7,9 @@ Local Next.js app for coordinated AI image generation workflows. Define prompt t
 ```bash
 npm install
 npm run dev   # http://localhost:3003
+npm test      # vitest + happy-dom
+npx playwright install chromium   # once
+npm run e2e   # Playwright on :3009 (`just dev` on :3003 can stay up)
 ```
 
 Commits are gated by a [gitleaks](https://github.com/gitleaks/gitleaks) secret
@@ -24,7 +27,8 @@ step of the main job in `.github/workflows/ci.yml`) and kept moving by
 Dependabot — weekly npm and GitHub Actions PRs, with npm patch/minor grouped
 and majors raised individually. The same workflow runs a pinned gitleaks
 working-tree scan (separate `secrets` job) as the backstop for clones that
-never armed the pre-commit hook.
+never armed the pre-commit hook, and a Playwright e2e job (TEST-007.2) on
+port 3009.
 
 ## Workflow
 

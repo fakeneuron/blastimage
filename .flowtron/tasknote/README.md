@@ -78,6 +78,8 @@ project. Keep it terse and high-signal.
 
 - Type check: `npx tsc --noEmit`
 - Lint: `npm run lint`
+- Unit tests: `npm test`
+- E2E: `npm run e2e` (Playwright, port 3009; `npx playwright install chromium` once)
 - Test: `npm test` (one-shot; `npm run test:watch` for watch mode)
 - Dev server: `npm run dev` (port 3003)
 - Build verification: `npm run build:verify` — writes to `.next-verify/` instead of `.next/`, so it won't clobber a live `npm run dev` on :3003 (CORE-002). Use `npm run build` only when you actually mean the production build.

@@ -74,3 +74,30 @@ jobs:
 
       - name: Gitleaks (working-tree secret scan)
         run: gitleaks dir . --config .gitleaks.toml --no-banner --redact
+
+  # Playwright e2e (TEST-007.2). Sibling job so Chromium install + Next
+  # boot don't inflate the unit `ci` job. Owns port 3009
+  # (`reuseExistingServer: false`); `just dev` on 3003 is unrelated.
+  e2e:
+    name: Playwright e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e
+        run: npm run e2e

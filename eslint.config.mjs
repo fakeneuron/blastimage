@@ -30,6 +30,10 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       ".flowtron/**",
+      // Playwright output dirs (TEST-007.2). Gitignored, but a local
+      // `npm run e2e` leaves them on disk and flat config would lint them.
+      "playwright-report/**",
+      "test-results/**",
     ],
   },
 ];
