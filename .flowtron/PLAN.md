@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **TEST-008** [medium]🧩 | iterate-feedback-modal-e2e — Real-browser coverage for the Iterate and Feedback modal paths and their focus traps — the gap TEST-007.4 deferred. Both modals already have unit tests; this adds the e2e layer alongside `e2e/review-keyboard.spec.ts`. Extract `e2e/helpers.ts` for the shared link flow — TEST-007.N finding 3 named a third spec as the trigger.
+(none)
 
 ## Future Opportunities
 
@@ -24,6 +24,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-09: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **TEST-008** [medium]🧩 | iterate-feedback-modal-e2e — Completed 2026-09-10.
 
 - [x] **TEST-EPIC-007** [heavy]🧠 | playwright-e2e — Completed 2026-09-10.
   - [x] **TEST-007.2** [medium]🧩 | playwright-harness — Completed 2026-09-09.
