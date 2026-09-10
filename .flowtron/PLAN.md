@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-(none)
+- [ ] **TEST-008** [medium]🧩 | iterate-feedback-modal-e2e — Real-browser coverage for the Iterate and Feedback modal paths and their focus traps — the gap TEST-007.4 deferred. Both modals already have unit tests; this adds the e2e layer alongside `e2e/review-keyboard.spec.ts`. Extract `e2e/helpers.ts` for the shared link flow — TEST-007.N finding 3 named a third spec as the trigger.
 
 ## Future Opportunities
 
