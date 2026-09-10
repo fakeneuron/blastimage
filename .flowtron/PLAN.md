@@ -12,12 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-EPIC-052** [medium]🧩 | post-server-doc-currency — Bring adopter/agent runbooks and the Phase-4 walk list in line with the BI-045/046/047 localhost imagegen API. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Server-surface doc lag)
-  - [x] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Completed 2026-09-09.
-  - [x] **BI-052.3** [light]🔧 | adopt-no-backend-claim — Completed 2026-09-09.
-  - [x] **BI-052.4** [light]🔧 | ai-referenced-docs-list — Completed 2026-09-09.
-  - [x] **BI-052.5** [light]🔧 | comment-claim-fossils — Completed 2026-09-09.
-  - [ ] **BI-052.N** [light]🔧 | post-server-doc-currency audit
+(none)
 
 ## Low
 
@@ -34,6 +29,13 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **TEST-007.N** [light]🔧 | playwright-e2e audit
 
 ## Completed
+
+- [x] **BI-EPIC-052** [medium]🧩 | post-server-doc-currency — Completed 2026-09-09.
+  - [x] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Completed 2026-09-09.
+  - [x] **BI-052.3** [light]🔧 | adopt-no-backend-claim — Completed 2026-09-09.
+  - [x] **BI-052.4** [light]🔧 | ai-referenced-docs-list — Completed 2026-09-09.
+  - [x] **BI-052.5** [light]🔧 | comment-claim-fossils — Completed 2026-09-09.
+  - [x] **BI-052.N** [light]🔧 | post-server-doc-currency audit — Completed 2026-09-09.
 
 - [x] **BI-051** [light]🔧 | focusable-tabindex-gap — Completed 2026-09-09.
 - [x] **TEST-005** [light]🔧 | focus-trap-direct-tests — Completed 2026-09-09.

@@ -32,4 +32,4 @@ A plain browser tab (including a submodule adopter's default tab) has no provide
 
 ## Persistence
 
-All state lives in the browser (`localStorage`). No accounts or cloud project are required. An optional Supabase-backed hosted mode once existed and was removed (BI-028). The async persistence seam (`lib/persistence.ts`) is reserved for a future server-backed Neon + Cloudflare R2 adapter; that backend is not shipped and is not a third generation mode.
+Session state lives in the browser (`localStorage`). No accounts or cloud project are required. Round bytes in the viewer loop stay on disk as `imagegen:` URLs (see [`docs/REVIEW-LOOP.md`](docs/REVIEW-LOOP.md) §5). An optional Supabase-backed hosted mode once existed and was removed (BI-028). The async persistence seam (`lib/persistence.ts`) is reserved for a future server-backed Neon + Cloudflare R2 adapter; that backend is not shipped and is not a third generation mode.
