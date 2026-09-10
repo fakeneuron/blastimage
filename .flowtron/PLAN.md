@@ -25,7 +25,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **TEST-EPIC-007** [heavy]🧠 | playwright-e2e — Real-browser harness for folder picker, round load, and review keyboard paths. Reverses CORE-004's inert `just e2e`. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Test pyramid stops at happy-dom)
   - [x] **TEST-007.2** [medium]🧩 | playwright-harness — Completed 2026-09-09.
   - [x] **TEST-007.3** [medium]🧩 | imagegen-link-load-e2e — Completed 2026-09-09.
-  - [ ] **TEST-007.4** [medium]🧩 | review-keyboard-e2e — Lightbox, keep/approve/discard, and focus-trap paths in a real browser (the happy-dom suite cannot see actual focus).
+  - [x] **TEST-007.4** [medium]🧩 | review-keyboard-e2e — Completed 2026-09-09.
   - [ ] **TEST-007.N** [light]🔧 | playwright-e2e audit
 
 ## Completed
