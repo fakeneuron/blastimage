@@ -22,13 +22,14 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **DEPLOY-005** [light]🔧 | eslint-10-revisit — retry ESLint 9→10 once `eslint-plugin-react` supports ESLint 10. DEPLOY-003 measured the blocker: that plugin (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 — `context.getFilename is not a function` — and 7.37.5 is `latest`, so there is nothing to bump to. Everything else in the tree is already 10-ready; with `react/*` off, ESLint 10 lint this repo clean. Unblock check: `npm view eslint-plugin-react peerDependencies`. On landing, also drop the `eslint` major-ignore from `.github/dependabot.yml`. Checked 2026-09-09: still 7.37.5, peer still `^9.7`.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-09: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
-- [ ] **TEST-EPIC-007** [heavy]🧠 | playwright-e2e — Real-browser harness for folder picker, round load, and review keyboard paths. Reverses CORE-004's inert `just e2e`. Discovery supplied by audit-repo 2026-09-09. Surfaced by audit-repo 2026-09-09 (Theme: Test pyramid stops at happy-dom)
+
+## Completed
+
+- [x] **TEST-EPIC-007** [heavy]🧠 | playwright-e2e — Completed 2026-09-10.
   - [x] **TEST-007.2** [medium]🧩 | playwright-harness — Completed 2026-09-09.
   - [x] **TEST-007.3** [medium]🧩 | imagegen-link-load-e2e — Completed 2026-09-09.
   - [x] **TEST-007.4** [medium]🧩 | review-keyboard-e2e — Completed 2026-09-09.
-  - [ ] **TEST-007.N** [light]🔧 | playwright-e2e audit
-
-## Completed
+  - [x] **TEST-007.N** [light]🔧 | playwright-e2e audit — Completed 2026-09-10.
 
 - [x] **BI-EPIC-052** [medium]🧩 | post-server-doc-currency — Completed 2026-09-09.
   - [x] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Completed 2026-09-09.
