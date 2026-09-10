@@ -65,6 +65,11 @@ notes, API specs, DB schema docs, ADRs, inventories).
 - `AGENTS.md` — assistant-facing project guide; includes the flowtron paste-block (read by Claude Code, Codex, Cursor, Amp, Aider, Grok)
 - `CLAUDE.md` — optional Claude-specific directives that don't belong in `AGENTS.md` (delete entry if not used)
 - `.flowtron/PLAN.md` — roadmap and active task queue
+- `VISION.md` — product vision and generation-mode table
+- `docs/ADOPT.md` — submodule install, `imagegen/` layout, localhost imagegen API
+- `docs/WORKFLOW.md` — directed adopter operating loop (sequence)
+- `docs/REVIEW-LOOP.md` — adopter terminal-generate / frontend-review loop SSOT (imagegen file API)
+- `docs/GROK-AGENT.md` — in-app Grok Imagine provider-bridge contract
 
 ## Project quick commands
 
