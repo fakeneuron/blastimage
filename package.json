@@ -2,6 +2,9 @@
   "name": "blastimage",
   "version": "0.3.2",
   "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next dev --turbopack -p 3003",
     "build": "next build --turbopack",

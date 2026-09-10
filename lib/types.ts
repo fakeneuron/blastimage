@@ -93,7 +93,7 @@ export interface FeedbackState {
  */
 export interface GeneratedImage {
   id: ID;
-  /** Data URL (mock picsum, BI-007) or remote URL (real Grok Imagine, BI-011). */
+  /** Renderable URL: data URL, remote Imagine URL, or project-relative `imagegen:` URL (BI-047). */
   url: string;
   /** The exact prompt that produced this image. */
   prompt: string;

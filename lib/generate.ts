@@ -1,16 +1,16 @@
 /**
- * blastimage — generation seam (BI-007 mock → BI-011/BI-013 real Grok Imagine)
+ * blastimage — generation seam (BI-013)
  *
- * The single seam between the app and the image generator. BI-007 implemented
- * the mock (themed picsum + deterministic seeding + simulated latency) so the
- * full create/generate/review/iterate/approve/export loop could be built and
- * tested. BI-011 produced the handoff contract (docs/GROK-AGENT.md). BI-013
- * performs the swap to real Grok Imagine (via the agent-provided capability
- * in the Grok Build sandbox) without changing any callers or persisted model.
- *
- * The workspace hook assembles GeneratedImage records from the plain
- * { url, prompt } candidates returned here; this module knows nothing about
+ * The single seam between the app and the image generator. Callers get
+ * `{ url, prompt }` candidates from an agent-installed
+ * `globalThis.__grokImagineProvider` (docs/GROK-AGENT.md). The workspace hook
+ * assembles GeneratedImage records; this module knows nothing about
  * decisions, ratings, feedback, iterations, or localStorage.
+ *
+ * History: BI-007 shipped a picsum mock so the review loop could be built;
+ * BI-011 authored the handoff contract; BI-013 swapped to the real bridge
+ * without changing callers or the persisted model. The picsum mock now lives
+ * only in generate.test.ts.
  *
  * References are optional — generation works from prompt alone, reference
  * images alone, or both. The app guarantees a non-empty driving signal before
@@ -21,7 +21,6 @@ import type { BatchSize } from './types';
 
 /**
  * A request to generate one batch of candidates.
- * (Updated for real path per docs/GROK-AGENT.md + BI-013.)
  */
 export interface GenerationRequest {
   /** The prompt driving the batch; may be empty when generating from a reference alone. */

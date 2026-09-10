@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-052.2** [medium]🧩 | grok-agent-server-surface — Completed 2026-09-09.
   - [x] **BI-052.3** [light]🔧 | adopt-no-backend-claim — Completed 2026-09-09.
   - [x] **BI-052.4** [light]🔧 | ai-referenced-docs-list — Completed 2026-09-09.
-  - [ ] **BI-052.5** [light]🔧 | comment-claim-fossils — types.ts picsum comment; generate.ts mock-era header; CLAUDE.md 1164→1167 and PersistenceAdapter-as-singleton; optional `"engines": { "node": ">=20.9" }`.
+  - [x] **BI-052.5** [light]🔧 | comment-claim-fossils — Completed 2026-09-09.
   - [ ] **BI-052.N** [light]🔧 | post-server-doc-currency audit
 
 ## Low
