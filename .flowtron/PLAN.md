@@ -16,7 +16,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-(none)
+- [ ] **CORE-5** [medium]🧩 | quality-stack-gaps — Adopt missing fleet quality-stack items: eslint type-checked, eslint --max-warnings 0, tsconfig exactOptionalPropertyTypes, justfile coverage recipe, diff-cover gate. Recipes: STACK-TENDENCIES.md §Frontend / §Command interface / §Continuous integration. Routed by natabula `NAT-247.4` (NAT-EPIC-247 gap sweep, NAT-103.4 lazy backfill).
 
 ## Future Opportunities
 
