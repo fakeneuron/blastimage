@@ -68,7 +68,7 @@ interface SidebarProps {
   /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
   availableRounds: number[];
   onLinkImagegen: () => void;
-  /** Loads a terminal-generated round; omit `round` for the latest. */
+  /** Explicit `n` loads that round; omit `round` to refresh (re-list, ingest new). */
   onLoadRound: (round?: number) => void;
 }
 
@@ -104,7 +104,7 @@ export default function Sidebar({
   const latestRound = availableRounds.length ? availableRounds[availableRounds.length - 1] : undefined;
   // Shared by the button's visible text and its accessible name (BI-035.3), so the
   // two cannot drift apart — the name must contain the visible text (WCAG 2.5.3).
-  const loadRoundLabel = `Load round${latestRound !== undefined ? ` r${latestRound}` : ''}`;
+  const refreshLabel = 'Refresh rounds';
   const importInputRef = useRef<HTMLInputElement>(null);
   const sessionImportInputRef = useRef<HTMLInputElement>(null);
   const [draftKind, setDraftKind] = useState<'new' | 'rename' | null>(null);
@@ -296,17 +296,17 @@ export default function Sidebar({
             title={
               imagegenLinked
                 ? latestRound !== undefined
-                  ? `Load rounds/r${latestRound}/batch.json into the review UI`
+                  ? 'Re-list rounds and ingest any that are not already in this project'
                   : 'No rounds found yet — run /blast-generate in a terminal session'
                 : 'Link imagegen first'
             }
-            aria-label={loadRoundLabel}
+            aria-label={refreshLabel}
             onClick={() => onLoadRound()}
           >
-            ↻ {loadRoundLabel}
+            ↻ {refreshLabel}
           </button>
         </div>
-        {imagegenLinked && availableRounds.length > 1 && (
+        {imagegenLinked && availableRounds.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {availableRounds.map((n) => (
               <button

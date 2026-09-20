@@ -24,7 +24,7 @@
  */
 
 import type { DirectoryListing } from './imagegenServerFs';
-import { parseRoundBatch, type RoundBatch } from './roundBatch';
+import { parseRoundBatch, type RoundBatch, type RoundSummary } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
 
@@ -135,9 +135,9 @@ export async function linkImagegenRoot(path: string): Promise<Result<string>> {
   return { ok: true, value: linked.value.root };
 }
 
-/** Round numbers under `rounds/` that carry a `batch.json`, ascending. */
-export async function listRounds(root: string): Promise<number[]> {
-  const result = await getJson<number[]>('/api/imagegen/rounds', { root });
+/** Round summaries under `rounds/` that carry a `batch.json`, ascending. */
+export async function listRounds(root: string): Promise<RoundSummary[]> {
+  const result = await getJson<RoundSummary[]>('/api/imagegen/rounds', { root });
   return result.ok ? result.value : [];
 }
 

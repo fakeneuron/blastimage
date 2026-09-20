@@ -150,7 +150,30 @@ describe('listRounds', () => {
     await mkdir(join(root, 'rounds', 'r3'), { recursive: true }); // no batch.json
     await put('rounds/notaround/batch.json', batchJson(4));
 
-    expect(await listRounds(root)).toEqual([1, 2, 10]);
+    expect(await listRounds(root)).toEqual([
+      { round: 1, generatedAt: '2026-08-29T00:00:00.000Z', taskCount: 0, imageCount: 0 },
+      { round: 2, generatedAt: '2026-08-29T00:00:00.000Z', taskCount: 0, imageCount: 0 },
+      { round: 10, generatedAt: '2026-08-29T00:00:00.000Z', taskCount: 0, imageCount: 0 },
+    ]);
+  });
+
+  it('reads generatedAt and counts from each batch.json (BI-053.3)', async () => {
+    await put(
+      'rounds/r1/batch.json',
+      JSON.stringify({
+        schemaVersion: 1,
+        round: 1,
+        generatedAt: '2026-09-20T12:00:00.000Z',
+        tasks: [
+          { slug: 'hero', name: 'Hero', prompt: 'p', images: ['a.jpg', 'b.jpg'] },
+          { slug: 'icon', name: 'Icon', prompt: 'p', images: ['c.jpg'] },
+        ],
+      }),
+    );
+
+    expect(await listRounds(root)).toEqual([
+      { round: 1, generatedAt: '2026-09-20T12:00:00.000Z', taskCount: 2, imageCount: 3 },
+    ]);
   });
 });
 

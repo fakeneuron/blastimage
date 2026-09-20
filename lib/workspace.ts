@@ -407,6 +407,11 @@ function taskRoundNumbers(task: PromptTask): number[] {
   ].sort((a, b) => a - b);
 }
 
+/** Round numbers any task in the session has images from, deduped and ascending. */
+export function sessionRoundNumbers(session: Session): number[] {
+  return [...new Set(session.tasks.flatMap(taskRoundNumbers))].sort((a, b) => a - b);
+}
+
 /** A delete that would sever a task from the round state it owns on disk. */
 export interface DeleteSlugBreak {
   /** The slug the round files, `selection.json`, and `imagegen/tasks.json` still use. */

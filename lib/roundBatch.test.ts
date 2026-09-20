@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseRoundBatch, ROUND_BATCH_SCHEMA_VERSION } from './roundBatch';
+import { parseRoundBatch, ROUND_BATCH_SCHEMA_VERSION, summarizeRoundBatch } from './roundBatch';
 
 describe('parseRoundBatch', () => {
   const valid = {
@@ -44,5 +44,44 @@ describe('parseRoundBatch', () => {
       }),
     );
     expect(out.ok).toBe(false);
+  });
+});
+
+describe('summarizeRoundBatch (BI-053.3)', () => {
+  it('counts tasks and images from a valid batch.json', () => {
+    expect(
+      summarizeRoundBatch(
+        2,
+        JSON.stringify({
+          schemaVersion: ROUND_BATCH_SCHEMA_VERSION,
+          round: 2,
+          generatedAt: '2026-06-18T00:00:00Z',
+          tasks: [
+            { slug: 'a', name: 'A', prompt: '', images: ['a-1.jpg', 'a-2.jpg'] },
+            { slug: 'b', name: 'B', prompt: '', images: ['b-1.jpg'] },
+          ],
+        }),
+      ),
+    ).toEqual({
+      round: 2,
+      generatedAt: '2026-06-18T00:00:00Z',
+      taskCount: 2,
+      imageCount: 3,
+    });
+  });
+
+  it('keeps the folder round and zeros counts when JSON is unusable', () => {
+    expect(summarizeRoundBatch(4, '{')).toEqual({
+      round: 4,
+      generatedAt: '',
+      taskCount: 0,
+      imageCount: 0,
+    });
+    expect(summarizeRoundBatch(4, JSON.stringify({ tasks: [] }))).toEqual({
+      round: 4,
+      generatedAt: '',
+      taskCount: 0,
+      imageCount: 0,
+    });
   });
 });

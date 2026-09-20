@@ -52,7 +52,7 @@ import {
 import { resolveImageBlob, type ImageBlobResolver } from './imageBlob';
 import type { DirectoryListing } from './imagegenServerFs';
 import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
-import type { RoundBatch } from './roundBatch';
+import type { RoundBatch, RoundSummary } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
 
@@ -76,7 +76,7 @@ export interface ImagegenApi {
   browse: (path?: string) => Promise<Result<DirectoryListing>>;
   /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
   suggestRoots: () => Promise<string[]>;
-  listRounds: () => Promise<number[]>;
+  listRounds: () => Promise<RoundSummary[]>;
   readRound: (round: number) => Promise<Result<RoundBatch>>;
   writeSelection: (
     round: number,
@@ -143,7 +143,7 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
 
   const suggestRoots = useCallback(async (): Promise<string[]> => suggestedRoots(), []);
 
-  const listRounds = useCallback(async (): Promise<number[]> => {
+  const listRounds = useCallback(async (): Promise<RoundSummary[]> => {
     const root = rootRef.current;
     if (!root) return [];
     return listRoundsRequest(root);

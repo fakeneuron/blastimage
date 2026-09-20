@@ -29,6 +29,36 @@ export interface RoundBatch {
   tasks: RoundBatchTask[];
 }
 
+/**
+ * Listing row for one `rounds/r<N>/` folder (BI-053.3). Counts come from a
+ * loose read of `batch.json` so a folder stays listable even when the file
+ * would fail {@link parseRoundBatch} (empty `tasks`, extra fields).
+ */
+export interface RoundSummary {
+  round: number;
+  generatedAt: string;
+  taskCount: number;
+  imageCount: number;
+}
+
+/** Loose `batch.json` read for {@link RoundSummary}; never fails. */
+export function summarizeRoundBatch(round: number, json: string): RoundSummary {
+  const empty: RoundSummary = { round, generatedAt: '', taskCount: 0, imageCount: 0 };
+  try {
+    const raw: unknown = JSON.parse(json);
+    if (!isRecord(raw)) return empty;
+    const generatedAt = typeof raw.generatedAt === 'string' ? raw.generatedAt : '';
+    const tasks = Array.isArray(raw.tasks) ? raw.tasks : [];
+    let imageCount = 0;
+    for (const entry of tasks) {
+      if (isRecord(entry) && Array.isArray(entry.images)) imageCount += entry.images.length;
+    }
+    return { round, generatedAt, taskCount: tasks.length, imageCount };
+  } catch {
+    return empty;
+  }
+}
+
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
 }

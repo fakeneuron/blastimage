@@ -1,7 +1,8 @@
 /**
  * blastimage — list loadable rounds (BI-045)
  *
- * Round numbers under `rounds/` that carry a `batch.json`, ascending.
+ * Round summaries (`round`, `generatedAt`, `taskCount`, `imageCount`) under
+ * `rounds/` that carry a `batch.json`, ascending (BI-053.3).
  */
 
 import { refuseUnguarded, resultResponse, rootFrom } from '@/lib/imagegenRoute';

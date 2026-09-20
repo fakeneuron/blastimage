@@ -204,14 +204,21 @@ describe('Sidebar accessible names (BI-035.3)', () => {
     // inside it (WCAG 2.5.3) rather than replacing it with "Load round 1".
     expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Load round r2' })).toBeTruthy();
-    // r3 is also the latest, so it names both the chip and the ↻ button.
-    expect(screen.getAllByRole('button', { name: 'Load round r3' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Load round r3' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
   });
 
-  it('drops the round suffix from the load button when no rounds exist', () => {
+  it('still offers a refresh control when no rounds exist', () => {
     render(<Sidebar {...makeProps({ imagegenRoot: '/repo/imagegen', availableRounds: [] })} />);
 
-    expect(screen.getByRole('button', { name: 'Load round' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
+  });
+
+  it('shows a load chip even when only one round exists', () => {
+    render(<Sidebar {...makeProps({ imagegenRoot: '/repo/imagegen', availableRounds: [1] })} />);
+
+    expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
   });
 
   it('names the imagegen link button for its current state', () => {

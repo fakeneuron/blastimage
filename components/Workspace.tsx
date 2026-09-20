@@ -55,24 +55,24 @@ function WorkspaceInner() {
   // Open state for the imagegen folder picker (BI-046).
   const [showLinkPicker, setShowLinkPicker] = useState(false);
 
-  // Auto-load the latest round once the imagegen folder link and round list
-  // resolve, so a linked session shows its images without a manual "↻ Load round"
-  // click (BI-026). One-shot per mount, and only when nothing has been loaded
-  // yet — a manual load or an explicit round switch keeps precedence. Mirrors the
-  // Sidebar onLoadRound handler (opens bulk review for multi-task rounds).
-  const autoLoadedRef = useRef(false);
-  const { ready, imagegenLinked, loadedRound, availableRounds, loadRound } = ws;
+  // Auto-ingest every missing round once the imagegen folder link and round
+  // list resolve (BI-053.3, replacing BI-026 latest-only). One-shot per
+  // session so a project switch re-fires; a loaded round or an explicit rN
+  // click keeps precedence. Opens bulk review when the ingest returns >1 task.
+  const autoLoadedForSession = useRef<string | null>(null);
+  const { ready, imagegenLinked, loadedRound, availableRounds, loadRound, session } = ws;
+  const sessionId = session?.id ?? null;
   useEffect(() => {
-    if (autoLoadedRef.current) return;
-    if (!ready || !imagegenLinked) return;
+    if (!ready || !imagegenLinked || sessionId === null) return;
     if (loadedRound !== null) return;
     if (availableRounds.length === 0) return;
-    autoLoadedRef.current = true;
+    if (autoLoadedForSession.current === sessionId) return;
+    autoLoadedForSession.current = sessionId;
     void (async () => {
       const loaded = await loadRound();
       if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
     })();
-  }, [ready, imagegenLinked, loadedRound, availableRounds, loadRound]);
+  }, [ready, imagegenLinked, loadedRound, availableRounds.length, loadRound, sessionId]);
 
   // Resolve the open image from current session state so it reflects live edits.
   const feedbackImage = feedbackFor

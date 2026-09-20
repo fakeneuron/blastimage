@@ -37,7 +37,10 @@ vi.mock('./imagegenClient', async (importOriginal) => {
       value: { path: '/repo', parent: '/', entries: [] },
     })),
     suggestedRoots: vi.fn(async () => [hoisted.root]),
-    listRounds: vi.fn(async () => [1, 2]),
+    listRounds: vi.fn(async () => [
+      { round: 1, generatedAt: '', taskCount: 0, imageCount: 0 },
+      { round: 2, generatedAt: '', taskCount: 0, imageCount: 0 },
+    ]),
     readRoundBatch: vi.fn(async (_root: string, round: number) => ({
       ok: true as const,
       value: { schemaVersion: 1, round, generatedAt: 'x', tasks: [] },
@@ -170,7 +173,10 @@ describe('setLinkedRoot (BI-046 · BI-047)', () => {
     expect(vi.mocked(client.linkImagegenRoot)).toHaveBeenCalledWith('/repo/imagegen');
     expect(result.current.root).toBe('/repo/imagegen');
     expect(result.current.linked).toBe(true);
-    expect(await result.current.listRounds()).toEqual([1, 2]);
+    expect(await result.current.listRounds()).toEqual([
+      { round: 1, generatedAt: '', taskCount: 0, imageCount: 0 },
+      { round: 2, generatedAt: '', taskCount: 0, imageCount: 0 },
+    ]);
   });
 
   it('unlinks on null, so a project with no bound folder shows none', async () => {

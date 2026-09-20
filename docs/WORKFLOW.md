@@ -66,8 +66,8 @@ In a **Grok Build terminal session**, run **`/blast-generate`**. The skill reads
 loop diagram and file contracts: [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1–§3.
 
 Back in blastimage, **🔗 Link imagegen** (once per host repo — pick the folder in
-the picker, or type its absolute path) then **↻ Load round** to ingest the batch
-into the review UI. The link is a property of the **project**: one blastimage
+the picker, or type its absolute path); every `rounds/rN/` auto-ingests, and
+**↻ Refresh rounds** re-lists and pulls in new ones. The link is a property of the **project**: one blastimage
 project per host repo, its folder named in the sidebar, re-linked automatically
 when you switch projects. Images stay on disk as path references —
 never embedded in `localStorage` (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §5).
@@ -90,8 +90,8 @@ calling in-browser generation. Iteration-prompt craft (append vs. overhaul):
 [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §6.
 
 In the terminal, run **`/blast-iterate`** to read `selection.json` and write the
-next round under `imagegen/rounds/r<N+1>/`. **↻ Load round** again in blastimage,
-then loop back to step 6 until the task has an image worth approving.
+next round under `imagegen/rounds/r<N+1>/`. **↻ Refresh rounds** in blastimage
+picks up the new round, then loop back to step 6 until the task has an image worth approving.
 
 ### 8. Export
 

@@ -34,7 +34,7 @@ test('links the fixture folder and loads round r1', async ({ page }) => {
   await expect(page.getByLabel('Prompt')).toHaveValue('Warm hero shot for the homepage');
   await expect(page.getByRole('img', { name: 'Warm hero shot for the homepage' })).toHaveCount(2);
 
-  // Manual Load round still works and does not duplicate the task (BI-043).
+  // Explicit rN chip still re-loads and does not duplicate the task (BI-043).
   const loadRound = page.getByRole('button', { name: 'Load round r1' });
   await expect(loadRound).toBeEnabled();
   await loadRound.click();

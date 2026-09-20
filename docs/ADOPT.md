@@ -59,7 +59,7 @@ npm run dev   # → http://localhost:3003
 ```
 
 No accounts. Session state persists in the browser's `localStorage`. The Next.js
-dev server is required: 🔗 Link imagegen and ↻ Load round talk to
+dev server is required: 🔗 Link imagegen, ↻ Refresh rounds, and Load round rN talk to
 `/api/imagegen/*` on this origin (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md)
 §4).
 

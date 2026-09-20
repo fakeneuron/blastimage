@@ -29,6 +29,7 @@ import { clearStoredRoot, loadStoredRoot } from './imagegenClient';
 import type { DirectoryListing } from './imagegenServerFs';
 import { resolveImageBlob } from './imageBlob';
 import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
+import type { RoundSummary } from './roundBatch';
 import {
   buildApproveSelectionTask,
   buildIterateSelectionTask,
@@ -74,6 +75,7 @@ import {
   importTasks as importTasksInto,
   ingestRoundBatch,
   newGeneratedImage,
+  sessionRoundNumbers,
   newSession,
   newTask,
   projectNameFromRoot,
@@ -138,7 +140,7 @@ function confirmSlugBreak(
     `Rename “${previousName}” → “${nextName}”?\n\n` +
       `This task is joined to imagegen ${risk.rounds.length > 1 ? 'rounds' : 'round'} ` +
       `${rounds} by the slug “${risk.currentSlug}”. Renaming changes its slug to ` +
-      `“${risk.nextSlug}”, so the next ↻ Load round will mint a duplicate task and ` +
+      `“${risk.nextSlug}”, so the next Load round rN will mint a duplicate task and ` +
       `⟳ Iterate will write a slug /blast-iterate won't match.\n\n` +
       `Rename imagegen/tasks.json to match, or keep the old name.`,
   );
@@ -342,10 +344,12 @@ export interface UseWorkspace {
   /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
   suggestImagegenRoots: () => Promise<string[]>;
   /**
-   * Loads `rounds/r<N>/batch.json` into the session as review batches. Defaults
-   * to the highest available round when `round` is omitted.
+   * Loads `rounds/r<N>/batch.json` into the session as a review batch.
+   * Omit `round` to re-list and ingest every on-disk round the session does
+   * not already hold (BI-053.3 — autoload and ↻ refresh). Explicit `n`
+   * still replaces that round (BI-043). Resolves to the ingested task ids
+   * on success, `[]` when nothing new was ingested, or `null` on failure.
    */
-  /** Resolves to the ingested task ids on success, or `null` on failure/cancel. */
   loadRound: (round?: number) => Promise<ID[] | null>;
   /** The round number last loaded via {@link UseWorkspace.loadRound}, if any. */
   loadedRound: number | null;
@@ -356,6 +360,8 @@ export interface UseWorkspace {
   requestNextRound: (taskId: ID, imageId: ID, nextPrompt: string) => Promise<void>;
   /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
   availableRounds: number[];
+  /** Per-round counts from `batch.json`, same order as {@link UseWorkspace.availableRounds}. */
+  roundSummaries: RoundSummary[];
   /** Refreshes {@link UseWorkspace.availableRounds} from the linked folder. */
   refreshAvailableRounds: () => Promise<void>;
 }
@@ -367,9 +373,10 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   const [activeTaskId, setActiveTaskId] = useState<ID | null>(null);
   const [generatingTaskIds, setGeneratingTaskIds] = useState<ID[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [availableRounds, setAvailableRounds] = useState<number[]>([]);
+  const [roundSummaries, setRoundSummaries] = useState<RoundSummary[]>([]);
   const [loadedRound, setLoadedRound] = useState<number | null>(null);
   const [generationAvailable, setGenerationAvailable] = useState(false);
+  const availableRounds = roundSummaries.map((s) => s.round);
 
   // Latest-session ref so async callbacks (generate's post-await commit) can
   // see commits that landed after they captured `session` from a render.
@@ -396,7 +403,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   // shows the previous repo's rounds (BI-047). Adjusted during render rather
   // than on the discover effect's `!linked` branch (BI-050) — the guard keeps
   // it to the one render where the link actually goes away.
-  if (!imagegen.linked && availableRounds.length > 0) setAvailableRounds([]);
+  if (!imagegen.linked && roundSummaries.length > 0) setRoundSummaries([]);
 
   // Discover loadable rounds when the imagegen folder link becomes available.
   useEffect(() => {
@@ -404,7 +411,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     let cancelled = false;
     void (async () => {
       const rounds = await imagegen.listRounds();
-      if (!cancelled) setAvailableRounds(rounds);
+      if (!cancelled) setRoundSummaries(rounds);
     })();
     return () => {
       cancelled = true;
@@ -655,7 +662,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
    * `approve` or `iterate` entry's keeper and prompt in one write.
    *
    * The `rounds/r<N>/…` source files are deliberately untouched — the app does
-   * not own them, and `↻ Load round` re-mints the task from `batch.json`, which
+   * not own them, and Load round rN re-mints the task from `batch.json`, which
    * is the only way back from a mistaken delete.
    *
    * Runs after the session commit, so a failure surfaces in the error banner
@@ -1076,49 +1083,84 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       if (derived) next = renameSessionName(next, derived);
     }
     commit(next);
-    setAvailableRounds(await imagegen.listRounds());
+    setRoundSummaries(await imagegen.listRounds());
     return { status: 'linked' };
   }
 
   async function refreshAvailableRounds(): Promise<void> {
     if (!imagegen.linked) {
-      setAvailableRounds([]);
+      setRoundSummaries([]);
       return;
     }
-    setAvailableRounds(await imagegen.listRounds());
+    setRoundSummaries(await imagegen.listRounds());
   }
 
-  async function loadRound(round?: number): Promise<ID[] | null> {
-    if (!session) return null;
-    if (!imagegen.linked) {
-      setError('Link your imagegen folder first (🔗 in the sidebar).');
-      return null;
-    }
-    let target = round;
-    if (target === undefined) {
-      const rounds = availableRounds.length ? availableRounds : await imagegen.listRounds();
-      if (!rounds.length) {
-        setError('No rounds found under imagegen/rounds/ — run /blast-generate in a terminal session first.');
-        return null;
-      }
-      target = rounds[rounds.length - 1]!;
-      setAvailableRounds(rounds);
-    }
+  async function ingestOne(
+    current: Session,
+    target: number,
+  ): Promise<{ session: Session; ids: ID[]; round: number } | null> {
     const parsed = await imagegen.readRound(target);
     if (!parsed.ok) {
       setError(parsed.error);
       return null;
     }
     const batch = parsed.value;
-    const next = ingestRoundBatch(session, batch, (filename) => roundImageUrl(batch.round, filename));
-    commit(next);
-    const loadedIds = batch.tasks
+    const next = ingestRoundBatch(current, batch, (filename) => roundImageUrl(batch.round, filename));
+    const ids = batch.tasks
       .map((entry) => next.tasks.find((t) => slugify(t.name) === entry.slug)?.id)
       .filter((id): id is ID => !!id);
-    if (loadedIds[0]) setActiveTaskId(loadedIds[0]);
-    setLoadedRound(batch.round);
+    return { session: next, ids, round: batch.round };
+  }
+
+  async function loadRound(round?: number): Promise<ID[] | null> {
+    const current = sessionRef.current;
+    if (!current) return null;
+    if (!imagegen.linked) {
+      setError('Link your imagegen folder first (🔗 in the sidebar).');
+      return null;
+    }
+    if (round !== undefined) {
+      const result = await ingestOne(current, round);
+      if (!result) return null;
+      commit(result.session);
+      if (result.ids[0]) setActiveTaskId(result.ids[0]);
+      setLoadedRound(result.round);
+      setError(null);
+      return result.ids;
+    }
+
+    const summaries = await imagegen.listRounds();
+    setRoundSummaries(summaries);
+    const rounds = summaries.map((s) => s.round);
+    if (!rounds.length) {
+      setError('No rounds found under imagegen/rounds/ — run /blast-generate in a terminal session first.');
+      return null;
+    }
+
+    const already = new Set(sessionRoundNumbers(current));
+    let next = current;
+    let lastIds: ID[] = [];
+    let ingestedAny = false;
+    for (const r of rounds) {
+      if (already.has(r)) continue;
+      const result = await ingestOne(next, r);
+      if (!result) {
+        if (ingestedAny) commit(next);
+        setLoadedRound(rounds[rounds.length - 1]!);
+        return null;
+      }
+      next = result.session;
+      lastIds = result.ids;
+      ingestedAny = true;
+      already.add(r);
+    }
+    if (ingestedAny) {
+      commit(next);
+      if (lastIds[0]) setActiveTaskId(lastIds[0]);
+    }
+    setLoadedRound(rounds[rounds.length - 1]!);
     setError(null);
-    return loadedIds;
+    return ingestedAny ? lastIds : [];
   }
 
   return {
@@ -1163,6 +1205,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     loadedRound,
     requestNextRound,
     availableRounds,
+    roundSummaries,
     refreshAvailableRounds,
   };
 }

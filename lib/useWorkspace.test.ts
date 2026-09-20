@@ -373,7 +373,19 @@ function recordingImagegen(batches: Record<number, RoundBatch>): {
     setLinkedRoot: async (path) => ({ ok: true, value: path }),
     browse: async () => ({ ok: true, value: { path: '/home', parent: null, entries: [] } }),
     suggestRoots: async () => [],
-    listRounds: async () => Object.keys(batches).map(Number),
+    listRounds: async () =>
+      Object.keys(batches)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((round) => {
+          const batch = batches[round]!;
+          return {
+            round,
+            generatedAt: batch.generatedAt,
+            taskCount: batch.tasks.length,
+            imageCount: batch.tasks.reduce((n, t) => n + t.images.length, 0),
+          };
+        }),
     readRound: async (round) =>
       batches[round]
         ? { ok: true, value: batches[round]! }
@@ -1150,5 +1162,69 @@ describe('availableRounds tracks the linked folder (BI-047)', () => {
     });
 
     await waitFor(() => expect(result.current.availableRounds).toEqual([3]));
+  });
+});
+
+describe('loadRound no-arg ingests missing rounds only (BI-053.3)', () => {
+  it('ingests every on-disk round the session does not already hold', async () => {
+    const { api } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+      2: roundBatch(2, ['hero-002.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await waitFor(() => expect(result.current.availableRounds).toEqual([1, 2]));
+
+    await act(async () => {
+      await result.current.loadRound();
+    });
+
+    expect(result.current.loadedRound).toBe(2);
+    const task = result.current.session!.tasks.find((t) => t.name === 'Hero')!;
+    expect(task.iterations).toHaveLength(2);
+  });
+
+  it('keeps review decisions when the same rounds are refreshed', async () => {
+    const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const { taskId, imageIds } = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    const keptId = imageIds[0]!;
+
+    await act(async () => {
+      await result.current.loadRound();
+    });
+
+    const task = result.current.session!.tasks.find((t) => t.id === taskId)!;
+    const image = task.iterations[0]!.images[0]!;
+    expect(image.id).toBe(keptId);
+    expect(image.decision).toBe('approved');
+  });
+
+  it('ingests a newly appeared round without rewriting an earlier one', async () => {
+    const batches: Record<number, RoundBatch> = {
+      1: roundBatch(1, ['hero-001.jpg']),
+    };
+    const { api } = recordingImagegen(batches);
+    // recordingImagegen closes over `batches`, so growing it is how ↻ sees r2.
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const { taskId, imageIds } = await loadHero(result, 1);
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'kept'));
+
+    batches[2] = roundBatch(2, ['hero-002.jpg']);
+    await act(async () => {
+      await result.current.loadRound();
+    });
+
+    const task = result.current.session!.tasks.find((t) => t.id === taskId)!;
+    expect(task.iterations).toHaveLength(2);
+    expect(task.iterations[0]!.images[0]!.decision).toBe('kept');
+    expect(task.iterations[0]!.images[0]!.id).toBe(imageIds[0]);
+    expect(result.current.loadedRound).toBe(2);
+    expect(result.current.availableRounds).toEqual([1, 2]);
   });
 });

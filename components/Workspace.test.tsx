@@ -3,7 +3,8 @@
  *
  * BI-026 added a one-shot effect to `Workspace.tsx` that loads the latest
  * imagegen round automatically once the folder link and round list resolve, so
- * a linked session shows its images without a manual "↻ Load round" click. It
+ * a linked session shows its images without a manual load click. BI-053.3
+ * kept the effect and pointed it at ingest-missing (no-arg `loadRound()`). It
  * shipped verified by trace and a green suite only ("Updated/added tests —
  * N/A"), because no component test path existed at the time. TEST-001.2 opened
  * that path; this file spends it on the effect's four documented behaviours —
@@ -117,6 +118,7 @@ function makeWorkspace(overrides: Partial<UseWorkspace> = {}): UseWorkspace {
     loadedRound: null,
     requestNextRound: async () => {},
     availableRounds: [1],
+    roundSummaries: [{ round: 1, generatedAt: '', taskCount: 0, imageCount: 0 }],
     refreshAvailableRounds: async () => {},
     ...overrides,
   };
@@ -151,7 +153,7 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     await flush();
 
     expect(loadRound).toHaveBeenCalledTimes(1);
-    // No argument — loadRound() defaults to the highest available round.
+    // No argument — loadRound() re-lists and ingests missing rounds.
     expect(loadRound).toHaveBeenCalledWith();
   });
 
@@ -211,7 +213,7 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     expect(loadRound).not.toHaveBeenCalled();
   });
 
-  it('fires at most once per mount even as the gate inputs churn', async () => {
+  it('fires at most once per session even as the gate inputs churn', async () => {
     const loadRound = vi.fn(async () => ['t1']);
     install({ loadRound });
 
@@ -220,7 +222,7 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     expect(loadRound).toHaveBeenCalledTimes(1);
 
     // `loadedRound` stays null (the stub does not model the commit), so only the
-    // one-shot ref stands between this and a re-fire on every dependency change.
+    // per-session ref stands between this and a re-fire on every dependency change.
     install({ loadRound, availableRounds: [1, 2] });
     rerender(<Workspace />);
     await flush();
@@ -230,6 +232,25 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     await flush();
 
     expect(loadRound).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires again after a project switch (session id changes)', async () => {
+    const loadRound = vi.fn(async () => ['t1']);
+    install({ loadRound });
+
+    const { rerender } = render(<Workspace />);
+    await flush();
+    expect(loadRound).toHaveBeenCalledTimes(1);
+
+    install({
+      loadRound,
+      loadedRound: null,
+      session: makeSession({ id: 's2', name: 'Other' }),
+    });
+    rerender(<Workspace />);
+    await flush();
+
+    expect(loadRound).toHaveBeenCalledTimes(2);
   });
 });
 

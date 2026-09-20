@@ -28,6 +28,7 @@ import { access, copyFile, mkdir, readFile, readdir, realpath, stat, unlink, wri
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve, sep } from 'node:path';
 
+import { summarizeRoundBatch, type RoundSummary } from './roundBatch';
 import {
   mergeRoundSelection,
   parseRoundSelection,
@@ -131,8 +132,8 @@ async function canonicalOrParent(target: string): Promise<string | null> {
   }
 }
 
-/** Lists round numbers under `rounds/` that contain a `batch.json`. Sorted ascending. */
-export async function listRounds(root: string): Promise<number[]> {
+/** Lists round folders that contain a readable `batch.json`. Sorted by round. */
+export async function listRounds(root: string): Promise<RoundSummary[]> {
   const roundsDir = await resolveUnderRoot(root, 'rounds');
   if (!roundsDir.ok) return [];
   let entries;
@@ -141,19 +142,19 @@ export async function listRounds(root: string): Promise<number[]> {
   } catch {
     return [];
   }
-  const found: number[] = [];
+  const found: RoundSummary[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const m = ROUND_DIR_RE.exec(entry.name);
     if (!m) continue;
     try {
-      await access(join(roundsDir.value, entry.name, 'batch.json'), constants.R_OK);
-      found.push(Number(m[1]));
+      const text = await readFile(join(roundsDir.value, entry.name, 'batch.json'), 'utf8');
+      found.push(summarizeRoundBatch(Number(m[1]), text));
     } catch {
-      // round folder without batch.json — skip
+      // round folder without a readable batch.json — skip
     }
   }
-  return found.sort((a, b) => a - b);
+  return found.sort((a, b) => a.round - b.round);
 }
 
 /** Reads `rounds/r<N>/batch.json` as text; the client runs the shared parser. */

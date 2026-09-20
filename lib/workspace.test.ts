@@ -17,6 +17,7 @@ import {
   deleteTask,
   importTasks,
   ingestRoundBatch,
+  sessionRoundNumbers,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
   newRefImage,
@@ -611,6 +612,18 @@ describe('ingestRoundBatch', () => {
     expect(s.tasks[0]!.iterations[0]!.index).toBe(0);
     expect(s.tasks[0]!.iterations[0]!.images).toHaveLength(2);
     expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Warm hero shot');
+  });
+
+  it('sessionRoundNumbers lists every ingested round once (BI-053.3)', () => {
+    let s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));
+    const nextRound: RoundBatch = {
+      ...batch,
+      round: 3,
+      tasks: [{ ...batch.tasks[0]!, images: ['hero-banner-001.jpg'] }],
+    };
+    s = ingestRoundBatch(s, nextRound, (f) => roundImageUrl(nextRound.round, f));
+    expect(sessionRoundNumbers(s)).toEqual([2, 3]);
+    expect(sessionRoundNumbers(newSession('empty'))).toEqual([]);
   });
 });
 

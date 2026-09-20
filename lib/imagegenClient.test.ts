@@ -142,8 +142,13 @@ describe('linkRoot / linkImagegenRoot', () => {
 
 describe('listRounds', () => {
   it('GETs /api/imagegen/rounds with root', async () => {
-    const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: [1, 2, 3] }));
-    expect(await listRounds(ROOT)).toEqual([1, 2, 3]);
+    const summaries = [
+      { round: 1, generatedAt: '2026-08-30T00:00:00.000Z', taskCount: 1, imageCount: 2 },
+      { round: 2, generatedAt: '2026-08-30T00:00:00.000Z', taskCount: 1, imageCount: 1 },
+      { round: 3, generatedAt: '2026-08-30T00:00:00.000Z', taskCount: 2, imageCount: 4 },
+    ];
+    const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: summaries }));
+    expect(await listRounds(ROOT)).toEqual(summaries);
     const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/rounds');
     expect(url.searchParams.get('root')).toBe(ROOT);
