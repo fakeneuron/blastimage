@@ -57,14 +57,14 @@ function WorkspaceInner() {
 
   // Auto-ingest every missing round once the imagegen folder link and round
   // list resolve (BI-053.3, replacing BI-026 latest-only). One-shot per
-  // session so a project switch re-fires; a loaded round or an explicit rN
-  // click keeps precedence. Opens bulk review when the ingest returns >1 task.
+  // session so a project switch re-fires; `currentRound` already being set
+  // does not skip (ingest-missing is safe, and remount must still pick up
+  // new rounds). Opens bulk review when the ingest returns >1 task.
   const autoLoadedForSession = useRef<string | null>(null);
-  const { ready, imagegenLinked, loadedRound, availableRounds, loadRound, session } = ws;
+  const { ready, imagegenLinked, availableRounds, loadRound, session } = ws;
   const sessionId = session?.id ?? null;
   useEffect(() => {
     if (!ready || !imagegenLinked || sessionId === null) return;
-    if (loadedRound !== null) return;
     if (availableRounds.length === 0) return;
     if (autoLoadedForSession.current === sessionId) return;
     autoLoadedForSession.current = sessionId;
@@ -72,7 +72,7 @@ function WorkspaceInner() {
       const loaded = await loadRound();
       if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
     })();
-  }, [ready, imagegenLinked, loadedRound, availableRounds.length, loadRound, sessionId]);
+  }, [ready, imagegenLinked, availableRounds.length, loadRound, sessionId]);
 
   // Resolve the open image from current session state so it reflects live edits.
   const feedbackImage = feedbackFor
@@ -173,16 +173,20 @@ function WorkspaceInner() {
           }}
           imagegenRoot={ws.imagegenRoot}
           availableRounds={ws.availableRounds}
+          roundSummaries={ws.roundSummaries}
+          currentRound={ws.currentRound}
           onLinkImagegen={() => setShowLinkPicker(true)}
-          onLoadRound={async (round) => {
-            const loaded = await ws.loadRound(round);
+          onLoadRound={async () => {
+            const loaded = await ws.loadRound();
             if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
           }}
+          onSelectRound={ws.setCurrentRound}
         />
         {bulkTasks ? (
           <BulkReviewPane
             tasks={bulkTasks}
             generatingTaskIds={ws.generatingTaskIds}
+            currentRound={ws.currentRound}
             onSetImageDecision={ws.setImageDecision}
             onSetImageRating={ws.setImageRating}
             onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
@@ -194,6 +198,7 @@ function WorkspaceInner() {
             library={ws.session.refLibrary}
             generating={ws.activeTaskId !== null && ws.generatingTaskIds.includes(ws.activeTaskId)}
             generationAvailable={ws.generationAvailable}
+            currentRound={ws.currentRound}
             onRenameTask={ws.renameTask}
             onSetPrompt={ws.setTaskPrompt}
             onAddRefImage={ws.addRefImage}

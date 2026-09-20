@@ -4,15 +4,17 @@
  * blastimage — cross-task bulk-review pane (BI-015)
  *
  * Rendered in place of {@link TaskDetail} after "Generate All" fires: every
- * fired task's newest batch stacked in one scrollable pass, one section per
- * task (name + the BI-005 {@link ReviewGrid} with full decision / rating /
+ * fired task's current-round batch stacked in one scrollable pass, one section
+ * per task (name + the BI-005 {@link ReviewGrid} with full decision / rating /
  * feedback / iterate controls). Tasks still generating show the same skeleton
  * grid TaskDetail uses. Presentational only — the fired-task set and exit
  * behavior live in Workspace.
  */
 
 import type { ID, PromptTask, ReviewDecision, StarRating } from '@/lib/types';
+import { roundNumberFromImageUrl } from '@/lib/imagegenUrl';
 import { DEFAULT_BATCH_SIZE } from '@/lib/useWorkspace';
+import { visibleIteration } from '@/lib/workspace';
 import ReviewGrid from '@/components/ReviewGrid';
 
 interface BulkReviewPaneProps {
@@ -20,6 +22,8 @@ interface BulkReviewPaneProps {
   tasks: PromptTask[];
   /** Task ids whose batches are still generating. */
   generatingTaskIds: ID[];
+  /** Terminal round in view (BI-053.4); each grid shows that iteration, else latest. */
+  currentRound?: number | null;
   onSetImageDecision: (taskId: ID, imageId: ID, decision: ReviewDecision) => void;
   onSetImageRating: (taskId: ID, imageId: ID, rating: StarRating) => void;
   onFeedback: (taskId: ID, imageId: ID) => void;
@@ -29,6 +33,7 @@ interface BulkReviewPaneProps {
 export default function BulkReviewPane({
   tasks,
   generatingTaskIds,
+  currentRound = null,
   onSetImageDecision,
   onSetImageRating,
   onFeedback,
@@ -45,15 +50,21 @@ export default function BulkReviewPane({
 
       {tasks.map((task) => {
         const generating = generatingTaskIds.includes(task.id);
-        const latest = task.iterations.at(-1) ?? null;
+        const shown = visibleIteration(task, currentRound) ?? null;
+        const shownRound =
+          shown?.images.map((img) => roundNumberFromImageUrl(img.url)).find((n): n is number => n !== null) ??
+          currentRound ??
+          null;
         return (
           <div key={task.id} className="flex flex-col gap-2">
             <label className="text-xs font-medium uppercase tracking-wide opacity-60">
               {task.name}
               {generating
                 ? ' · generating…'
-                : latest
-                  ? ` · round ${latest.index + 1}`
+                : shown
+                  ? shownRound != null
+                    ? ` · round r${shownRound}`
+                    : ` · round ${shown.index + 1}`
                   : ''}
             </label>
             {generating ? (
@@ -65,9 +76,9 @@ export default function BulkReviewPane({
                   />
                 ))}
               </div>
-            ) : latest ? (
+            ) : shown ? (
               <ReviewGrid
-                iteration={latest}
+                iteration={shown}
                 onSetDecision={(imageId, decision) => onSetImageDecision(task.id, imageId, decision)}
                 onSetRating={(imageId, rating) => onSetImageRating(task.id, imageId, rating)}
                 onFeedback={(imageId) => onFeedback(task.id, imageId)}

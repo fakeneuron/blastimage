@@ -1021,20 +1021,20 @@ describe('the live link follows the open project (BI-047)', () => {
     expect(live()).toBe('/Code/beta/imagegen');
   });
 
-  it('drops the round the previous project had loaded', async () => {
+  it('does not leak currentRound into a new project, and restores it on switch-back', async () => {
     const { api } = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
     const { result } = renderHook(() => useWorkspace(api));
     await waitFor(() => expect(result.current.ready).toBe(true));
     await loadHero(result, 1);
-    expect(result.current.loadedRound).toBe(1);
+    expect(result.current.currentRound).toBe(1);
+    const alphaId = result.current.session!.id;
 
     await act(async () => result.current.createSession('Beta'));
-    const betaId = result.current.session!.id;
-    await act(async () => result.current.switchSession(betaId));
+    expect(result.current.currentRound).toBe(null);
 
-    // Carried over, it would be the fallback round for an approve or an iterate
-    // written into a project that never loaded it.
-    await waitFor(() => expect(result.current.loadedRound).toBe(null));
+    await act(async () => result.current.switchSession(alphaId));
+    await waitFor(() => expect(result.current.session!.id).toBe(alphaId));
+    expect(result.current.currentRound).toBe(1);
   });
 
   it('reports a bound folder that no longer resolves, and links nothing instead', async () => {
@@ -1179,7 +1179,7 @@ describe('loadRound no-arg ingests missing rounds only (BI-053.3)', () => {
       await result.current.loadRound();
     });
 
-    expect(result.current.loadedRound).toBe(2);
+    expect(result.current.currentRound).toBe(2);
     const task = result.current.session!.tasks.find((t) => t.name === 'Hero')!;
     expect(task.iterations).toHaveLength(2);
   });
@@ -1224,7 +1224,25 @@ describe('loadRound no-arg ingests missing rounds only (BI-053.3)', () => {
     expect(task.iterations).toHaveLength(2);
     expect(task.iterations[0]!.images[0]!.decision).toBe('kept');
     expect(task.iterations[0]!.images[0]!.id).toBe(imageIds[0]);
-    expect(result.current.loadedRound).toBe(2);
+    expect(result.current.currentRound).toBe(1);
     expect(result.current.availableRounds).toEqual([1, 2]);
+  });
+
+  it('setCurrentRound persists the view without re-ingesting', async () => {
+    const { api } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+      2: roundBatch(2, ['hero-002.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => {
+      await result.current.loadRound();
+    });
+    expect(result.current.currentRound).toBe(2);
+    const imageId = result.current.session!.tasks[0]!.iterations[0]!.images[0]!.id;
+
+    await act(async () => result.current.setCurrentRound(1));
+    expect(result.current.currentRound).toBe(1);
+    expect(result.current.session!.tasks[0]!.iterations[0]!.images[0]!.id).toBe(imageId);
   });
 });

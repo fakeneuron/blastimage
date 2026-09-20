@@ -174,6 +174,15 @@ export interface Session {
    * SCHEMA_VERSION} stays where it is.
    */
   imagegenRoot?: string | null;
+  /**
+   * The terminal round (`rounds/r<N>/`) this project is currently viewing
+   * (BI-053.4), or absent/`null` when it has no view yet. Review panes render
+   * the iteration that touches this round (fallback: latest). Optional on
+   * purpose — {@link import('./storage').isSession} is a structural check, so
+   * projects written before this field load unchanged and {@link
+   * SCHEMA_VERSION} stays where it is (BI-047 pattern).
+   */
+  currentRound?: number | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

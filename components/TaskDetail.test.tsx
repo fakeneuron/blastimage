@@ -39,6 +39,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import TaskDetail from './TaskDetail';
 import { ImagegenProvider } from '@/lib/ImagegenContext';
+import { roundImageUrl } from '@/lib/imagegenUrl';
 import { MAX_ACTIVE_REFS } from '@/lib/workspace';
 import { DEFAULT_BATCH_SIZE } from '@/lib/useWorkspace';
 import type { GeneratedImage, Iteration, PromptTask, RefImage } from '@/lib/types';
@@ -70,10 +71,10 @@ function makeRef(id: string): RefImage {
   };
 }
 
-function makeImage(id: string): GeneratedImage {
+function makeImage(id: string, url?: string): GeneratedImage {
   return {
     id,
-    url: `https://example.test/${id}.png`,
+    url: url ?? `https://example.test/${id}.png`,
     prompt: `prompt ${id}`,
     status: 'ready',
     decision: 'undecided',
@@ -83,14 +84,14 @@ function makeImage(id: string): GeneratedImage {
   };
 }
 
-function makeIteration(index: number): Iteration {
+function makeIteration(index: number, images?: GeneratedImage[]): Iteration {
   return {
     id: `it${index}`,
     index,
     prompt: 'base prompt',
     refImageIds: [],
     primaryRefImageId: null,
-    images: [makeImage('i1')],
+    images: images ?? [makeImage('i1')],
     createdAt: NOW,
   };
 }
@@ -117,6 +118,7 @@ interface DetailOptions {
   library?: RefImage[];
   generating?: boolean;
   generationAvailable?: boolean;
+  currentRound?: number | null;
   spies?: Spies;
 }
 
@@ -125,6 +127,7 @@ function markup({
   library = [],
   generating = false,
   generationAvailable = true,
+  currentRound = null,
   spies = makeSpies(),
 }: DetailOptions = {}) {
   return (
@@ -134,6 +137,7 @@ function markup({
         library={library}
         generating={generating}
         generationAvailable={generationAvailable}
+        currentRound={currentRound}
         {...spies}
       />
     </ImagegenProvider>
@@ -435,6 +439,22 @@ describe('TaskDetail — latest batch (BI-005)', () => {
 
     expect(screen.getByText('Latest batch · round 2')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Keep' })).toBeTruthy();
+  });
+
+  it('renders the iteration that touches currentRound instead of the latest (BI-053.4)', async () => {
+    const r1 = makeIteration(0, [makeImage('i-r1', roundImageUrl(1, 'hero-001.jpg'))]);
+    r1.images[0]!.prompt = 'round 1 hero';
+    const r2 = makeIteration(1, [makeImage('i-r2', roundImageUrl(2, 'hero-002.jpg'))]);
+    r2.images[0]!.prompt = 'round 2 hero';
+
+    await renderDetail({
+      task: makeTask({ iterations: [r1, r2] }),
+      currentRound: 1,
+    });
+
+    expect(screen.getByText('Round r1')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'round 1 hero' })).toBeTruthy();
+    expect(screen.queryByRole('img', { name: 'round 2 hero' })).toBeNull();
   });
 
   it('forwards the review-grid callbacks with the task id attached', async () => {

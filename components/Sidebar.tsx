@@ -27,6 +27,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ID, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
+import type { RoundSummary } from '@/lib/roundBatch';
 import { imagegenRootLabel, projectNameFromRoot } from '@/lib/workspace';
 
 interface SidebarProps {
@@ -67,9 +68,15 @@ interface SidebarProps {
   imagegenRoot: string | null;
   /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
   availableRounds: number[];
+  /** Per-round counts from `batch.json` (BI-053.3), same order as {@link SidebarProps.availableRounds}. */
+  roundSummaries: RoundSummary[];
+  /** The terminal round currently in view (BI-053.4), or `null`. */
+  currentRound: number | null;
   onLinkImagegen: () => void;
-  /** Explicit `n` loads that round; omit `round` to refresh (re-list, ingest new). */
-  onLoadRound: (round?: number) => void;
+  /** Refresh: re-list and ingest rounds this project does not already hold. */
+  onLoadRound: () => void;
+  /** Sets the round view-filter; does not re-ingest (BI-053.4). */
+  onSelectRound: (round: number) => void;
 }
 
 export default function Sidebar({
@@ -92,8 +99,11 @@ export default function Sidebar({
   onGenerateAll,
   imagegenRoot,
   availableRounds,
+  roundSummaries,
+  currentRound,
   onLinkImagegen,
   onLoadRound,
+  onSelectRound,
 }: SidebarProps) {
   const imagegenLinked = imagegenRoot !== null;
   // Visible text and accessible name share the folder label for the same reason
@@ -308,17 +318,29 @@ export default function Sidebar({
         </div>
         {imagegenLinked && availableRounds.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
-            {availableRounds.map((n) => (
-              <button
-                key={n}
-                className="rounded border border-black/15 px-1.5 py-0.5 text-[10px] hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-                title={`Load rounds/r${n}/batch.json`}
-                aria-label={`Load round r${n}`}
-                onClick={() => onLoadRound(n)}
-              >
-                r{n}
-              </button>
-            ))}
+            {availableRounds.map((n) => {
+              const summary = roundSummaries.find((s) => s.round === n);
+              const current = currentRound === n;
+              const countTitle = summary
+                ? `r${n} · ${summary.taskCount} task${summary.taskCount === 1 ? '' : 's'} · ${summary.imageCount} image${summary.imageCount === 1 ? '' : 's'}`
+                : `rounds/r${n}/batch.json`;
+              return (
+                <button
+                  key={n}
+                  className={`rounded border px-1.5 py-0.5 text-[10px] ${
+                    current
+                      ? 'border-foreground bg-foreground/10'
+                      : 'border-black/15 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10'
+                  }`}
+                  title={countTitle}
+                  aria-label={`Load round r${n}`}
+                  aria-current={current ? 'true' : undefined}
+                  onClick={() => onSelectRound(n)}
+                >
+                  r{n}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

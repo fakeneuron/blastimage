@@ -76,6 +76,7 @@ import {
   ingestRoundBatch,
   newGeneratedImage,
   sessionRoundNumbers,
+  setCurrentRound as setCurrentRoundOn,
   newSession,
   newTask,
   projectNameFromRoot,
@@ -351,8 +352,13 @@ export interface UseWorkspace {
    * on success, `[]` when nothing new was ingested, or `null` on failure.
    */
   loadRound: (round?: number) => Promise<ID[] | null>;
-  /** The round number last loaded via {@link UseWorkspace.loadRound}, if any. */
-  loadedRound: number | null;
+  /**
+   * The terminal round this project is viewing (BI-053.4). Persisted on
+   * {@link Session.currentRound}; `null` when the session has no view yet.
+   */
+  currentRound: number | null;
+  /** Sets the round view-filter; does not re-ingest. */
+  setCurrentRound: (round: number) => void;
   /**
    * Writes `rounds/r<N>/selection.json` for an iterate-from-keeper request
    * (replaces the iterate modal's in-browser `generateBatch` call).
@@ -374,7 +380,6 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   const [generatingTaskIds, setGeneratingTaskIds] = useState<ID[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [roundSummaries, setRoundSummaries] = useState<RoundSummary[]>([]);
-  const [loadedRound, setLoadedRound] = useState<number | null>(null);
   const [generationAvailable, setGenerationAvailable] = useState(false);
   const availableRounds = roundSummaries.map((s) => s.round);
 
@@ -559,7 +564,6 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       sessionRef.current = loaded.session;
       setSession(loaded.session);
       setActiveTaskId(loaded.session.tasks[0]?.id ?? null);
-      setLoadedRound(null);
       const adopted = await syncImagegenLink(loaded.session);
       if (adopted) commit(adopted);
     })();
@@ -827,7 +831,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (!session || !imagegen.linked) return;
     const hit = findGeneratedImage(session, taskId, imageId);
     if (!hit) return;
-    const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
+    const round = roundNumberFromImageUrl(hit.image.url) ?? session.currentRound ?? null;
     const keeper = roundImageFilenameFromUrl(hit.image.url);
     if (round === null || !keeper) return;
 
@@ -884,7 +888,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (!session || !imagegen.linked) return;
     const hit = findGeneratedImage(session, taskId, imageId);
     if (!hit) return;
-    const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
+    const round = roundNumberFromImageUrl(hit.image.url) ?? session.currentRound ?? null;
     const keeper = roundImageFilenameFromUrl(hit.image.url);
     if (round === null || !keeper) return;
     const remaining = buildApprovedImages(session).filter((a) => a.imageId !== imageId);
@@ -959,7 +963,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     }
     const hit = findGeneratedImage(session, taskId, imageId);
     if (!hit) return;
-    const round = roundNumberFromImageUrl(hit.image.url) ?? loadedRound;
+    const round = roundNumberFromImageUrl(hit.image.url) ?? session.currentRound ?? null;
     const keeper = roundImageFilenameFromUrl(hit.image.url);
     if (round === null || !keeper) {
       setError('This image is not from a terminal round — load a round from imagegen first.');
@@ -1112,6 +1116,12 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     return { session: next, ids, round: batch.round };
   }
 
+  function setCurrentRound(round: number): void {
+    const current = sessionRef.current;
+    if (!current) return;
+    commit(setCurrentRoundOn(current, round));
+  }
+
   async function loadRound(round?: number): Promise<ID[] | null> {
     const current = sessionRef.current;
     if (!current) return null;
@@ -1122,9 +1132,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (round !== undefined) {
       const result = await ingestOne(current, round);
       if (!result) return null;
-      commit(result.session);
+      commit(setCurrentRoundOn(result.session, result.round));
       if (result.ids[0]) setActiveTaskId(result.ids[0]);
-      setLoadedRound(result.round);
       setError(null);
       return result.ids;
     }
@@ -1145,8 +1154,9 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       if (already.has(r)) continue;
       const result = await ingestOne(next, r);
       if (!result) {
-        if (ingestedAny) commit(next);
-        setLoadedRound(rounds[rounds.length - 1]!);
+        const latest = rounds[rounds.length - 1]!;
+        if (next.currentRound == null) next = setCurrentRoundOn(next, latest);
+        if (ingestedAny || next !== current) commit(next);
         return null;
       }
       next = result.session;
@@ -1154,11 +1164,12 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       ingestedAny = true;
       already.add(r);
     }
-    if (ingestedAny) {
+    const latest = rounds[rounds.length - 1]!;
+    if (next.currentRound == null) next = setCurrentRoundOn(next, latest);
+    if (ingestedAny || next !== current) {
       commit(next);
-      if (lastIds[0]) setActiveTaskId(lastIds[0]);
+      if (ingestedAny && lastIds[0]) setActiveTaskId(lastIds[0]);
     }
-    setLoadedRound(rounds[rounds.length - 1]!);
     setError(null);
     return ingestedAny ? lastIds : [];
   }
@@ -1202,7 +1213,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     browseImagegen: imagegen.browse,
     suggestImagegenRoots: imagegen.suggestRoots,
     loadRound,
-    loadedRound,
+    currentRound: session?.currentRound ?? null,
+    setCurrentRound,
     requestNextRound,
     availableRounds,
     roundSummaries,

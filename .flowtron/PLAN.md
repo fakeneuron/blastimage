@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-053.1** [heavy]🧠 | session-round-navigation discovery — Completed 2026-09-20.
   - [x] **BI-053.2** [medium]🧩 | project-identity — Completed 2026-09-20.
   - [x] **BI-053.3** [medium]🧩 | round-summaries-auto-ingest — Completed 2026-09-20.
-  - [ ] **BI-053.4** [heavy]🧠 | round-view-filter — Persist `Session.currentRound` (optional field, structural `isSession`, no schema bump — BI-047 pattern); `useWorkspace` owns it, resets on switch, replaces the in-memory `loadedRound`; sidebar rounds list from .3 summaries with the current round highlighted; `TaskDetail` / `BulkReviewPane` render the iteration touching `currentRound` (fallback latest) instead of `iterations.at(-1)`; approve/iterate round fallbacks follow. Tests + e2e.
+  - [x] **BI-053.4** [heavy]🧠 | round-view-filter — Completed 2026-09-20.
   - [ ] **BI-053.5** [medium]🧩 | sidebar-restructure — Regroup per the .1 triage: visible project header (name, repo, mode badge), rounds list, tasks + New task, Generate All only when `generationAvailable` (adopter mode shows a viewer-mode note instead); a ⋯ menu carries New/Switch project, Link imagegen, Export/Import backup, Build, Import tasks. Update README / WORKFLOW / REVIEW-LOOP / ADOPT sidebar references; `Sidebar` / `Workspace` tests + e2e selectors.
   - [ ] **BI-053.N** [heavy]🧠 | session-round-navigation audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed now with the reserved terminal `.N` suffix (never renumbers as children are added).
 

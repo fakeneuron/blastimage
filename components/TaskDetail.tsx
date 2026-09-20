@@ -5,14 +5,17 @@
  *
  * Editable task name + base-prompt editor (persisted on blur), the reference
  * library (BI-004), the generate controls (BI-007), and the batch review grid
- * (BI-005): the latest iteration renders as keep/discard/approve cards with
- * star ratings and a feedback button (the feedback modal lands in BI-006).
+ * (BI-005): the iteration for {@link TaskDetailProps.currentRound} (fallback:
+ * latest) renders as keep/discard/approve cards with star ratings and a
+ * feedback button (the feedback modal lands in BI-006).
  */
 
 import { useState } from 'react';
 
 import type { ID, PromptTask, RefImage, ReviewDecision, StarRating } from '@/lib/types';
+import { roundNumberFromImageUrl } from '@/lib/imagegenUrl';
 import { DEFAULT_BATCH_SIZE } from '@/lib/useWorkspace';
+import { visibleIteration } from '@/lib/workspace';
 import ReferenceLibrary from '@/components/ReferenceLibrary';
 import ReviewGrid from '@/components/ReviewGrid';
 
@@ -38,6 +41,8 @@ interface TaskDetailProps {
   onSetImageRating: (taskId: ID, imageId: ID, rating: StarRating) => void;
   onFeedback: (taskId: ID, imageId: ID) => void;
   onIterate: (taskId: ID, imageId: ID) => void;
+  /** Terminal round in view (BI-053.4); the grid shows that iteration, else latest. */
+  currentRound?: number | null;
 }
 
 export default function TaskDetail({
@@ -55,6 +60,7 @@ export default function TaskDetail({
   onSetImageRating,
   onFeedback,
   onIterate,
+  currentRound = null,
 }: TaskDetailProps) {
   // Controlled prompt draft so a just-typed (unblurred) prompt is never lost at
   // generate time (fixes BI-007's known gap). Resyncs only on task switch, so an
@@ -96,7 +102,11 @@ export default function TaskDetail({
         }
       : null;
   const canGenerate = generateHint === null;
-  const latest = task.iterations.at(-1) ?? null;
+  const shown = visibleIteration(task, currentRound) ?? null;
+  const shownRound =
+    shown?.images.map((img) => roundNumberFromImageUrl(img.url)).find((n): n is number => n !== null) ??
+    currentRound ??
+    null;
 
   // Persist the live draft and generate from it, so the round always uses what's
   // on screen rather than the last-blurred value.
@@ -163,11 +173,15 @@ export default function TaskDetail({
         {generateHint && <span className="text-xs opacity-50">{generateHint.note}</span>}
       </div>
 
-      {/* Latest batch — the review grid (BI-005) */}
-      {(generating || latest) && (
+      {/* Current-round batch — the review grid (BI-005 / BI-053.4) */}
+      {(generating || shown) && (
         <div className="flex flex-col gap-2">
           <label className="text-xs font-medium uppercase tracking-wide opacity-60">
-            {generating ? 'Generating…' : `Latest batch · round ${(latest?.index ?? 0) + 1}`}
+            {generating
+              ? 'Generating…'
+              : shownRound != null
+                ? `Round r${shownRound}`
+                : `Latest batch · round ${(shown?.index ?? 0) + 1}`}
           </label>
           {generating ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -179,9 +193,9 @@ export default function TaskDetail({
               ))}
             </div>
           ) : (
-            latest && (
+            shown && (
               <ReviewGrid
-                iteration={latest}
+                iteration={shown}
                 onSetDecision={(imageId, decision) => onSetImageDecision(task.id, imageId, decision)}
                 onSetRating={(imageId, rating) => onSetImageRating(task.id, imageId, rating)}
                 onFeedback={(imageId) => onFeedback(task.id, imageId)}

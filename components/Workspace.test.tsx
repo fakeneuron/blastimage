@@ -21,7 +21,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import Workspace from './Workspace';
 import type { UseWorkspace } from '@/lib/useWorkspace';
@@ -115,7 +115,8 @@ function makeWorkspace(overrides: Partial<UseWorkspace> = {}): UseWorkspace {
     browseImagegen: async () => ({ ok: true, value: { path: '/home', parent: null, entries: [] } }),
     suggestImagegenRoots: async () => [],
     loadRound: async () => null,
-    loadedRound: null,
+    currentRound: null,
+    setCurrentRound: () => {},
     requestNextRound: async () => {},
     availableRounds: [1],
     roundSummaries: [{ round: 1, generatedAt: '', taskCount: 0, imageCount: 0 }],
@@ -197,20 +198,17 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     expect(loadRound).not.toHaveBeenCalled();
   });
 
-  it('never overrides a round the user already loaded', async () => {
+  it('still fires ingest-missing when currentRound is already set', async () => {
     const loadRound = vi.fn(async () => ['t1']);
-    install({ loadRound, loadedRound: 3 });
+    install({ loadRound, currentRound: 3, availableRounds: [1, 2, 3] });
 
-    const { rerender } = render(<Workspace />);
+    render(<Workspace />);
     await flush();
 
-    // Still nothing after the round list grows — a manual load keeps precedence
-    // for the whole mount, not just the first render.
-    install({ loadRound, loadedRound: 3, availableRounds: [1, 2] });
-    rerender(<Workspace />);
-    await flush();
-
-    expect(loadRound).not.toHaveBeenCalled();
+    // Remount / first shot for this session must still pick up new rounds
+    // (BI-053.3); viewing r3 is not a skip.
+    expect(loadRound).toHaveBeenCalledTimes(1);
+    expect(loadRound).toHaveBeenCalledWith();
   });
 
   it('fires at most once per session even as the gate inputs churn', async () => {
@@ -221,7 +219,7 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     await flush();
     expect(loadRound).toHaveBeenCalledTimes(1);
 
-    // `loadedRound` stays null (the stub does not model the commit), so only the
+    // `currentRound` stays null (the stub does not model the commit), so only the
     // per-session ref stands between this and a re-fire on every dependency change.
     install({ loadRound, availableRounds: [1, 2] });
     rerender(<Workspace />);
@@ -244,13 +242,36 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
 
     install({
       loadRound,
-      loadedRound: null,
+      currentRound: null,
       session: makeSession({ id: 's2', name: 'Other' }),
     });
     rerender(<Workspace />);
     await flush();
 
     expect(loadRound).toHaveBeenCalledTimes(2);
+  });
+
+  it('chip click selects the round view instead of re-ingesting (BI-053.4)', async () => {
+    const loadRound = vi.fn(async () => ['t1']);
+    const setCurrentRound = vi.fn();
+    install({
+      loadRound,
+      setCurrentRound,
+      currentRound: 1,
+      availableRounds: [1, 2],
+      roundSummaries: [
+        { round: 1, generatedAt: '', taskCount: 1, imageCount: 2 },
+        { round: 2, generatedAt: '', taskCount: 1, imageCount: 2 },
+      ],
+    });
+
+    render(<Workspace />);
+    await flush();
+    loadRound.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load round r2' }));
+    expect(setCurrentRound).toHaveBeenCalledWith(2);
+    expect(loadRound).not.toHaveBeenCalled();
   });
 });
 

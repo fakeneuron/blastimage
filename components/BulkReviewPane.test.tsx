@@ -26,6 +26,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import BulkReviewPane from './BulkReviewPane';
 import { ImagegenProvider } from '@/lib/ImagegenContext';
+import { roundImageUrl } from '@/lib/imagegenUrl';
 import { DEFAULT_BATCH_SIZE } from '@/lib/useWorkspace';
 import type { GeneratedImage, ID, Iteration, PromptTask } from '@/lib/types';
 
@@ -72,6 +73,7 @@ function makeIteration(index: number, images: GeneratedImage[]): Iteration {
 interface PaneOptions {
   tasks?: PromptTask[];
   generatingTaskIds?: ID[];
+  currentRound?: number | null;
 }
 
 function makeSpies() {
@@ -84,7 +86,7 @@ function makeSpies() {
 }
 
 function markup(
-  { tasks = [], generatingTaskIds = [] }: PaneOptions,
+  { tasks = [], generatingTaskIds = [], currentRound = null }: PaneOptions,
   spies: ReturnType<typeof makeSpies>,
 ) {
   return (
@@ -92,6 +94,7 @@ function markup(
       <BulkReviewPane
         tasks={tasks}
         generatingTaskIds={generatingTaskIds}
+        currentRound={currentRound}
         onSetImageDecision={spies.onSetImageDecision}
         onSetImageRating={spies.onSetImageRating}
         onFeedback={spies.onFeedback}
@@ -158,6 +161,28 @@ describe('BulkReviewPane — landed state (BI-005 wiring)', () => {
 
     expect(screen.getByText(/round 2/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Keep' })).toBeTruthy();
+  });
+
+  it('renders the iteration that touches currentRound instead of the latest (BI-053.4)', async () => {
+    await renderPane({
+      currentRound: 1,
+      tasks: [
+        makeTask('t1', {
+          iterations: [
+            makeIteration(0, [
+              { ...makeImage('i1'), url: roundImageUrl(1, 'hero-001.jpg'), prompt: 'round 1 hero' },
+            ]),
+            makeIteration(1, [
+              { ...makeImage('i2'), url: roundImageUrl(2, 'hero-002.jpg'), prompt: 'round 2 hero' },
+            ]),
+          ],
+        }),
+      ],
+    });
+
+    expect(screen.getByText(/round r1/)).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'round 1 hero' })).toBeTruthy();
+    expect(screen.queryByRole('img', { name: 'round 2 hero' })).toBeNull();
   });
 
   it('forwards the review-grid callbacks with the owning task id attached', async () => {

@@ -187,6 +187,15 @@ export function bindImagegenRoot(session: Session, root: string | null): Session
 }
 
 /**
+ * Sets the project's round view-filter (BI-053.4), or clears it with `null`.
+ * Review panes read this via {@link visibleIteration}; it does not change
+ * which iterations exist.
+ */
+export function setCurrentRound(session: Session, round: number | null): Session {
+  return { ...touch(session), currentRound: round };
+}
+
+/**
  * Splits an absolute path into its non-empty segments. Deliberately a string
  * operation rather than `node:path` — these run in the browser, and BI-046
  * established that the server is the only side that joins or resolves paths.
@@ -245,6 +254,22 @@ export function importTasks(
  */
 function iterationTouchesRound(it: Iteration, round: number): boolean {
   return it.images.some((img) => roundNumberFromImageUrl(img.url) === round);
+}
+
+/**
+ * The iteration a review pane should show for `currentRound` (BI-053.4): the
+ * first iteration whose images live under `rounds/r<round>/`, or the latest
+ * iteration when the round is unset or that task has no matching images.
+ */
+export function visibleIteration(
+  task: PromptTask,
+  currentRound?: number | null,
+): Iteration | undefined {
+  if (currentRound != null) {
+    const hit = task.iterations.find((it) => iterationTouchesRound(it, currentRound));
+    if (hit) return hit;
+  }
+  return task.iterations.at(-1);
 }
 
 /**

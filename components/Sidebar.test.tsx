@@ -78,8 +78,11 @@ function makeProps(
     onGenerateAll: () => {},
     imagegenRoot: null,
     availableRounds: [],
+    roundSummaries: [],
+    currentRound: null,
     onLinkImagegen: () => {},
     onLoadRound: () => {},
+    onSelectRound: () => {},
     ...overrides,
   };
 }
@@ -219,6 +222,35 @@ describe('Sidebar accessible names (BI-035.3)', () => {
 
     expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
+  });
+
+  it('highlights the current round and selects the view on chip click (BI-053.4)', () => {
+    const onSelectRound = vi.fn();
+    const onLoadRound = vi.fn();
+    render(
+      <Sidebar
+        {...makeProps({
+          imagegenRoot: '/repo/imagegen',
+          availableRounds: [1, 2],
+          roundSummaries: [
+            { round: 1, generatedAt: '', taskCount: 1, imageCount: 2 },
+            { round: 2, generatedAt: '', taskCount: 1, imageCount: 4 },
+          ],
+          currentRound: 2,
+          onSelectRound,
+          onLoadRound,
+        })}
+      />,
+    );
+
+    const r2 = screen.getByRole('button', { name: 'Load round r2' });
+    expect(r2.getAttribute('aria-current')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Load round r1' }).getAttribute('aria-current')).toBeNull();
+    expect(r2.getAttribute('title')).toContain('4 images');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load round r1' }));
+    expect(onSelectRound).toHaveBeenCalledWith(1);
+    expect(onLoadRound).not.toHaveBeenCalled();
   });
 
   it('names the imagegen link button for its current state', () => {

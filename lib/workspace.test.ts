@@ -18,6 +18,8 @@ import {
   importTasks,
   ingestRoundBatch,
   sessionRoundNumbers,
+  setCurrentRound,
+  visibleIteration,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
   newRefImage,
@@ -761,6 +763,50 @@ describe('imagegen folder binding (BI-047)', () => {
     expect(bound.imagegenRoot).toBe('/Code/acme/imagegen');
 
     expect(bindImagegenRoot(bound, null).imagegenRoot).toBe(null);
+  });
+});
+
+describe('round view-filter (BI-053.4)', () => {
+  const batch = (round: number): RoundBatch => ({
+    schemaVersion: 1,
+    round,
+    generatedAt: '2026-06-18T00:00:00Z',
+    tasks: [
+      {
+        slug: 'hero-banner',
+        name: 'Hero banner',
+        prompt: `round ${round}`,
+        images: [`hero-banner-00${round}.jpg`],
+      },
+    ],
+  });
+
+  it('setCurrentRound writes the field without mutating the original', () => {
+    const session = newSession('Acme');
+    expect(session.currentRound).toBeUndefined();
+
+    const viewing = setCurrentRound(session, 2);
+    expect(viewing.currentRound).toBe(2);
+    expect(session.currentRound).toBeUndefined();
+    expect(setCurrentRound(viewing, null).currentRound).toBe(null);
+  });
+
+  it('visibleIteration returns the iteration that touches currentRound', () => {
+    let s = ingestRoundBatch(newSession('S'), batch(1), (f) => roundImageUrl(1, f));
+    s = ingestRoundBatch(s, batch(2), (f) => roundImageUrl(2, f));
+    const task = s.tasks[0]!;
+    expect(visibleIteration(task, 1)?.images[0]!.url).toBe(roundImageUrl(1, 'hero-banner-001.jpg'));
+    expect(visibleIteration(task, 2)?.images[0]!.url).toBe(roundImageUrl(2, 'hero-banner-002.jpg'));
+  });
+
+  it('visibleIteration falls back to latest when the round is unset or missing', () => {
+    let s = ingestRoundBatch(newSession('S'), batch(1), (f) => roundImageUrl(1, f));
+    s = ingestRoundBatch(s, batch(2), (f) => roundImageUrl(2, f));
+    const task = s.tasks[0]!;
+    expect(visibleIteration(task)?.images[0]!.url).toBe(roundImageUrl(2, 'hero-banner-002.jpg'));
+    expect(visibleIteration(task, null)?.images[0]!.url).toBe(roundImageUrl(2, 'hero-banner-002.jpg'));
+    expect(visibleIteration(task, 9)?.images[0]!.url).toBe(roundImageUrl(2, 'hero-banner-002.jpg'));
+    expect(visibleIteration(newTask('empty'))).toBeUndefined();
   });
 });
 
