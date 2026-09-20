@@ -4,13 +4,12 @@
  * blastimage — workspace sidebar (BI-003)
  *
  * Session switcher (switch / new / rename) above the prompt-task list
- * (select / add / rename / delete / import-from-JSON). Naming prompts use
- * native dialogs to keep the shell minimal; richer inline editing can replace
- * them later if needed. Delete is the exception — it routes to
- * {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on disk
- * does not fit a `window.confirm` (BI-033). The import file-read (DOM concern)
- * lives here, per the ReferenceLibrary precedent; parse/validate/merge live in
- * lib (BI-019).
+ * (select / add / rename / delete / import-from-JSON). Project New/Rename
+ * edit inline (BI-053.2); task New/Rename still use native dialogs. Delete
+ * routes to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs
+ * on disk does not fit a `window.confirm` (BI-033). The import file-read (DOM
+ * concern) lives here, per the ReferenceLibrary precedent; parse/validate/merge
+ * live in lib (BI-019).
  *
  * Accessible naming (BI-035.3): every button carries an explicit `aria-label`,
  * because the glyph-bearing ones would otherwise be named by their content —
@@ -24,11 +23,11 @@
  * associated with it by layout only.
  */
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ID, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
-import { imagegenRootLabel } from '@/lib/workspace';
+import { imagegenRootLabel, projectNameFromRoot } from '@/lib/workspace';
 
 interface SidebarProps {
   session: Session;
@@ -100,21 +99,54 @@ export default function Sidebar({
   // Visible text and accessible name share the folder label for the same reason
   // the round chips do (BI-035.3): the name must contain the visible text.
   const imagegenLabel = imagegenRoot ? imagegenRootLabel(imagegenRoot) : '';
+  const derivedName = imagegenRoot ? projectNameFromRoot(imagegenRoot) : '';
+  const offerRepoName = derivedName.length > 0 && derivedName !== session.name;
   const latestRound = availableRounds.length ? availableRounds[availableRounds.length - 1] : undefined;
   // Shared by the button's visible text and its accessible name (BI-035.3), so the
   // two cannot drift apart — the name must contain the visible text (WCAG 2.5.3).
   const loadRoundLabel = `Load round${latestRound !== undefined ? ` r${latestRound}` : ''}`;
   const importInputRef = useRef<HTMLInputElement>(null);
   const sessionImportInputRef = useRef<HTMLInputElement>(null);
+  const [draftKind, setDraftKind] = useState<'new' | 'rename' | null>(null);
+  const [draftValue, setDraftValue] = useState('');
+  // Enter unmounts the input, which fires blur in the browser; the ref is what
+  // makes the second submitDraft a no-op (setState would still see the old kind).
+  const draftKindRef = useRef<'new' | 'rename' | null>(null);
+  const draftInputRef = useRef<HTMLInputElement>(null);
 
-  function handleNewSession() {
-    const name = window.prompt('Name the new website project:');
-    if (name && name.trim()) onCreateSession(name);
+  useEffect(() => {
+    if (draftKind) draftInputRef.current?.focus();
+  }, [draftKind]);
+
+  function openDraft(kind: 'new' | 'rename'): void {
+    draftKindRef.current = kind;
+    setDraftKind(kind);
+    setDraftValue(kind === 'rename' ? session.name : '');
   }
 
-  function handleRenameSession() {
-    const name = window.prompt('Rename this project:', session.name);
-    if (name && name.trim()) onRenameSession(name);
+  function cancelDraft(): void {
+    draftKindRef.current = null;
+    setDraftKind(null);
+    setDraftValue('');
+  }
+
+  function submitDraft(): void {
+    const kind = draftKindRef.current;
+    if (!kind) return;
+    const name = draftValue.trim();
+    cancelDraft();
+    if (kind === 'new' && name) onCreateSession(name);
+    if (kind === 'rename' && name) onRenameSession(name);
+  }
+
+  function handleDraftKey(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitDraft();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelDraft();
+    }
   }
 
   function handleAddTask() {
@@ -149,22 +181,67 @@ export default function Sidebar({
             </option>
           ))}
         </select>
+        {/* Identity header (BI-053.2): name + repo label. `.5` regroups this. */}
+        <div className="mt-2">
+          {draftKind === 'rename' ? (
+            <input
+              ref={draftInputRef}
+              aria-label="Project name"
+              className="w-full rounded border border-black/15 bg-background px-2 py-1 text-sm dark:border-white/15"
+              value={draftValue}
+              onChange={(e) => setDraftValue(e.target.value)}
+              onKeyDown={handleDraftKey}
+              onBlur={submitDraft}
+            />
+          ) : (
+            <h2 className="truncate text-sm font-medium" title={session.name}>
+              {session.name}
+            </h2>
+          )}
+          {imagegenRoot ? (
+            <p className="mt-0.5 truncate text-xs opacity-60" title={imagegenRoot}>
+              {imagegenLabel}
+            </p>
+          ) : null}
+          {offerRepoName && draftKind === null ? (
+            <button
+              type="button"
+              className="mt-1 rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+              aria-label={`Use ${derivedName}`}
+              onClick={() => onRenameSession(derivedName)}
+            >
+              Use {derivedName}
+            </button>
+          ) : null}
+        </div>
         <div className="mt-2 flex gap-2">
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             aria-label="New project"
-            onClick={handleNewSession}
+            onClick={() => openDraft('new')}
           >
             + New
           </button>
           <button
             className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
             aria-label="Rename project"
-            onClick={handleRenameSession}
+            onClick={() => openDraft('rename')}
           >
             Rename
           </button>
         </div>
+        {draftKind === 'new' ? (
+          <input
+            ref={draftInputRef}
+            aria-label="New project name"
+            placeholder="Project name"
+            className="mt-2 w-full rounded border border-black/15 bg-background px-2 py-1 text-sm dark:border-white/15"
+            value={draftValue}
+            onChange={(e) => setDraftValue(e.target.value)}
+            onKeyDown={handleDraftKey}
+            onBlur={submitDraft}
+          />
+        ) : null}
         {/* Full-session backup export / import (BI-022.7); import lands a fresh copy. */}
         <div className="mt-2 flex gap-2">
           <button

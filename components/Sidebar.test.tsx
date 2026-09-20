@@ -246,3 +246,126 @@ describe('Sidebar accessible names (BI-035.3)', () => {
     expect(button.getAttribute('title')).toContain('Grok-Build-only');
   });
 });
+
+/**
+ * Project identity (BI-053.2)
+ *
+ * The header is the project's name + bound-repo label, and project New/Rename
+ * edit inline so they can sit next to a "Use {repo}" offer — a `window.prompt`
+ * cannot. Task naming still uses the native dialog.
+ */
+describe('Sidebar project identity (BI-053.2)', () => {
+  it('renders the project name as a header and the repo label with the absolute path as tooltip', () => {
+    render(
+      <Sidebar
+        {...makeProps({ imagegenRoot: '/Users/dev/Code/spinalcord/imagegen' })}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Demo Site' })).toBeTruthy();
+    const label = screen.getByText('spinalcord/imagegen');
+    expect(label.tagName).toBe('P');
+    expect(label.getAttribute('title')).toBe('/Users/dev/Code/spinalcord/imagegen');
+  });
+
+  it('hides the repo label when the project is unbound', () => {
+    render(<Sidebar {...makeProps({ imagegenRoot: null })} />);
+
+    expect(screen.getByRole('heading', { name: 'Demo Site' })).toBeTruthy();
+    expect(screen.queryByText('spinalcord/imagegen')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Use / })).toBeNull();
+  });
+
+  it('offers Use {derived} when the bound repo name differs from the project name', () => {
+    const onRenameSession = vi.fn();
+    render(
+      <Sidebar
+        {...makeProps({
+          imagegenRoot: '/Users/dev/Code/spinalcord/imagegen',
+          onRenameSession,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use spinalcord' }));
+    expect(onRenameSession).toHaveBeenCalledWith('spinalcord');
+  });
+
+  it('hides the offer when the project already carries the repo name', () => {
+    const session = makeSession({ name: 'spinalcord' });
+    render(
+      <Sidebar
+        {...makeProps({
+          session,
+          imagegenRoot: '/Users/dev/Code/spinalcord/imagegen',
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Use spinalcord' })).toBeNull();
+  });
+
+  it('creates a project from the inline New input and never calls window.prompt', () => {
+    const prompted = vi.fn();
+    vi.stubGlobal('prompt', prompted);
+    const onCreateSession = vi.fn();
+    render(<Sidebar {...makeProps({ onCreateSession })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    expect(prompted).not.toHaveBeenCalled();
+
+    const input = screen.getByRole('textbox', { name: 'New project name' });
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.blur(input);
+
+    expect(onCreateSession).toHaveBeenCalledTimes(1);
+    expect(onCreateSession).toHaveBeenCalledWith('Acme Site');
+    expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
+  });
+
+  it('cancels an empty New draft on Enter and on Escape', () => {
+    const onCreateSession = vi.fn();
+    render(<Sidebar {...makeProps({ onCreateSession })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'New project name' }), { key: 'Enter' });
+    expect(onCreateSession).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'New project name' }), { key: 'Escape' });
+    expect(onCreateSession).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
+  });
+
+  it('renames from the inline input and never calls window.prompt', () => {
+    const prompted = vi.fn();
+    vi.stubGlobal('prompt', prompted);
+    const onRenameSession = vi.fn();
+    render(<Sidebar {...makeProps({ onRenameSession })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename project' }));
+    expect(prompted).not.toHaveBeenCalled();
+
+    const input = screen.getByRole('textbox', { name: 'Project name' });
+    expect((input as HTMLInputElement).value).toBe('Demo Site');
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onRenameSession).toHaveBeenCalledWith('Acme Site');
+    expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
+  });
+
+  it('still prompts for a new task name', () => {
+    const prompted = vi.fn(() => 'Hero');
+    vi.stubGlobal('prompt', prompted);
+    const onAddTask = vi.fn();
+    render(<Sidebar {...makeProps({ onAddTask })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'New task' }));
+
+    expect(prompted).toHaveBeenCalled();
+    expect(onAddTask).toHaveBeenCalledWith('Hero');
+  });
+});

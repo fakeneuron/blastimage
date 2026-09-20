@@ -938,7 +938,7 @@ async function link(
 }
 
 describe('binding a folder to a project (BI-047)', () => {
-  it('binds the folder and names a still-default, empty project after the repo', async () => {
+  it('binds the folder and names a still-default project after the repo', async () => {
     const { api, live } = bindingImagegen();
     const { result } = renderHook(() => useWorkspace(api));
     await waitFor(() => expect(result.current.ready).toBe(true));
@@ -965,7 +965,7 @@ describe('binding a folder to a project (BI-047)', () => {
     expect(result.current.session!.imagegenRoot).toBe('/Code/spinalcord/imagegen');
   });
 
-  it('leaves a default-named project that already has tasks alone', async () => {
+  it('still names a default-named project that already has tasks (BI-053.2)', async () => {
     const { api } = bindingImagegen();
     const { result } = renderHook(() => useWorkspace(api));
     await waitFor(() => expect(result.current.ready).toBe(true));
@@ -973,7 +973,7 @@ describe('binding a folder to a project (BI-047)', () => {
 
     await link(result, '/Code/spinalcord/imagegen');
 
-    expect(result.current.session!.name).toBe('My Website');
+    expect(result.current.session!.name).toBe('spinalcord');
   });
 });
 

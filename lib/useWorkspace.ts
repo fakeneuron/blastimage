@@ -1068,9 +1068,10 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       return { status: 'owned', ownerId: owner.id, ownerName: owner.name, root };
     }
     let next = bindImagegenRoot(project, root);
-    // A project still carrying its bootstrap name with nothing in it is named
-    // after the repo it just linked; one the operator named or filled is not.
-    if (next.name === DEFAULT_SESSION_NAME && next.tasks.length === 0) {
+    // A project still carrying its bootstrap name is named after the repo it
+    // just linked; one the operator named is not — the sidebar offers
+    // "Use {derived}" instead of silently overriding (BI-053.2).
+    if (next.name === DEFAULT_SESSION_NAME) {
       const derived = projectNameFromRoot(root);
       if (derived) next = renameSessionName(next, derived);
     }
