@@ -8,7 +8,13 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-EPIC-053** [heavy]🧠 | session-round-navigation — Make a project's identity and its terminal rounds legible in the frontend: auto-name projects from the linked `imagegen/` root (manual rename kept), surface every `rounds/rN/` as a persisted, toggleable view inside the project (rounds stay iterations — the r1→r2 seed chain is untouched), auto-ingest rounds on link/mount with ↻ as refresh, and restructure the sidebar's action clutter (filed via /ft-epic-discovery; refined at .1 closure).
+  - [x] **BI-053.1** [heavy]🧠 | session-round-navigation discovery — Completed 2026-09-20.
+  - [ ] **BI-053.2** [medium]🧩 | project-identity — Widen BI-047 auto-naming: `linkImagegenFolder` derives the name via `projectNameFromRoot` whenever the project is still default-named, and offers "use repo name" otherwise; add a sidebar project header showing name + repo label (`imagegenRootLabel`, absolute path as tooltip); replace the `window.prompt` New/Rename flows with inline inputs. Tests: `Sidebar`, `useWorkspace`.
+  - [ ] **BI-053.3** [medium]🧩 | round-summaries-auto-ingest — Extend `GET /api/imagegen/rounds` + `ImagegenApi.listRounds` to return per-round summaries `{round, generatedAt, taskCount, imageCount}` read from each `batch.json`; replace the BI-026 latest-only autoload with ingest-every-round on link/mount (idempotent per BI-043); ↻ becomes refresh (re-list, ingest new). Tests: `imagegenRouteGuard`, `useWorkspace`, `Workspace`.
+  - [ ] **BI-053.4** [heavy]🧠 | round-view-filter — Persist `Session.currentRound` (optional field, structural `isSession`, no schema bump — BI-047 pattern); `useWorkspace` owns it, resets on switch, replaces the in-memory `loadedRound`; sidebar rounds list from .3 summaries with the current round highlighted; `TaskDetail` / `BulkReviewPane` render the iteration touching `currentRound` (fallback latest) instead of `iterations.at(-1)`; approve/iterate round fallbacks follow. Tests + e2e.
+  - [ ] **BI-053.5** [medium]🧩 | sidebar-restructure — Regroup per the .1 triage: visible project header (name, repo, mode badge), rounds list, tasks + New task, Generate All only when `generationAvailable` (adopter mode shows a viewer-mode note instead); a ⋯ menu carries New/Switch project, Link imagegen, Export/Import backup, Build, Import tasks. Update README / WORKFLOW / REVIEW-LOOP / ADOPT sidebar references; `Sidebar` / `Workspace` tests + e2e selectors.
+  - [ ] **BI-053.N** [heavy]🧠 | session-round-navigation audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed now with the reserved terminal `.N` suffix (never renumbers as children are added).
 
 ## Medium
 
