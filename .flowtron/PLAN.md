@@ -14,6 +14,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-054** [medium]🧩 | gallery-rail — Collapse the Gallery right-rail when empty; Folder/JSON/Sheet belong with approved images, not as a standing empty pane during review.
 - [ ] **BI-055** [medium]🧩 | iterate-discoverability — Iterate → is hidden until Keep, so the next-round path is invisible on undecided cards. Surface the keeper-then-iterate step without dropping the keep-first rule.
+- [ ] **BI-056** [medium]🧩 | round-reload-chip-name — Round chips still say Load while click only changes the view. loadRound(n) still BI-043-replaces but nothing in the sidebar calls it, so a rewritten round cannot be picked up (↻ skips already-ingested). Rename the chip; restore a replace control or stop claiming Load round rN re-mints.
 
 ## Low
 
