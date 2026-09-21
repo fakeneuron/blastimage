@@ -14,6 +14,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-054** [medium]🧩 | gallery-rail — Collapse the Gallery right-rail when empty; Folder/JSON/Sheet belong with approved images, not as a standing empty pane during review.
 
+- [ ] **CORE-6** [medium]🧩 | brand-kit-fill — Generate brand/ kit (logo.svg, favicon.svg, filled BRAND.md, PROMPTS.md) per natabula DESIGN-STANDARDS §Brand kit Fill recipe. Attended; code-drawn SVG after raster confirm; no embedded raster; promo only at real 1600×900. Leave working tab trio. Routed by natabula NAT-315.
+
 ## Low
 
 - [ ] **TEST-009** [light]🔧 | playwright-exact-pin — `package.json` declares `@playwright/test: "^1.63.0"`; the fleet pins it exact (11 repos on `1.62.1`) because a Playwright minor carries a browser-revision bump, so a caret lets `npm install` silently change which browser the suite runs against (natabula `docs/STACK-TENDENCIES.md` §"End-to-end testing (Playwright)", NAT-186.5). Pin exact — to `1.62.1`, or to `1.63.x` as a deliberate, reviewed bump. Surfaced by natabula fleet audit 2026-09-12 at `90ef067`.
