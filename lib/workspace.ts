@@ -327,7 +327,7 @@ function upsertIterationForRound(
  * — never inline bytes.
  *
  * Replace (not refuse) is the deliberate product choice: `/blast-generate`
- * rewrites `rounds/r<N>/` in place, so "Load round" after a rerun must refresh
+ * rewrites `rounds/r<N>/` in place, so reloading that round after a rerun must refresh
  * the session rather than stack a second copy of the same disk files.
  */
 export function ingestRoundBatch(

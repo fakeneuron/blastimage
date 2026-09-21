@@ -97,9 +97,9 @@ export default function DeleteTaskModal({
                 <code>/blast-iterate</code> still acts on the slug.
               </li>
               <li>
-                The round images in <code>rounds/</code> stay put — “Load round rN” will re-create
-                this task from <code>batch.json</code> (though its decisions, ratings, and
-                feedback will not come back), unless you also remove it from{' '}
+                The round images in <code>rounds/</code> stay put — click the current round chip
+                again to re-create this task from <code>batch.json</code> (though its decisions,
+                ratings, and feedback will not come back), unless you also remove it from{' '}
                 <code>imagegen/tasks.json</code>.
               </li>
             </ul>

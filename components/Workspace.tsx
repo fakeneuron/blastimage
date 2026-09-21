@@ -176,8 +176,8 @@ function WorkspaceInner() {
           roundSummaries={ws.roundSummaries}
           currentRound={ws.currentRound}
           onLinkImagegen={() => setShowLinkPicker(true)}
-          onLoadRound={async () => {
-            const loaded = await ws.loadRound();
+          onLoadRound={async (round?: number) => {
+            const loaded = await ws.loadRound(round);
             if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
           }}
           onSelectRound={ws.setCurrentRound}

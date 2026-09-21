@@ -87,7 +87,7 @@ never embedded as base64 in the JSON (see §5).
 derives each slug from `imagegen/tasks.json` and `/blast-iterate` carries it forward from the
 prior `batch.json`; the frontend re-derives it as `slugify(task.name)` to match tasks on load
 and to address them in `selection.json`. Renaming a task in the app therefore moves one end of
-the join and nothing reconciles it — the next **Load round rN** mints a duplicate task, and
+the join and nothing reconciles it — reloading the current round from disk mints a duplicate task, and
 **⟳ Iterate** writes a slug `/blast-iterate` won't match. The frontend now raises a blocking
 confirm before any rename that would change a joined task's slug; **keep `imagegen/tasks.json`
 in step** when you accept one. Slug-preserving renames (`Hero Banner` → `hero banner!`) are safe
@@ -98,7 +98,7 @@ a delete removes it. The frontend opens a modal naming the slug, the joined roun
 `approved/` copies the task promoted, because three things outlive the delete: those approved
 copies (which the in-app undo above can no longer reach), the task's `selection.json` entry
 (still instructing `/blast-iterate`), and the `rounds/r<N>/` images themselves. Only the last
-is recoverable — **Load round rN** re-mints the task from `batch.json`, though its decisions,
+is recoverable — clicking the current round chip again re-mints the task from `batch.json`, though its decisions,
 ratings, and feedback do not come back, so the session then reads "nothing approved" while
 `approved/` still holds the promoted copy. The modal offers an **opt-in** cleanup of the first
 two (it removes the approved copies and writes `{ slug, decision: "skip" }` for each joined

@@ -18,8 +18,9 @@
  * because the glyph-bearing ones would otherwise be named by their content —
  * `✎`, `🗑`, and `⋯` announce as bare glyphs, and the two `Import` buttons
  * announce identically. Each label *contains* its button's visible text (WCAG
- * 2.5.3 Label in Name), which is why the round chips are "Load round r1", not
- * "Load round 1", and the header rename control is "Rename {name}". `title`
+ * 2.5.3 Label in Name), which is why the round chips are "View round r1" /
+ * "Reload round r1", not "View round 1", and the header rename control is
+ * "Rename {name}". `title`
  * stays alongside: it is the hover tooltip and carries detail the name should
  * not (the Generate All disabled reason, the chips' `rounds/rN/batch.json`
  * path). The project `<select>` is named the native way instead —
@@ -76,8 +77,8 @@ interface SidebarProps {
   /** The terminal round currently in view (BI-053.4), or `null`. */
   currentRound: number | null;
   onLinkImagegen: () => void;
-  /** Refresh: re-list and ingest rounds this project does not already hold. */
-  onLoadRound: () => void;
+  /** Refresh (no arg) or BI-043-replace the given round (BI-056 current-chip click). */
+  onLoadRound: (round?: number) => void;
   /** Sets the round view-filter; does not re-ingest (BI-053.4). */
   onSelectRound: (round: number) => void;
 }
@@ -416,6 +417,9 @@ export default function Sidebar({
                 const countTitle = summary
                   ? `r${n} · ${summary.taskCount} task${summary.taskCount === 1 ? '' : 's'} · ${summary.imageCount} image${summary.imageCount === 1 ? '' : 's'}`
                   : `rounds/r${n}/batch.json`;
+                const title = current
+                  ? `${countTitle} · Click again to reload from disk`
+                  : countTitle;
                 return (
                   <button
                     key={n}
@@ -424,10 +428,10 @@ export default function Sidebar({
                         ? 'border-foreground bg-foreground/10'
                         : 'border-black/15 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10'
                     }`}
-                    title={countTitle}
-                    aria-label={`Load round r${n}`}
+                    title={title}
+                    aria-label={current ? `Reload round r${n}` : `View round r${n}`}
                     aria-current={current ? 'true' : undefined}
-                    onClick={() => onSelectRound(n)}
+                    onClick={() => (current ? onLoadRound(n) : onSelectRound(n))}
                   >
                     r{n}
                   </button>

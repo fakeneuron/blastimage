@@ -209,14 +209,14 @@ describe('Sidebar accessible names (BI-035.3)', () => {
     expect(screen.getByRole('button', { name: 'New task' })).toBeTruthy();
   });
 
-  it('names the round chips with the round they load', () => {
+  it('names the round chips with the round they view', () => {
     render(<Sidebar {...makeProps({ imagegenRoot: '/repo/imagegen', availableRounds: [1, 2, 3] })} />);
 
     // The chips render bare "r1"/"r2"/"r3". The name keeps that visible text
-    // inside it (WCAG 2.5.3) rather than replacing it with "Load round 1".
-    expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Load round r2' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Load round r3' })).toBeTruthy();
+    // inside it (WCAG 2.5.3) rather than replacing it with "View round 1".
+    expect(screen.getByRole('button', { name: 'View round r1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'View round r2' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'View round r3' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
   });
 
@@ -226,10 +226,10 @@ describe('Sidebar accessible names (BI-035.3)', () => {
     expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
   });
 
-  it('shows a load chip even when only one round exists', () => {
+  it('shows a view chip even when only one round exists', () => {
     render(<Sidebar {...makeProps({ imagegenRoot: '/repo/imagegen', availableRounds: [1] })} />);
 
-    expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'View round r1' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
   });
 
@@ -252,14 +252,35 @@ describe('Sidebar accessible names (BI-035.3)', () => {
       />,
     );
 
-    const r2 = screen.getByRole('button', { name: 'Load round r2' });
+    const r2 = screen.getByRole('button', { name: 'Reload round r2' });
     expect(r2.getAttribute('aria-current')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Load round r1' }).getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('button', { name: 'View round r1' }).getAttribute('aria-current')).toBeNull();
     expect(r2.getAttribute('title')).toContain('4 images');
+    expect(r2.getAttribute('title')).toContain('Click again to reload from disk');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load round r1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View round r1' }));
     expect(onSelectRound).toHaveBeenCalledWith(1);
     expect(onLoadRound).not.toHaveBeenCalled();
+  });
+
+  it('reloads the current round from disk on current-chip click (BI-056)', () => {
+    const onSelectRound = vi.fn();
+    const onLoadRound = vi.fn();
+    render(
+      <Sidebar
+        {...makeProps({
+          imagegenRoot: '/repo/imagegen',
+          availableRounds: [1, 2],
+          currentRound: 2,
+          onSelectRound,
+          onLoadRound,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload round r2' }));
+    expect(onLoadRound).toHaveBeenCalledWith(2);
+    expect(onSelectRound).not.toHaveBeenCalled();
   });
 
   it('names the imagegen link button for its current state', () => {
@@ -478,7 +499,7 @@ describe('Sidebar regroup (BI-053.5)', () => {
 
     expect(screen.getByText('Rounds')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reload round r1' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /imagegen linked/ })).toBeNull();
   });
 });

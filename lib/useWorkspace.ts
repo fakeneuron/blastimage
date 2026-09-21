@@ -141,7 +141,7 @@ function confirmSlugBreak(
     `Rename “${previousName}” → “${nextName}”?\n\n` +
       `This task is joined to imagegen ${risk.rounds.length > 1 ? 'rounds' : 'round'} ` +
       `${rounds} by the slug “${risk.currentSlug}”. Renaming changes its slug to ` +
-      `“${risk.nextSlug}”, so the next Load round rN will mint a duplicate task and ` +
+      `“${risk.nextSlug}”, so reloading the current round from disk will mint a duplicate task and ` +
       `⟳ Iterate will write a slug /blast-iterate won't match.\n\n` +
       `Rename imagegen/tasks.json to match, or keep the old name.`,
   );
@@ -666,8 +666,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
    * `approve` or `iterate` entry's keeper and prompt in one write.
    *
    * The `rounds/r<N>/…` source files are deliberately untouched — the app does
-   * not own them, and Load round rN re-mints the task from `batch.json`, which
-   * is the only way back from a mistaken delete.
+   * not own them, and reloading the current round from disk re-mints the task
+   * from `batch.json`, which is the only way back from a mistaken delete.
    *
    * Runs after the session commit, so a failure surfaces in the error banner
    * rather than blocking the delete the user already confirmed.

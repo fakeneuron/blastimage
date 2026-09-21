@@ -269,9 +269,32 @@ describe('Workspace auto-load-round effect (BI-026)', () => {
     await flush();
     loadRound.mockClear();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load round r2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View round r2' }));
     expect(setCurrentRound).toHaveBeenCalledWith(2);
     expect(loadRound).not.toHaveBeenCalled();
+  });
+
+  it('current-chip click re-ingests that round (BI-056)', async () => {
+    const loadRound = vi.fn(async () => ['t1']);
+    const setCurrentRound = vi.fn();
+    install({
+      loadRound,
+      setCurrentRound,
+      currentRound: 1,
+      availableRounds: [1, 2],
+      roundSummaries: [
+        { round: 1, generatedAt: '', taskCount: 1, imageCount: 2 },
+        { round: 2, generatedAt: '', taskCount: 1, imageCount: 2 },
+      ],
+    });
+
+    render(<Workspace />);
+    await flush();
+    loadRound.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload round r1' }));
+    expect(loadRound).toHaveBeenCalledWith(1);
+    expect(setCurrentRound).not.toHaveBeenCalled();
   });
 });
 

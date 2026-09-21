@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
 import { copyFixture, openProjectMenu, removeFixture } from './helpers';
 
 /**
- * Link imagegen + Load round (TEST-007.3).
+ * Link imagegen + round chips (TEST-007.3).
  *
  * Hits the committed fixture at `test-fixtures/imagegen/` through the running
  * Next server. The picker's typed-path fallback is the CI-stable naming path
@@ -37,11 +37,11 @@ test('links the fixture folder and loads round r1', async ({ page }) => {
   await expect(page.getByLabel('Prompt')).toHaveValue('Warm hero shot for the homepage');
   await expect(page.getByRole('img', { name: 'Warm hero shot for the homepage' })).toHaveCount(2);
 
-  const r1 = page.getByRole('button', { name: 'Load round r1' });
+  const r1 = page.getByRole('button', { name: 'Reload round r1' });
   await expect(r1).toBeEnabled();
   await expect(r1).toHaveAttribute('aria-current', 'true');
 
-  // Chip click is a view filter (BI-053.4), not a BI-043 replace — no duplicate task.
+  // Current-chip click BI-043-replaces the same files — still one task, not a duplicate.
   await r1.click();
   await expect(page.getByRole('button', { name: 'Hero banner' })).toHaveCount(1);
   await expect(page.getByRole('img', { name: 'Warm hero shot for the homepage' })).toHaveCount(2);
@@ -79,14 +79,14 @@ test('toggling rounds swaps the review grid without duplicating the task', async
     await dialog.getByRole('button', { name: 'Link path' }).click();
     await expect(dialog).toBeHidden();
 
-    await expect(page.getByRole('button', { name: 'Load round r2' })).toHaveAttribute(
+    await expect(page.getByRole('button', { name: 'Reload round r2' })).toHaveAttribute(
       'aria-current',
       'true',
     );
     await expect(page.getByRole('img', { name: 'Cool hero shot for the homepage' })).toHaveCount(2);
 
-    await page.getByRole('button', { name: 'Load round r1' }).click();
-    await expect(page.getByRole('button', { name: 'Load round r1' })).toHaveAttribute(
+    await page.getByRole('button', { name: 'View round r1' }).click();
+    await expect(page.getByRole('button', { name: 'Reload round r1' })).toHaveAttribute(
       'aria-current',
       'true',
     );
