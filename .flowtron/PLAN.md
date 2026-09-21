@@ -18,7 +18,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-(none)
+- [ ] **BI-054** [medium]🧩 | gallery-rail — Collapse the Gallery right-rail when empty; Folder/JSON/Sheet belong with approved images, not as a standing empty pane during review.
+- [ ] **BI-055** [medium]🧩 | iterate-discoverability — Iterate → is hidden until Keep, so the next-round path is invisible on undecided cards. Surface the keeper-then-iterate step without dropping the keep-first rule.
 
 ## Low
 
