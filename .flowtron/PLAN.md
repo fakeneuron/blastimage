@@ -8,13 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-EPIC-053** [heavy]🧠 | session-round-navigation — Make a project's identity and its terminal rounds legible in the frontend: auto-name projects from the linked `imagegen/` root (manual rename kept), surface every `rounds/rN/` as a persisted, toggleable view inside the project (rounds stay iterations — the r1→r2 seed chain is untouched), auto-ingest rounds on link/mount with ↻ as refresh, and restructure the sidebar's action clutter (filed via /ft-epic-discovery; refined at .1 closure).
-  - [x] **BI-053.1** [heavy]🧠 | session-round-navigation discovery — Completed 2026-09-20.
-  - [x] **BI-053.2** [medium]🧩 | project-identity — Completed 2026-09-20.
-  - [x] **BI-053.3** [medium]🧩 | round-summaries-auto-ingest — Completed 2026-09-20.
-  - [x] **BI-053.4** [heavy]🧠 | round-view-filter — Completed 2026-09-20.
-  - [x] **BI-053.5** [medium]🧩 | sidebar-restructure — Completed 2026-09-20.
-  - [ ] **BI-053.N** [heavy]🧠 | session-round-navigation audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed now with the reserved terminal `.N` suffix (never renumbers as children are added).
+(none)
 
 ## Medium
 
@@ -32,6 +26,14 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **BI-EPIC-053** [heavy]🧠 | session-round-navigation — Completed 2026-09-20.
+  - [x] **BI-053.1** [heavy]🧠 | session-round-navigation discovery — Completed 2026-09-20.
+  - [x] **BI-053.2** [medium]🧩 | project-identity — Completed 2026-09-20.
+  - [x] **BI-053.3** [medium]🧩 | round-summaries-auto-ingest — Completed 2026-09-20.
+  - [x] **BI-053.4** [heavy]🧠 | round-view-filter — Completed 2026-09-20.
+  - [x] **BI-053.5** [medium]🧩 | sidebar-restructure — Completed 2026-09-20.
+  - [x] **BI-053.N** [heavy]🧠 | session-round-navigation audit — Completed 2026-09-20.
 
 - [x] **TEST-008** [medium]🧩 | iterate-feedback-modal-e2e — Completed 2026-09-10.
 
