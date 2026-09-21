@@ -40,10 +40,16 @@ export function removeFixture(root: string): void {
  * fallback (the CI-stable naming path — the browse tree starts at `$HOME`),
  * returning once round r1 has auto-loaded (BI-026).
  */
+/** Opens the sidebar ⋯ disclosure that holds Link imagegen / switch / backup. */
+export async function openProjectMenu(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Project menu' }).click();
+}
+
 export async function linkImagegenRoot(page: Page, root: string): Promise<void> {
   await page.goto('/');
-  await expect(page.getByRole('combobox', { name: 'Project' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Project menu' })).toBeVisible();
 
+  await openProjectMenu(page);
   await page.getByRole('button', { name: 'Link imagegen' }).click();
   const dialog = page.getByRole('dialog', { name: 'Link imagegen folder' });
   await expect(dialog).toBeVisible();

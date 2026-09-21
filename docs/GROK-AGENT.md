@@ -214,12 +214,14 @@ globalThis.__grokImagineProvider = async (req) => {
 };
 ```
 
-**The UI gates on the bridge (BI-031.2).** Until the provider is installed, the
-Generate and ⚡ Generate All buttons render disabled with the reason stated, so a
-plain browser never offers a button that can only fail. The workspace re-probes
-`isGenerationAvailable()` every 1.5s while the bridge is absent, so installing it
-after page load enables the buttons on its own — no reload needed. Any error the
-provider throws now reaches the user's error banner verbatim.
+**The UI gates on the bridge (BI-031.2 · BI-053.5).** Until the provider is
+installed, TaskDetail's Generate button renders disabled with the reason stated,
+and the sidebar hides ⚡ Generate All in favour of a Viewer badge and a
+terminal-loop note — a plain browser never offers a sidebar button that can
+only fail. The workspace re-probes `isGenerationAvailable()` every 1.5s while
+the bridge is absent, so installing it after page load reveals Generate All on
+its own — no reload needed. Any error the provider throws now reaches the
+user's error banner verbatim.
 
 ### FS path → data URL
 

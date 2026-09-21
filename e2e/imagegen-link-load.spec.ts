@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
-import { copyFixture, removeFixture } from './helpers';
+import { copyFixture, openProjectMenu, removeFixture } from './helpers';
 
 /**
  * Link imagegen + Load round (TEST-007.3).
@@ -17,8 +17,9 @@ const FIXTURE_ROOT = path.join(process.cwd(), 'test-fixtures', 'imagegen');
 
 test('links the fixture folder and loads round r1', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('combobox', { name: 'Project' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Project menu' })).toBeVisible();
 
+  await openProjectMenu(page);
   await page.getByRole('button', { name: 'Link imagegen' }).click();
   const dialog = page.getByRole('dialog', { name: 'Link imagegen folder' });
   await expect(dialog).toBeVisible();
@@ -27,9 +28,8 @@ test('links the fixture folder and loads round r1', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Link path' }).click();
   await expect(dialog).toBeHidden();
 
-  await expect(
-    page.getByRole('button', { name: 'imagegen linked: test-fixtures/imagegen' }),
-  ).toBeVisible();
+  await expect(page.getByTitle(FIXTURE_ROOT)).toBeVisible();
+  await expect(page.getByText('test-fixtures/imagegen')).toBeVisible();
 
   // Auto-load (BI-026 / BI-053.3) ingests r1 without a Load click.
   await expect(page.getByRole('button', { name: 'Hero banner' })).toBeVisible();
@@ -71,7 +71,8 @@ test('toggling rounds swaps the review grid without duplicating the task', async
 
   try {
     await page.goto('/');
-    await expect(page.getByRole('combobox', { name: 'Project' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Project menu' })).toBeVisible();
+    await openProjectMenu(page);
     await page.getByRole('button', { name: 'Link imagegen' }).click();
     const dialog = page.getByRole('dialog', { name: 'Link imagegen folder' });
     await dialog.getByLabel('Or type an absolute path').fill(root);

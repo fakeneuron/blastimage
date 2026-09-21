@@ -8,5 +8,5 @@ import { expect, test } from '@playwright/test';
 test('workspace shell loads', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('blastimage');
-  await expect(page.getByRole('combobox', { name: 'Project' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Project menu' })).toBeVisible();
 });

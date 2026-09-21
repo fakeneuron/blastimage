@@ -4,7 +4,7 @@
  * blastimage — workspace root (BI-003)
  *
  * Client island that owns the {@link useWorkspace} hook and lays out the
- * two-column shell: {@link Sidebar} (session switcher + task list) beside
+ * two-column shell: {@link Sidebar} (project header, rounds, tasks, ⋯ menu) beside
  * {@link TaskDetail} (the active task). Renders a neutral shell until the
  * mount-time load completes, and a dismissible banner on a save failure.
  */

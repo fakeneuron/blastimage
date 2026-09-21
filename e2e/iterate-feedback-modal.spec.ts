@@ -139,7 +139,7 @@ test.describe('iterate and feedback modals', () => {
     await expect(save).toBeFocused();
 
     // Nothing behind the dialog can take focus.
-    await expect(page.getByRole('combobox', { name: 'Project' })).not.toBeFocused();
+    await expect(page.getByRole('button', { name: 'Project menu' })).not.toBeFocused();
     await expect(page.getByRole('button', { name: 'Keep' }).first()).not.toBeFocused();
 
     await page.keyboard.press('Escape');
@@ -171,7 +171,7 @@ test.describe('iterate and feedback modals', () => {
     await page.keyboard.press('Shift+Tab');
     await expect(approve).toBeFocused();
 
-    await expect(page.getByRole('combobox', { name: 'Project' })).not.toBeFocused();
+    await expect(page.getByRole('button', { name: 'Project menu' })).not.toBeFocused();
 
     // Typed notes are discarded on Escape — the parent owns dismissal.
     await notes.fill('never saved');

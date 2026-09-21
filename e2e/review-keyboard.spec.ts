@@ -80,7 +80,7 @@ test.describe('review keyboard', () => {
     await page.keyboard.press('Shift+Tab');
     await expect(page.getByRole('button', { name: 'Next image' })).toBeFocused();
 
-    await expect(page.getByRole('combobox', { name: 'Project' })).not.toBeFocused();
+    await expect(page.getByRole('button', { name: 'Project menu' })).not.toBeFocused();
     await expect(page.getByRole('button', { name: 'Keep' }).first()).not.toBeFocused();
 
     await page.keyboard.press('Escape');

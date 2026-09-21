@@ -39,14 +39,14 @@ exclude — lives in [`docs/USAGE.md`](USAGE.md#prompt-writing).
 
 ### 2. Build the import file
 
-In the sidebar, **🛠 Build** assembles a `tasks.json` without hand-rolling a
+In the sidebar **⋯** menu, **🛠 Build** assembles a `tasks.json` without hand-rolling a
 script: upload your `prompts/*.txt` files (filename → task name, contents →
 prompt) or paste prompts as blank-line-separated blocks, edit the names in the
 preview, then download `tasks.json`. Save it to `imagegen/tasks.json`.
 
 ### 3. Import into a session
 
-**⇪ Import** loads a `tasks.json` into the current session — it **appends**, so
+**⇪ Import** (same **⋯** menu) loads a `tasks.json` into the current session — it **appends**, so
 create or switch sessions first if you want a clean slate. Each task lands with
 its base prompt, ready for references and generation.
 
@@ -65,7 +65,7 @@ In a **Grok Build terminal session**, run **`/blast-generate`**. The skill reads
 `batch.json`. Install and invoke details: [`docs/ADOPT.md`](ADOPT.md) §5.1; full
 loop diagram and file contracts: [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1–§3.
 
-Back in blastimage, **🔗 Link imagegen** (once per host repo — pick the folder in
+Back in blastimage, **⋯ → 🔗 Link imagegen** (once per host repo — pick the folder in
 the picker, or type its absolute path); every `rounds/rN/` auto-ingests, and
 **↻ Refresh rounds** re-lists and pulls in new ones. The link is a property of the **project**: one blastimage
 project per host repo, its folder named in the sidebar, re-linked automatically

@@ -59,7 +59,7 @@ npm run dev   # → http://localhost:3003
 ```
 
 No accounts. Session state persists in the browser's `localStorage`. The Next.js
-dev server is required: 🔗 Link imagegen, ↻ Refresh rounds, and Load round rN talk to
+dev server is required: ⋯ → 🔗 Link imagegen, ↻ Refresh rounds, and Load round rN talk to
 `/api/imagegen/*` on this origin (see [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md)
 §4).
 
@@ -90,15 +90,15 @@ in the slash menu within a few seconds.
 | `/blast-generate` | Read `imagegen/tasks.json` + `refs/`, run `image_gen`/`image_edit`, write `rounds/r<N>/` + `batch.json`. Includes round-0 ref bootstrap when `refs/` is empty. |
 | `/blast-iterate` | Read `rounds/r<N>/selection.json`, generate the next round from keeper + edited prompt. |
 
-**Operating loop:** `/blast-generate` → blastimage review (🔗 Link imagegen, ↻ Load
-round) → iterate selections write `selection.json` → `/blast-iterate` → repeat.
+**Operating loop:** `/blast-generate` → blastimage review (⋯ → 🔗 Link imagegen, ↻ Refresh
+rounds) → iterate selections write `selection.json` → `/blast-iterate` → repeat.
 Pure planning helpers live in `blastimage/lib/terminalRound.ts`.
 
 ## 6. Stage prompt tasks from the parent project
 
 Instead of creating tasks and pasting prompts one at a time, stage a batch from
-a task-import JSON file and load it via the sidebar's **⇪ Import** button. The
-sidebar's **🛠 Build** action composes this file in-app — upload your
+a task-import JSON file and load it via the sidebar **⋯** menu's **⇪ Import** button. The
+same menu's **🛠 Build** action composes this file in-app — upload your
 `prompts/*.txt` files or paste prompts, edit the names, and download
 `tasks.json` — so you don't need to hand-roll a script. The contract:
 
@@ -150,8 +150,8 @@ This layout is a **convention, not a requirement** — blastimage never reads th
 parent repo. But treat it as canonical: agents and future tooling will look for
 these exact paths, so deviating costs more than it saves.
 
-**`tasks.json`** — the import file from §6. Compose it in-app with **🛠 Build**
-(or by hand) and load it via **⇪ Import**. Task names double as filename slugs on
+**`tasks.json`** — the import file from §6. Compose it in-app with **⋯ → 🛠 Build**
+(or by hand) and load it via **⋯ → ⇪ Import**. Task names double as filename slugs on
 downloaded images, so keep them short and filesystem-friendly (e.g.
 `pressure-relief — hero`).
 

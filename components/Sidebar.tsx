@@ -3,24 +3,27 @@
 /**
  * blastimage — workspace sidebar (BI-003)
  *
- * Session switcher (switch / new / rename) above the prompt-task list
- * (select / add / rename / delete / import-from-JSON). Project New/Rename
- * edit inline (BI-053.2); task New/Rename still use native dialogs. Delete
- * routes to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs
- * on disk does not fit a `window.confirm` (BI-033). The import file-read (DOM
+ * Visible rail (BI-053.5): project header (name, repo, Viewer/In-app badge),
+ * rounds list + refresh, tasks + New task, and Generate All only when the
+ * bridge is installed. Project New/Switch, Link imagegen, backup Export/Import,
+ * Build, and Import tasks live in a ⋯ disclosure. Project New/Rename edit
+ * inline (BI-053.2); task New/Rename still use native dialogs. Delete routes
+ * to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on
+ * disk does not fit a `window.confirm` (BI-033). The import file-read (DOM
  * concern) lives here, per the ReferenceLibrary precedent; parse/validate/merge
- * live in lib (BI-019).
+ * live in lib (BI-019). Hidden file inputs stay mounted outside the ⋯ panel so
+ * closing the disclosure cannot drop a pending picker.
  *
  * Accessible naming (BI-035.3): every button carries an explicit `aria-label`,
  * because the glyph-bearing ones would otherwise be named by their content —
- * `✎` and `🗑` announce as bare glyphs, and the two `Import` buttons announce
- * identically. Each label *contains* its button's visible text (WCAG 2.5.3
- * Label in Name), which is why the round chips are "Load round r1", not
- * "Load round 1". `title` stays alongside: it is the hover tooltip and carries
- * detail the name should not (the Generate All disabled reason, the chips'
- * `rounds/rN/batch.json` path). The project `<select>` is named the native way
- * instead — `htmlFor`/`id` on the visible "Project" label, which was previously
- * associated with it by layout only.
+ * `✎`, `🗑`, and `⋯` announce as bare glyphs, and the two `Import` buttons
+ * announce identically. Each label *contains* its button's visible text (WCAG
+ * 2.5.3 Label in Name), which is why the round chips are "Load round r1", not
+ * "Load round 1", and the header rename control is "Rename {name}". `title`
+ * stays alongside: it is the hover tooltip and carries detail the name should
+ * not (the Generate All disabled reason, the chips' `rounds/rN/batch.json`
+ * path). The project `<select>` is named the native way instead —
+ * `htmlFor`/`id` on the visible "Project" label inside the ⋯ panel.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -117,6 +120,9 @@ export default function Sidebar({
   const refreshLabel = 'Refresh rounds';
   const importInputRef = useRef<HTMLInputElement>(null);
   const sessionImportInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [draftKind, setDraftKind] = useState<'new' | 'rename' | null>(null);
   const [draftValue, setDraftValue] = useState('');
   // Enter unmounts the input, which fires blur in the browser; the ref is what
@@ -127,6 +133,24 @@ export default function Sidebar({
   useEffect(() => {
     if (draftKind) draftInputRef.current?.focus();
   }, [draftKind]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent): void {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || menuButtonRef.current?.contains(t)) return;
+      setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent): void {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   function openDraft(kind: 'new' | 'rename'): void {
     draftKindRef.current = kind;
@@ -169,75 +193,77 @@ export default function Sidebar({
     if (name && name.trim()) onRenameTask(id, name);
   }
 
+  function openMenuAction(action: () => void): void {
+    setMenuOpen(false);
+    action();
+  }
+
+  const menuBtnClass =
+    'w-full rounded border border-black/15 px-2 py-1 text-left text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10';
+
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col border-r border-black/10 bg-black/[.02] dark:border-white/10 dark:bg-white/[.02]">
-      {/* Session switcher */}
-      <div className="border-b border-black/10 p-3 dark:border-white/10">
-        <label
-          htmlFor="project-select"
-          className="mb-1 block text-xs font-medium uppercase tracking-wide opacity-60"
-        >
-          Project
-        </label>
-        <select
-          id="project-select"
-          className="w-full rounded border border-black/15 bg-background px-2 py-1.5 text-sm dark:border-white/15"
-          value={session.id}
-          onChange={(e) => onSwitchSession(e.target.value)}
-        >
-          {sessions.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        {/* Identity header (BI-053.2): name + repo label. `.5` regroups this. */}
-        <div className="mt-2">
-          {draftKind === 'rename' ? (
-            <input
-              ref={draftInputRef}
-              aria-label="Project name"
-              className="w-full rounded border border-black/15 bg-background px-2 py-1 text-sm dark:border-white/15"
-              value={draftValue}
-              onChange={(e) => setDraftValue(e.target.value)}
-              onKeyDown={handleDraftKey}
-              onBlur={submitDraft}
-            />
-          ) : (
-            <h2 className="truncate text-sm font-medium" title={session.name}>
-              {session.name}
-            </h2>
-          )}
-          {imagegenRoot ? (
-            <p className="mt-0.5 truncate text-xs opacity-60" title={imagegenRoot}>
-              {imagegenLabel}
-            </p>
-          ) : null}
-          {offerRepoName && draftKind === null ? (
-            <button
-              type="button"
-              className="mt-1 rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-              aria-label={`Use ${derivedName}`}
-              onClick={() => onRenameSession(derivedName)}
+      {/* Project header (BI-053.2 / BI-053.5): name, repo, mode; actions in ⋯. */}
+      <div className="relative border-b border-black/10 p-3 dark:border-white/10">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            {draftKind === 'rename' ? (
+              <input
+                ref={draftInputRef}
+                aria-label="Project name"
+                className="w-full rounded border border-black/15 bg-background px-2 py-1 text-sm dark:border-white/15"
+                value={draftValue}
+                onChange={(e) => setDraftValue(e.target.value)}
+                onKeyDown={handleDraftKey}
+                onBlur={submitDraft}
+              />
+            ) : (
+              <button
+                type="button"
+                className="block max-w-full truncate text-left"
+                aria-label={`Rename ${session.name}`}
+                title="Rename project"
+                onClick={() => openDraft('rename')}
+              >
+                <h2 className="truncate text-sm font-medium">{session.name}</h2>
+              </button>
+            )}
+            {imagegenRoot ? (
+              <p className="mt-0.5 truncate text-xs opacity-60" title={imagegenRoot}>
+                {imagegenLabel}
+              </p>
+            ) : null}
+            {offerRepoName && draftKind === null ? (
+              <button
+                type="button"
+                className="mt-1 rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+                aria-label={`Use ${derivedName}`}
+                onClick={() => onRenameSession(derivedName)}
+              >
+                Use {derivedName}
+              </button>
+            ) : null}
+            <span
+              className="mt-1 inline-block rounded border border-black/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide opacity-60 dark:border-white/15"
+              title={
+                generationAvailable
+                  ? 'In-app generation is available in this browser'
+                  : 'Viewer mode — generate rounds from the terminal loop'
+              }
             >
-              Use {derivedName}
-            </button>
-          ) : null}
-        </div>
-        <div className="mt-2 flex gap-2">
+              {generationAvailable ? 'In-app' : 'Viewer'}
+            </span>
+          </div>
           <button
-            className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            aria-label="New project"
-            onClick={() => openDraft('new')}
+            ref={menuButtonRef}
+            type="button"
+            className="shrink-0 rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            aria-label="Project menu"
+            aria-expanded={menuOpen}
+            aria-haspopup="true"
+            onClick={() => setMenuOpen((open) => !open)}
           >
-            + New
-          </button>
-          <button
-            className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            aria-label="Rename project"
-            onClick={() => openDraft('rename')}
-          >
-            Rename
+            ⋯
           </button>
         </div>
         {draftKind === 'new' ? (
@@ -252,127 +278,104 @@ export default function Sidebar({
             onBlur={submitDraft}
           />
         ) : null}
-        {/* Full-session backup export / import (BI-022.7); import lands a fresh copy. */}
-        <div className="mt-2 flex gap-2">
-          <button
-            className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            title="Download this project as a full backup (.json)"
-            aria-label="Export project backup"
-            onClick={onExportSession}
+        {menuOpen ? (
+          <div
+            ref={menuRef}
+            className="absolute inset-x-3 z-10 mt-2 flex flex-col gap-1.5 rounded border border-black/15 bg-background p-2 shadow-md dark:border-white/15"
           >
-            ⤓ Export
-          </button>
-          <button
-            className="rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            title="Import a project backup (.json) as a new project"
-            aria-label="Import project backup"
-            onClick={() => sessionImportInputRef.current?.click()}
-          >
-            ⤒ Import
-          </button>
-          <input
-            ref={sessionImportInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void file.text().then(onImportSession);
-              e.target.value = ''; // allow re-selecting the same file
-            }}
-          />
-        </div>
-        {/* Terminal round ingest (BI-024.1): link the repo's imagegen/ folder, then load batches. */}
-        <div className="mt-2 flex flex-wrap gap-2">
-          <button
-            className={`rounded border px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 ${
-              imagegenLinked
-                ? 'border-green-500/50 text-green-700 dark:text-green-400'
-                : 'border-black/15 dark:border-white/15'
-            }`}
-            title={
-              imagegenRoot
-                ? `This project is linked to ${imagegenRoot} — click to link a different folder`
-                : "Link this project's imagegen/ folder (standard location per ADOPT.md §7)"
-            }
-            aria-label={imagegenRoot ? `imagegen linked: ${imagegenLabel}` : 'Link imagegen'}
-            onClick={onLinkImagegen}
-          >
-            {imagegenLinked ? `🔗 ${imagegenLabel}` : '🔗 Link imagegen'}
-          </button>
-          <button
-            disabled={!imagegenLinked || availableRounds.length === 0}
-            className="rounded border border-black/15 px-2 py-1 text-xs enabled:hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:enabled:hover:bg-white/10"
-            title={
-              imagegenLinked
-                ? latestRound !== undefined
-                  ? 'Re-list rounds and ingest any that are not already in this project'
-                  : 'No rounds found yet — run /blast-generate in a terminal session'
-                : 'Link imagegen first'
-            }
-            aria-label={refreshLabel}
-            onClick={() => onLoadRound()}
-          >
-            ↻ {refreshLabel}
-          </button>
-        </div>
-        {imagegenLinked && availableRounds.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {availableRounds.map((n) => {
-              const summary = roundSummaries.find((s) => s.round === n);
-              const current = currentRound === n;
-              const countTitle = summary
-                ? `r${n} · ${summary.taskCount} task${summary.taskCount === 1 ? '' : 's'} · ${summary.imageCount} image${summary.imageCount === 1 ? '' : 's'}`
-                : `rounds/r${n}/batch.json`;
-              return (
-                <button
-                  key={n}
-                  className={`rounded border px-1.5 py-0.5 text-[10px] ${
-                    current
-                      ? 'border-foreground bg-foreground/10'
-                      : 'border-black/15 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10'
-                  }`}
-                  title={countTitle}
-                  aria-label={`Load round r${n}`}
-                  aria-current={current ? 'true' : undefined}
-                  onClick={() => onSelectRound(n)}
-                >
-                  r{n}
-                </button>
-              );
-            })}
+            <label
+              htmlFor="project-select"
+              className="text-xs font-medium uppercase tracking-wide opacity-60"
+            >
+              Project
+            </label>
+            <select
+              id="project-select"
+              className="w-full rounded border border-black/15 bg-background px-2 py-1.5 text-sm dark:border-white/15"
+              value={session.id}
+              onChange={(e) => {
+                setMenuOpen(false);
+                onSwitchSession(e.target.value);
+              }}
+            >
+              {sessions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={menuBtnClass}
+              aria-label="New project"
+              onClick={() => openMenuAction(() => openDraft('new'))}
+            >
+              + New
+            </button>
+            <button
+              type="button"
+              className={`${menuBtnClass} ${
+                imagegenLinked ? 'border-green-500/50 text-green-700 dark:text-green-400' : ''
+              }`}
+              title={
+                imagegenRoot
+                  ? `This project is linked to ${imagegenRoot} — click to link a different folder`
+                  : "Link this project's imagegen/ folder (standard location per ADOPT.md §7)"
+              }
+              aria-label={imagegenRoot ? `imagegen linked: ${imagegenLabel}` : 'Link imagegen'}
+              onClick={() => openMenuAction(onLinkImagegen)}
+            >
+              {imagegenLinked ? `🔗 ${imagegenLabel}` : '🔗 Link imagegen'}
+            </button>
+            <button
+              type="button"
+              className={menuBtnClass}
+              title="Download this project as a full backup (.json)"
+              aria-label="Export project backup"
+              onClick={() => openMenuAction(onExportSession)}
+            >
+              ⤓ Export
+            </button>
+            <button
+              type="button"
+              className={menuBtnClass}
+              title="Import a project backup (.json) as a new project"
+              aria-label="Import project backup"
+              onClick={() => openMenuAction(() => sessionImportInputRef.current?.click())}
+            >
+              ⤒ Import
+            </button>
+            <button
+              type="button"
+              className={menuBtnClass}
+              title="Build a task-import file (tasks.json) from pasted prompts or prompts/*.txt"
+              aria-label="Build task-import file"
+              onClick={() => openMenuAction(onOpenBuilder)}
+            >
+              🛠 Build
+            </button>
+            <button
+              type="button"
+              className={menuBtnClass}
+              title="Import tasks from a JSON file ({version, tasks: [{name, basePrompt}]})"
+              aria-label="Import tasks from JSON"
+              onClick={() => openMenuAction(() => importInputRef.current?.click())}
+            >
+              ⇪ Import
+            </button>
           </div>
-        )}
-      </div>
-
-      {/* Task list */}
-      <div className="flex items-center justify-between px-3 pb-1 pt-3">
-        <span className="text-xs font-medium uppercase tracking-wide opacity-60">Tasks</span>
-        <div className="flex gap-1">
-          <button
-            className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            title="Build a task-import file (tasks.json) from pasted prompts or prompts/*.txt"
-            aria-label="Build task-import file"
-            onClick={onOpenBuilder}
-          >
-            🛠 Build
-          </button>
-          <button
-            className="rounded border border-black/15 px-2 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            title="Import tasks from a JSON file ({version, tasks: [{name, basePrompt}]})"
-            aria-label="Import tasks from JSON"
-            onClick={() => importInputRef.current?.click()}
-          >
-            ⇪ Import
-          </button>
-          <button
-            className="rounded bg-foreground px-2 py-0.5 text-xs font-medium text-background hover:opacity-90"
-            aria-label="New task"
-            onClick={handleAddTask}
-          >
-            + New task
-          </button>
-        </div>
+        ) : null}
+        <input
+          ref={sessionImportInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void file.text().then(onImportSession);
+            e.target.value = '';
+          }}
+        />
         <input
           ref={importInputRef}
           type="file"
@@ -381,29 +384,92 @@ export default function Sidebar({
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) void file.text().then(onImportTasks);
-            e.target.value = ''; // allow re-selecting the same file
+            e.target.value = '';
           }}
         />
       </div>
 
-      {/* Generate All (BI-015) — one batch per eligible task, reviewed in one pass. */}
-      <div className="px-3 pb-2">
+      {imagegenLinked ? (
+        <div className="border-b border-black/10 px-3 py-2 dark:border-white/10">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide opacity-60">Rounds</span>
+            <button
+              type="button"
+              disabled={availableRounds.length === 0}
+              className="rounded border border-black/15 px-2 py-0.5 text-xs enabled:hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:enabled:hover:bg-white/10"
+              title={
+                latestRound !== undefined
+                  ? 'Re-list rounds and ingest any that are not already in this project'
+                  : 'No rounds found yet — run /blast-generate in a terminal session'
+              }
+              aria-label={refreshLabel}
+              onClick={() => onLoadRound()}
+            >
+              ↻ {refreshLabel}
+            </button>
+          </div>
+          {availableRounds.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {availableRounds.map((n) => {
+                const summary = roundSummaries.find((s) => s.round === n);
+                const current = currentRound === n;
+                const countTitle = summary
+                  ? `r${n} · ${summary.taskCount} task${summary.taskCount === 1 ? '' : 's'} · ${summary.imageCount} image${summary.imageCount === 1 ? '' : 's'}`
+                  : `rounds/r${n}/batch.json`;
+                return (
+                  <button
+                    key={n}
+                    className={`rounded border px-1.5 py-0.5 text-[10px] ${
+                      current
+                        ? 'border-foreground bg-foreground/10'
+                        : 'border-black/15 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10'
+                    }`}
+                    title={countTitle}
+                    aria-label={`Load round r${n}`}
+                    aria-current={current ? 'true' : undefined}
+                    onClick={() => onSelectRound(n)}
+                  >
+                    r{n}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-between px-3 pb-1 pt-3">
+        <span className="text-xs font-medium uppercase tracking-wide opacity-60">Tasks</span>
         <button
-          disabled={!canGenerateAll}
-          aria-label="Generate All"
-          onClick={onGenerateAll}
-          className="w-full rounded bg-foreground px-2 py-1.5 text-xs font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          title={
-            !generationAvailable
-              ? 'In-app generation is Grok-Build-only — the provider bridge is not installed in this browser. Generate rounds from the terminal loop (see docs/REVIEW-LOOP.md).'
-              : canGenerateAll
-                ? 'Generate a batch for every task with a prompt or reference'
-                : 'No eligible tasks (add a prompt or reference), or a run is in flight'
-          }
+          className="rounded bg-foreground px-2 py-0.5 text-xs font-medium text-background hover:opacity-90"
+          aria-label="New task"
+          onClick={handleAddTask}
         >
-          ⚡ Generate All
+          + New task
         </button>
       </div>
+
+      {generationAvailable ? (
+        <div className="px-3 pb-2">
+          <button
+            disabled={!canGenerateAll}
+            aria-label="Generate All"
+            onClick={onGenerateAll}
+            className="w-full rounded bg-foreground px-2 py-1.5 text-xs font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            title={
+              canGenerateAll
+                ? 'Generate a batch for every task with a prompt or reference'
+                : 'No eligible tasks (add a prompt or reference), or a run is in flight'
+            }
+          >
+            ⚡ Generate All
+          </button>
+        </div>
+      ) : (
+        <p className="px-3 pb-2 text-xs opacity-60">
+          Viewer mode — generate rounds from the terminal loop.
+        </p>
+      )}
 
       <nav className="flex-1 overflow-y-auto p-2">
         {session.tasks.length === 0 ? (

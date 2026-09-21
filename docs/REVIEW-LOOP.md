@@ -154,9 +154,9 @@ The viewer/selector already existed (keep/approve/discard, rating, `IterateModal
 keeper→reference + `base + "Refine: <delta>"` composition). Two seams now wire the
 terminal loop:
 
-1. **Load a round** (BI-024.1 · BI-053.3) — Sidebar **🔗 Link imagegen** auto-ingests
-   every `rounds/r<N>/`; **↻ Refresh rounds** re-lists and ingests new ones; an rN
-   chip reloads that round. Reads `batch.json` + images through the app's own localhost API routes
+1. **Load a round** (BI-024.1 · BI-053.3) — Sidebar **⋯ → 🔗 Link imagegen** auto-ingests
+   every `rounds/r<N>/`; **↻ Refresh rounds** on the open rail re-lists and ingests new ones; an rN
+   chip selects that round's view. Reads `batch.json` + images through the app's own localhost API routes
    (`app/api/imagegen/`, BI-045). **🔗 Link imagegen** opens a folder picker (BI-046):
    detected `imagegen/` folders on top, a browsable tree below, and a typed absolute
    path as the fallback. Any browser can link: the earlier File System Access picker was

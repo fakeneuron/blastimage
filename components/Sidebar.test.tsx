@@ -92,6 +92,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function openProjectMenu(): void {
+  fireEvent.click(screen.getByRole('button', { name: 'Project menu' }));
+}
+
 describe('Sidebar (component-test harness smoke)', () => {
   it('renders one entry per task in the session', () => {
     const session = makeSession({
@@ -120,19 +124,21 @@ describe('Sidebar (component-test harness smoke)', () => {
     );
   });
 
-  it('states the missing-bridge reason instead of the eligibility one (BI-031.2)', () => {
+  it('hides Generate All in viewer mode and states the terminal-loop note (BI-053.5)', () => {
     const { unmount } = render(
       <Sidebar {...makeProps({ canGenerateAll: false, generationAvailable: false })} />,
     );
-    const disabled = screen.getByRole('button', { name: /Generate All/ });
-    expect(disabled.hasAttribute('disabled')).toBe(true);
-    expect(disabled.getAttribute('title')).toContain('Grok-Build-only');
+    expect(screen.queryByRole('button', { name: /Generate All/ })).toBeNull();
+    expect(screen.getByText(/Viewer mode/)).toBeTruthy();
+    expect(screen.getByText('Viewer')).toBeTruthy();
 
     unmount();
     render(<Sidebar {...makeProps({ canGenerateAll: false, generationAvailable: true })} />);
     expect(screen.getByRole('button', { name: /Generate All/ }).getAttribute('title')).toContain(
       'No eligible tasks',
     );
+    expect(screen.getByText('In-app')).toBeTruthy();
+    expect(screen.queryByText(/Viewer mode/)).toBeNull();
   });
 
   it('delegates delete without confirming it itself (BI-033)', () => {
@@ -166,6 +172,7 @@ describe('Sidebar (component-test harness smoke)', () => {
 describe('Sidebar accessible names (BI-035.3)', () => {
   it('associates the visible Project label with the session select', () => {
     render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
 
     // The label sat above the select with no htmlFor, so the two were related by
     // layout only and the control announced as an unnamed combobox.
@@ -182,6 +189,7 @@ describe('Sidebar accessible names (BI-035.3)', () => {
 
   it('gives the two Import buttons distinct names', () => {
     render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
 
     // Both render "Import" beside a different glyph; by name alone they were
     // indistinguishable in a screen reader's button list before BI-035.3.
@@ -192,9 +200,10 @@ describe('Sidebar accessible names (BI-035.3)', () => {
 
   it('qualifies the project controls that were bare verbs', () => {
     render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
 
     expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Rename project' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Rename Demo Site' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Export project backup' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Build task-import file' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'New task' })).toBeTruthy();
@@ -255,12 +264,14 @@ describe('Sidebar accessible names (BI-035.3)', () => {
 
   it('names the imagegen link button for its current state', () => {
     const { unmount } = render(<Sidebar {...makeProps({ imagegenRoot: null })} />);
+    openProjectMenu();
     expect(screen.getByRole('button', { name: 'Link imagegen' })).toBeTruthy();
 
     unmount();
     // The name contains the button's visible text — the folder label, not a bare
     // "linked" state, since BI-047 gave each project its own folder.
     render(<Sidebar {...makeProps({ imagegenRoot: '/Users/dev/Code/spinalcord/imagegen' })} />);
+    openProjectMenu();
     expect(screen.getByRole('button', { name: 'imagegen linked: spinalcord/imagegen' })).toBeTruthy();
   });
 
@@ -271,6 +282,7 @@ describe('Sidebar accessible names (BI-035.3)', () => {
    */
   it('names the bound folder and keeps the absolute path in the tooltip', () => {
     render(<Sidebar {...makeProps({ imagegenRoot: '/Users/dev/Code/spinalcord/imagegen' })} />);
+    openProjectMenu();
 
     const button = screen.getByRole('button', { name: /imagegen linked/ });
     expect(button.textContent).toBe('🔗 spinalcord/imagegen');
@@ -278,11 +290,12 @@ describe('Sidebar accessible names (BI-035.3)', () => {
   });
 
   it('keeps title alongside the name where the title carries extra detail', () => {
-    // BI-031.2's disabled-reason string belongs in the tooltip, not the name.
-    render(<Sidebar {...makeProps({ canGenerateAll: false, generationAvailable: false })} />);
+    // Eligibility reason belongs in the tooltip, not the name (BI-031.2 shape,
+    // now only shown when Generate All itself is visible — BI-053.5).
+    render(<Sidebar {...makeProps({ canGenerateAll: false, generationAvailable: true })} />);
 
     const button = screen.getByRole('button', { name: 'Generate All' });
-    expect(button.getAttribute('title')).toContain('Grok-Build-only');
+    expect(button.getAttribute('title')).toContain('No eligible tasks');
   });
 });
 
@@ -350,6 +363,7 @@ describe('Sidebar project identity (BI-053.2)', () => {
     const onCreateSession = vi.fn();
     render(<Sidebar {...makeProps({ onCreateSession })} />);
 
+    openProjectMenu();
     fireEvent.click(screen.getByRole('button', { name: 'New project' }));
     expect(prompted).not.toHaveBeenCalled();
 
@@ -367,11 +381,13 @@ describe('Sidebar project identity (BI-053.2)', () => {
     const onCreateSession = vi.fn();
     render(<Sidebar {...makeProps({ onCreateSession })} />);
 
+    openProjectMenu();
     fireEvent.click(screen.getByRole('button', { name: 'New project' }));
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'New project name' }), { key: 'Enter' });
     expect(onCreateSession).not.toHaveBeenCalled();
     expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
 
+    openProjectMenu();
     fireEvent.click(screen.getByRole('button', { name: 'New project' }));
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'New project name' }), { key: 'Escape' });
     expect(onCreateSession).not.toHaveBeenCalled();
@@ -384,7 +400,7 @@ describe('Sidebar project identity (BI-053.2)', () => {
     const onRenameSession = vi.fn();
     render(<Sidebar {...makeProps({ onRenameSession })} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Rename project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Demo Site' }));
     expect(prompted).not.toHaveBeenCalled();
 
     const input = screen.getByRole('textbox', { name: 'Project name' });
@@ -406,5 +422,63 @@ describe('Sidebar project identity (BI-053.2)', () => {
 
     expect(prompted).toHaveBeenCalled();
     expect(onAddTask).toHaveBeenCalledWith('Hero');
+  });
+});
+
+/**
+ * Sidebar regroup (BI-053.5)
+ *
+ * The open rail is identity + rounds + tasks; the eight-action stack from
+ * BI-003..022 lives in a ⋯ disclosure. These pin presence/absence, not style.
+ */
+describe('Sidebar regroup (BI-053.5)', () => {
+  it('keeps Link / switch / backup / Build / Import tasks out of the open rail', () => {
+    render(<Sidebar {...makeProps()} />);
+
+    expect(screen.getByRole('button', { name: 'Project menu' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Link imagegen' })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Project' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New project' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Export project backup' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Build task-import file' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Import tasks from JSON' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'New task' })).toBeTruthy();
+  });
+
+  it('surfaces the moved actions inside the Project menu', () => {
+    render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
+
+    expect(screen.getByRole('combobox', { name: 'Project' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Link imagegen' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Export project backup' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Import project backup' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Build task-import file' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Import tasks from JSON' })).toBeTruthy();
+  });
+
+  it('hides the rounds block until the project is linked', () => {
+    render(<Sidebar {...makeProps({ imagegenRoot: null })} />);
+
+    expect(screen.queryByRole('button', { name: 'Refresh rounds' })).toBeNull();
+    expect(screen.queryByText('Rounds')).toBeNull();
+  });
+
+  it('shows rounds and refresh on the open rail once linked', () => {
+    render(
+      <Sidebar
+        {...makeProps({
+          imagegenRoot: '/repo/imagegen',
+          availableRounds: [1],
+          currentRound: 1,
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Rounds')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Load round r1' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /imagegen linked/ })).toBeNull();
   });
 });

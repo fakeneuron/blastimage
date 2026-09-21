@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-053.2** [medium]🧩 | project-identity — Completed 2026-09-20.
   - [x] **BI-053.3** [medium]🧩 | round-summaries-auto-ingest — Completed 2026-09-20.
   - [x] **BI-053.4** [heavy]🧠 | round-view-filter — Completed 2026-09-20.
-  - [ ] **BI-053.5** [medium]🧩 | sidebar-restructure — Regroup per the .1 triage: visible project header (name, repo, mode badge), rounds list, tasks + New task, Generate All only when `generationAvailable` (adopter mode shows a viewer-mode note instead); a ⋯ menu carries New/Switch project, Link imagegen, Export/Import backup, Build, Import tasks. Update README / WORKFLOW / REVIEW-LOOP / ADOPT sidebar references; `Sidebar` / `Workspace` tests + e2e selectors.
+  - [x] **BI-053.5** [medium]🧩 | sidebar-restructure — Completed 2026-09-20.
   - [ ] **BI-053.N** [heavy]🧠 | session-round-navigation audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed now with the reserved terminal `.N` suffix (never renumbers as children are added).
 
 ## Medium
