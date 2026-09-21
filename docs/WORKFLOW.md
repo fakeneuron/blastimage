@@ -82,8 +82,10 @@ The browser **views and selects** — it does not generate (see
 
 ### 7. Iterate
 
-**Iterate →** on a kept image opens the refine modal seeded by that image as the
-primary reference. Edit the prompt to steer what changes; confirming writes
+**Iterate →** is visible on undecided cards but disabled until Keep (`Keep this
+image first`). On a kept image it opens the refine modal seeded by that image
+as the primary reference. Discarded and approved cards omit it (approved is
+final). Edit the prompt to steer what changes; confirming writes
 `imagegen/rounds/r<N>/selection.json` (keepers + `nextPrompt`) instead of
 calling in-browser generation. Iteration-prompt craft (append vs. overhaul):
 [`docs/USAGE.md`](USAGE.md#iteration-prompts) and

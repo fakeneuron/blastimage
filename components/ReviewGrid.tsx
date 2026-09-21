@@ -189,13 +189,16 @@ function ReviewCard({ image, onOpen, onSetDecision, onSetRating, onFeedback, onI
           {image.feedback?.text ? '💬 Edit feedback' : 'Feedback'}
         </button>
 
-        {/* Iterate — only on keepers (approved is final). Seeds the next round
-            from this image as the primary reference (BI-009). */}
-        {image.decision === 'kept' && (
+        {/* Iterate — keep-first (BI-009 / BI-055). Visible on undecided so the
+            next-round path is discoverable; enabled only after Keep. Hidden on
+            discarded and approved (approved is final). */}
+        {(image.decision === 'kept' || image.decision === 'undecided') && (
           <button
             type="button"
+            disabled={image.decision !== 'kept'}
+            title={image.decision === 'undecided' ? 'Keep this image first' : undefined}
             onClick={() => onIterate(image.id)}
-            className="rounded bg-foreground px-2 py-1 text-xs font-medium text-background hover:opacity-90"
+            className="rounded bg-foreground px-2 py-1 text-xs font-medium text-background enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Iterate →
           </button>

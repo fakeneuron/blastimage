@@ -9,8 +9,9 @@
  *
  * What is pinned here is the card's decision logic, not its styling: every
  * control is a *toggle* (clicking the active decision or the current star value
- * clears it), and `Iterate →` is gated on `kept` because approved is final. Those
- * are the branches a well-meaning refactor breaks silently.
+ * clears it), and `Iterate →` is keep-first (BI-009 / BI-055): visible-disabled
+ * on undecided, enabled on kept, withheld on discarded/approved. Those are the
+ * branches a well-meaning refactor breaks silently.
  *
  * The real `ImagegenProvider` is mounted rather than stubbed: `ReviewGrid` renders
  * `ResolvedImage`, which throws outside a provider. It is safe to mount for real —
@@ -212,7 +213,7 @@ describe('ReviewGrid — feedback (BI-006)', () => {
   });
 });
 
-describe('ReviewGrid — iterate (BI-009)', () => {
+describe('ReviewGrid — iterate (BI-009 / BI-055)', () => {
   it('offers Iterate on a keeper and reports it', async () => {
     const { onIterate } = await renderGrid([makeImage('i1', { decision: 'kept' })]);
 
@@ -221,7 +222,15 @@ describe('ReviewGrid — iterate (BI-009)', () => {
     expect(onIterate).toHaveBeenCalledWith('i1');
   });
 
-  it.each<ReviewDecision>(['undecided', 'discarded', 'approved'])(
+  it('shows a disabled Iterate on an undecided card', async () => {
+    await renderGrid([makeImage('i1', { decision: 'undecided' })]);
+
+    const iterate = screen.getByRole('button', { name: 'Iterate →' }) as HTMLButtonElement;
+    expect(iterate.disabled).toBe(true);
+    expect(iterate.getAttribute('title')).toBe('Keep this image first');
+  });
+
+  it.each<ReviewDecision>(['discarded', 'approved'])(
     'withholds Iterate on a %s card',
     async (decision) => {
       await renderGrid([makeImage('i1', { decision })]);

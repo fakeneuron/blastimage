@@ -13,7 +13,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 - [ ] **BI-054** [medium]🧩 | gallery-rail — Collapse the Gallery right-rail when empty; Folder/JSON/Sheet belong with approved images, not as a standing empty pane during review.
-- [ ] **BI-055** [medium]🧩 | iterate-discoverability — Iterate → is hidden until Keep, so the next-round path is invisible on undecided cards. Surface the keeper-then-iterate step without dropping the keep-first rule.
 
 ## Low
 
@@ -26,6 +25,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **BI-055** [medium]🧩 | iterate-discoverability — Completed 2026-09-21.
 
 - [x] **BI-056** [medium]🧩 | round-reload-chip-name — Completed 2026-09-21.
 

@@ -73,7 +73,7 @@ test.describe('iterate and feedback modals', () => {
       'true',
     );
     await expect(page.getByText('Kept')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Iterate →' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Iterate →', disabled: false })).toBeVisible();
   });
 
   test('iterate composes the prefill from saved feedback and writes selection.json', async ({
@@ -85,7 +85,7 @@ test.describe('iterate and feedback modals', () => {
     await feedback.getByRole('button', { name: 'Save & Keep' }).click();
     await expect(feedback).toBeHidden();
 
-    await page.getByRole('button', { name: 'Iterate →' }).click();
+    await page.getByRole('button', { name: 'Iterate →', disabled: false }).click();
     const iterate = page.getByRole('dialog', { name: 'Iterate from keeper' });
     await expect(iterate).toBeVisible();
 
@@ -114,7 +114,7 @@ test.describe('iterate and feedback modals', () => {
 
   test('iterate modal traps Tab, and dismissing it writes nothing', async ({ page }) => {
     await page.getByRole('button', { name: 'Keep' }).first().click();
-    const opener = page.getByRole('button', { name: 'Iterate →' });
+    const opener = page.getByRole('button', { name: 'Iterate →', disabled: false });
     await opener.click();
 
     const iterate = page.getByRole('dialog', { name: 'Iterate from keeper' });

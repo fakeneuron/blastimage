@@ -24,10 +24,12 @@ test.describe('review keyboard', () => {
     const discard = page.getByRole('button', { name: 'Discard' });
     const approve = page.getByRole('button', { name: 'Approve' });
 
+    await expect(page.getByRole('button', { name: 'Iterate →', disabled: true })).toHaveCount(2);
+
     await keep.nth(0).click();
     await expect(keep.nth(0)).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Kept')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Iterate →' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Iterate →', disabled: false })).toBeVisible();
 
     await discard.nth(1).click();
     await expect(discard.nth(1)).toHaveAttribute('aria-pressed', 'true');
