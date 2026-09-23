@@ -40,7 +40,7 @@ test.describe('review keyboard', () => {
     await expect(keep.nth(0)).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByText('Approved')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Iterate →' })).toHaveCount(0);
-    await expect(page.getByText('Approved images appear here.')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Folder' })).toBeVisible();
   });
 
   test('lightbox arrows and Escape in a real browser', async ({ page }) => {

@@ -4,7 +4,8 @@
  * `GalleryPanel` is the approved-images panel (BI-008), grown a Folder button
  * (BI-021.2) and a Sheet button (BI-021.4) on top of the original JSON export —
  * three prop-driven callbacks with no test pinning that each header button fires
- * the right one. That is what this file covers.
+ * the right one. BI-054 hides the whole rail when `approved` is empty, so the
+ * empty-state cases assert absence rather than placeholder copy.
  *
  * Deliberately out of scope: the per-item ↓ download button (`downloadImage` →
  * `resolveBlob` → `downloadBlob`), which is BI-029.2's byte-resolution seam and
@@ -86,20 +87,15 @@ afterEach(() => {
   cleanup();
 });
 
-describe('GalleryPanel — empty state (BI-008)', () => {
-  it('shows the placeholder and no export group when nothing is approved', async () => {
+describe('GalleryPanel — empty state (BI-054)', () => {
+  it('renders nothing when nothing is approved', async () => {
     await renderGallery({ approved: [] });
 
-    expect(screen.getByText(/Approved images appear here\./)).toBeTruthy();
+    expect(screen.queryByText('Gallery')).toBeNull();
+    expect(screen.queryByText(/Approved images appear here/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Folder' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Sheet' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'JSON' })).toBeNull();
-  });
-
-  it('shows no count badge when empty', async () => {
-    await renderGallery({ approved: [] });
-
-    expect(screen.queryByText('0')).toBeNull();
   });
 });
 
