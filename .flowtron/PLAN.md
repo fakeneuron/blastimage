@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **CORE-6** [medium]🧩 | brand-kit-fill — Generate brand/ kit (logo.svg, favicon.svg, filled BRAND.md, PROMPTS.md) per natabula DESIGN-STANDARDS §Brand kit Fill recipe. Attended; code-drawn SVG after raster confirm; no embedded raster; promo only at real 1600×900. Leave working tab trio. Routed by natabula NAT-315.
+(none)
 
 ## Low
 
@@ -25,6 +25,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **CORE-6** [medium]🧩 | brand-kit-fill — Completed 2026-09-24.
 
 - [x] **BI-057** [light]🔧 | iterate-save-ack — Completed 2026-09-24.
 
