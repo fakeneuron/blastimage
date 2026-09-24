@@ -14,7 +14,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-008.N** [light]🔧 | verification-gate-reach audit
 - [ ] **BI-EPIC-058** [medium]🧩 | loopback-bind — bind the dev/start servers to 127.0.0.1 so the imagegen guard's Host/Sec-Fetch-Site checks cannot be forged from the LAN. Loopback only, no opt-in LAN script (operator confirmed 2026-09-24). Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Local trust boundary relies on headers only browsers enforce)
   - [x] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — Completed 2026-09-24.
-  - [ ] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — state in the `lib/imagegenGuard.ts` header and the CLAUDE.md Stack note that the loopback bind is the first boundary and the header checks are browser-only defenses.
+  - [x] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — Completed 2026-09-24.
   - [ ] **BI-058.N** [light]🔧 | loopback-bind audit
 
 ## Medium

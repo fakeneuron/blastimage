@@ -3,8 +3,13 @@
  *
  * These routes read and write real files in the operator's repo, so they are
  * deliberately narrow: only this app's own pages, loaded from localhost, may
- * call them. Two independent checks, neither of which is a substitute for the
- * `realpath` confinement in `lib/imagegenServerFs.ts`:
+ * call them. The first boundary is the loopback bind (BI-058.2): `next dev`
+ * and `next start` listen on 127.0.0.1, so a LAN client never opens a TCP
+ * connection. The header checks below are browser-only defenses. `Host`,
+ * `Origin`, and `Sec-Fetch-Site` are headers a non-browser client that can
+ * already reach the port can forge. They stop a browser page; they do not
+ * replace the bind, and neither is a substitute for the `realpath`
+ * confinement in `lib/imagegenServerFs.ts`:
  *
  * 1. **Host** — the request must be addressed to a loopback host. Any other
  *    host means the browser resolved some public name to 127.0.0.1, which is
