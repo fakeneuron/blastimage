@@ -134,8 +134,7 @@ describe('BulkReviewPane — generating state (BI-015 / TEST-002.3 precedent)', 
   it('labels the task as generating', async () => {
     await renderPane({ tasks: [makeTask('t1', { name: 'Hero shot' })], generatingTaskIds: ['t1'] });
 
-    expect(screen.getByText(/Hero shot/)).toBeTruthy();
-    expect(screen.getByText(/generating…/)).toBeTruthy();
+    expect(screen.getByText(/Hero shot · generating…/)).toBeTruthy();
   });
 });
 
@@ -212,9 +211,12 @@ describe('BulkReviewPane — mixed multi-task render (BI-015)', () => {
       generatingTaskIds: ['t1'],
     });
 
-    expect(screen.getByText(/Generating task/)).toBeTruthy();
-    expect(screen.getByText(/Failed task/)).toBeTruthy();
-    expect(screen.getByText(/Landed task/)).toBeTruthy();
+    // Section labels, not the BI-060.2 header jump links that repeat each name.
+    expect([...container.querySelectorAll('label')].map((l) => l.textContent)).toEqual([
+      'Generating task · generating…',
+      'Failed task',
+      'Landed task · round 1',
+    ]);
     expect(screen.getByText('No batch — generation failed for this task.')).toBeTruthy();
     expect(container.querySelectorAll('.animate-pulse')).toHaveLength(DEFAULT_BATCH_SIZE);
 
@@ -222,5 +224,59 @@ describe('BulkReviewPane — mixed multi-task render (BI-015)', () => {
     fireEvent.click(stars[0]!);
 
     expect(onSetImageRating).toHaveBeenCalledWith('t3', 'i3', 3);
+  });
+});
+
+describe('BulkReviewPane — progress header (BI-060.2)', () => {
+  const decided = makeTask('t1', {
+    name: 'Hero',
+    iterations: [
+      makeIteration(0, [
+        { ...makeImage('i1'), decision: 'approved' },
+        { ...makeImage('i2'), decision: 'discarded' },
+      ]),
+    ],
+  });
+  const open = makeTask('t2', {
+    name: 'Team',
+    iterations: [
+      makeIteration(0, [makeImage('i3'), makeImage('i4'), { ...makeImage('i5'), decision: 'kept' }]),
+    ],
+  });
+
+  it('counts a task decided only when its visible batch has no undecided image', async () => {
+    await renderPane({ tasks: [decided, open, makeTask('t3', { name: 'Failed' })] });
+
+    expect(screen.getByText('1 of 3 tasks decided')).toBeTruthy();
+    const nav = screen.getByRole('navigation', { name: 'Jump to task' });
+    expect(nav.querySelectorAll('button')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Hero decided' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Team 2 undecided' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Failed' })).toBeTruthy();
+  });
+
+  it('does not count a generating task as decided', async () => {
+    await renderPane({ tasks: [decided], generatingTaskIds: ['t1'] });
+
+    expect(screen.getByText('0 of 1 task decided')).toBeTruthy();
+  });
+
+  it('scrolls the task section into view without selecting the task', async () => {
+    const scrolled: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (
+      this: Element,
+    ) {
+      scrolled.push(this);
+    });
+    try {
+      await renderPane({ tasks: [decided, open] });
+      fireEvent.click(screen.getByRole('button', { name: 'Team 2 undecided' }));
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(scrolled).toHaveLength(1);
+    expect(scrolled[0]!.id).toBe('bulk-review-t2');
+    expect(scrolled[0]!.textContent).toContain('Team');
   });
 });

@@ -29,10 +29,21 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import type { ID, Session } from '@/lib/types';
+import type { ID, ReviewDecision, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
 import type { RoundSummary } from '@/lib/roundBatch';
-import { imagegenRootLabel, projectNameFromRoot } from '@/lib/workspace';
+import { decisionCounts, imagegenRootLabel, projectNameFromRoot } from '@/lib/workspace';
+
+/**
+ * Task-row progress badges (BI-060.2), in display order. The glyph is what shows;
+ * the word is the screen-reader text and tooltip, since `?` / `K` / `✓` alone
+ * would announce as bare glyphs (BI-035.3). Discarded is counted but not badged.
+ */
+const PROGRESS_BADGES: { decision: ReviewDecision; glyph: string; word: string }[] = [
+  { decision: 'undecided', glyph: '?', word: 'undecided' },
+  { decision: 'kept', glyph: 'K', word: 'kept' },
+  { decision: 'approved', glyph: '✓', word: 'approved' },
+];
 
 interface SidebarProps {
   session: Session;
@@ -482,6 +493,14 @@ export default function Sidebar({
           <ul className="flex flex-col gap-1">
             {session.tasks.map((task) => {
               const isActive = task.id === activeTaskId;
+              // Counts follow the round in view, so the badge matches the grid (BI-060.2).
+              const counts = decisionCounts(task, currentRound);
+              const badges = counts
+                ? PROGRESS_BADGES.filter((b) => counts[b.decision] > 0).map((b) => ({
+                    ...b,
+                    n: counts[b.decision],
+                  }))
+                : [];
               return (
                 <li key={task.id}>
                   <div
@@ -498,6 +517,31 @@ export default function Sidebar({
                     >
                       {task.name}
                     </button>
+                    {badges.length > 0 ? (
+                      <span
+                        className="flex shrink-0 gap-1 text-[10px] tabular-nums"
+                        title={badges.map((b) => `${b.n} ${b.word}`).join(' · ')}
+                      >
+                        {badges.map((b) => (
+                          <span
+                            key={b.decision}
+                            className={`rounded border px-1 ${
+                              b.decision === 'approved' && !isActive
+                                ? 'border-green-500/50 text-green-700 dark:text-green-400'
+                                : 'border-current opacity-70'
+                            }`}
+                          >
+                            <span aria-hidden="true">
+                              {b.n}
+                              {b.glyph}
+                            </span>
+                            <span className="sr-only">
+                              {b.n} {b.word}
+                            </span>
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
                     <button
                       className="opacity-0 transition-opacity group-hover:opacity-70 hover:!opacity-100"
                       title="Rename task"

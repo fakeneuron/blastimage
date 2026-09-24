@@ -281,6 +281,22 @@ export function visibleIteration(
 }
 
 /**
+ * Per-decision image counts for the iteration {@link visibleIteration} shows
+ * (BI-060.2), so progress badges match the grid on screen. `null` when the task
+ * has no iteration. Derived on every render — never persisted.
+ */
+export function decisionCounts(
+  task: PromptTask,
+  currentRound?: number | null,
+): Record<ReviewDecision, number> | null {
+  const shown = visibleIteration(task, currentRound);
+  if (!shown) return null;
+  const counts: Record<ReviewDecision, number> = { undecided: 0, discarded: 0, kept: 0, approved: 0 };
+  for (const img of shown.images) counts[img.decision] += 1;
+  return counts;
+}
+
+/**
  * Upserts a draft as the iteration for `round` on `taskId`: replaces the first
  * iteration that already holds images from that round (and drops any later
  * same-round duplicates, reindexing), or appends when the round is new.

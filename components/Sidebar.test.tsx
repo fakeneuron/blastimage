@@ -24,7 +24,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import Sidebar from './Sidebar';
-import { SCHEMA_VERSION, type PromptTask, type Session } from '@/lib/types';
+import { roundImageUrl } from '@/lib/imagegenUrl';
+import {
+  SCHEMA_VERSION,
+  type GeneratedImage,
+  type Iteration,
+  type PromptTask,
+  type ReviewDecision,
+  type Session,
+} from '@/lib/types';
 
 const NOW = '2026-08-06T00:00:00.000Z';
 
@@ -501,5 +509,75 @@ describe('Sidebar regroup (BI-053.5)', () => {
     expect(screen.getByRole('button', { name: 'Refresh rounds' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Reload round r1' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /imagegen linked/ })).toBeNull();
+  });
+});
+
+describe('Sidebar progress badges (BI-060.2)', () => {
+  function image(id: string, decision: ReviewDecision, round: number): GeneratedImage {
+    return {
+      id,
+      url: roundImageUrl(round, `${id}.jpg`),
+      prompt: '',
+      status: 'ready',
+      decision,
+      rating: 0,
+      feedback: null,
+      createdAt: NOW,
+    };
+  }
+
+  function iteration(index: number, images: GeneratedImage[]): Iteration {
+    return {
+      id: `it${index}`,
+      index,
+      prompt: '',
+      refImageIds: [],
+      primaryRefImageId: null,
+      images,
+      createdAt: NOW,
+    };
+  }
+
+  const task: PromptTask = {
+    ...makeTask('t1', 'Hero banner'),
+    iterations: [
+      iteration(0, [image('a', 'approved', 1)]),
+      iteration(1, [
+        image('b', 'undecided', 2),
+        image('c', 'undecided', 2),
+        image('d', 'kept', 2),
+        image('e', 'discarded', 2),
+      ]),
+    ],
+  };
+
+  it('shows non-zero undecided / kept / approved counts for the round in view', () => {
+    render(<Sidebar {...makeProps({ session: makeSession({ tasks: [task] }), currentRound: 2 })} />);
+
+    expect(screen.getByText('2 undecided')).toBeTruthy();
+    expect(screen.getByText('1 kept')).toBeTruthy();
+    expect(screen.queryByText(/approved/)).toBeNull();
+    expect(screen.queryByText(/discarded/)).toBeNull();
+    expect(screen.getByTitle('2 undecided · 1 kept')).toBeTruthy();
+  });
+
+  it('follows currentRound rather than the latest iteration', () => {
+    render(<Sidebar {...makeProps({ session: makeSession({ tasks: [task] }), currentRound: 1 })} />);
+
+    expect(screen.getByText('1 approved')).toBeTruthy();
+    expect(screen.queryByText(/undecided/)).toBeNull();
+  });
+
+  it('renders no badges for a task with no round', () => {
+    const session = makeSession({ tasks: [makeTask('t2', 'Empty')] });
+    render(<Sidebar {...makeProps({ session })} />);
+
+    expect(screen.queryByText(/undecided|kept|approved/)).toBeNull();
+  });
+
+  it('keeps the badges out of the task button name', () => {
+    render(<Sidebar {...makeProps({ session: makeSession({ tasks: [task] }), currentRound: 2 })} />);
+
+    expect(screen.getByRole('button', { name: 'Hero banner' })).toBeTruthy();
   });
 });

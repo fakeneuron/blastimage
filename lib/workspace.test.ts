@@ -20,6 +20,7 @@ import {
   sessionRoundNumbers,
   setCurrentRound,
   visibleIteration,
+  decisionCounts,
   MAX_ACTIVE_REFS,
   newGeneratedImage,
   newRefImage,
@@ -807,6 +808,18 @@ describe('round view-filter (BI-053.4)', () => {
     expect(visibleIteration(task, null)?.images[0]!.url).toBe(roundImageUrl(2, 'hero-banner-002.jpg'));
     expect(visibleIteration(task, 9)?.images[0]!.url).toBe(roundImageUrl(2, 'hero-banner-002.jpg'));
     expect(visibleIteration(newTask('empty'))).toBeUndefined();
+  });
+
+  it('decisionCounts tallies the visible round only (BI-060.2)', () => {
+    let s = ingestRoundBatch(newSession('S'), batch(1), (f) => roundImageUrl(1, f));
+    s = ingestRoundBatch(s, batch(2), (f) => roundImageUrl(2, f));
+    const r1Image = s.tasks[0]!.iterations[0]!.images[0]!;
+    s = setImageDecision(s, s.tasks[0]!.id, r1Image.id, 'approved');
+    const task = s.tasks[0]!;
+    expect(decisionCounts(task, 1)).toEqual({ undecided: 0, discarded: 0, kept: 0, approved: 1 });
+    expect(decisionCounts(task, 2)).toEqual({ undecided: 1, discarded: 0, kept: 0, approved: 0 });
+    expect(decisionCounts(task)).toEqual(decisionCounts(task, 2));
+    expect(decisionCounts(newTask('empty'))).toBeNull();
   });
 });
 
