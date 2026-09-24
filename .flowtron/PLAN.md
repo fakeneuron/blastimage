@@ -12,10 +12,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **DEPLOY-008.2** [light]🔧 | push-backlog-ci-verify — Completed 2026-09-24.
   - [x] **DEPLOY-008.3** [light]🔧 | e2e-dev-coexistence — Completed 2026-09-24.
   - [ ] **DEPLOY-008.N** [light]🔧 | verification-gate-reach audit
-- [ ] **BI-EPIC-058** [medium]🧩 | loopback-bind — bind the dev/start servers to 127.0.0.1 so the imagegen guard's Host/Sec-Fetch-Site checks cannot be forged from the LAN. Loopback only, no opt-in LAN script (operator confirmed 2026-09-24). Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Local trust boundary relies on headers only browsers enforce)
-  - [x] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — Completed 2026-09-24.
-  - [x] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — Completed 2026-09-24.
-  - [ ] **BI-058.N** [light]🔧 | loopback-bind audit
 
 ## Medium
 
@@ -34,6 +30,11 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **BI-EPIC-058** [medium]🧩 | loopback-bind — Completed 2026-09-24.
+  - [x] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — Completed 2026-09-24.
+  - [x] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — Completed 2026-09-24.
+  - [x] **BI-058.N** [light]🔧 | loopback-bind audit — Completed 2026-09-24.
 
 - [x] **TEST-009** [light]🔧 | playwright-exact-pin — Completed 2026-09-24.
 
