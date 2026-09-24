@@ -44,14 +44,17 @@ paths = ['''(^|/)\.flowtron/tasknote/archive/.*\.md$''']
 description = """
 Test fixtures and test modules. Fake credentials are the point of a credential
 test — a scanner hit here is the fixture working as designed. Scoped to test
-trees only, so production code carrying the same shape still fires.
+trees and the fleet's `*.test.sh` peer convention (CODING-STANDARDS.md
+§Testing), so production code carrying the same shape still fires.
 Measured hits: InvisiPaw backend/tests/ (3 modules + 1 fixture script),
-marscharts backend/tests/services/.
+marscharts backend/tests/services/, natabula
+scripts/claude-allowlist.test.sh (curl-auth-header ×3, NAT-308).
 """
 paths = [
   '''(^|/)tests?/.*''',
   '''(^|/)__tests__/.*''',
   '''(^|/).*\.(test|spec)\.(ts|tsx|js|jsx|py)$''',
+  '''(^|/).*\.test\.sh$''',
   '''(^|/)conftest\.py$''',
 ]
 

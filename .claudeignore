@@ -48,3 +48,6 @@ SCRATCHPAD.md
 # Secrets
 .env
 !.env.example
+
+# Flowtron dogfood archive — tracked submodule content; .gitignore cannot exclude it.
+.flowtron/core/.flowtron/
