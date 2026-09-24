@@ -16,8 +16,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **TEST-009** [light]🔧 | playwright-exact-pin — `package.json` declares `@playwright/test: "^1.63.0"`; the fleet pins it exact (11 repos on `1.62.1`) because a Playwright minor carries a browser-revision bump, so a caret lets `npm install` silently change which browser the suite runs against (natabula `docs/STACK-TENDENCIES.md` §"End-to-end testing (Playwright)", NAT-186.5). Pin exact — to `1.62.1`, or to `1.63.x` as a deliberate, reviewed bump. Surfaced by natabula fleet audit 2026-09-12 at `90ef067`.
-- [ ] **CORE-5** [medium]🧩 | quality-stack-gaps — Adopt missing fleet quality-stack items: eslint type-checked, eslint --max-warnings 0, tsconfig exactOptionalPropertyTypes, justfile coverage recipe, diff-cover gate. Recipes: STACK-TENDENCIES.md §Frontend / §Command interface / §Continuous integration. Routed by natabula `NAT-247.4` (NAT-EPIC-247 gap sweep, NAT-103.4 lazy backfill).
+- [ ] **TEST-009** [light]🔧 [unattended] | playwright-exact-pin — `package.json` declares `@playwright/test: "^1.63.0"`; the fleet pins it exact (11 repos on `1.62.1`) because a Playwright minor carries a browser-revision bump, so a caret lets `npm install` silently change which browser the suite runs against (natabula `docs/STACK-TENDENCIES.md` §"End-to-end testing (Playwright)", NAT-186.5). Pin exact — to `1.62.1`, or to `1.63.x` as a deliberate, reviewed bump. Surfaced by natabula fleet audit 2026-09-12 at `90ef067`.
+- [ ] **CORE-5** [medium]🧩 [unattended] | quality-stack-gaps — Adopt missing fleet quality-stack items: eslint type-checked, eslint --max-warnings 0, tsconfig exactOptionalPropertyTypes, justfile coverage recipe, diff-cover gate. Recipes: STACK-TENDENCIES.md §Frontend / §Command interface / §Continuous integration. Routed by natabula `NAT-247.4` (NAT-EPIC-247 gap sweep, NAT-103.4 lazy backfill).
 
 ## Future Opportunities
 
