@@ -10,7 +10,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **DEPLOY-EPIC-008** [medium]🧩 | verification-gate-reach — make CI and local e2e actually run against current main. Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Verification only counts where it runs)
   - [x] **DEPLOY-008.2** [light]🔧 | push-backlog-ci-verify — Completed 2026-09-24.
-  - [ ] **DEPLOY-008.3** [light]🔧 | e2e-dev-coexistence — give the Playwright webServer its own env-selected distDir (like `build:verify`'s `.next-verify`) so it no longer hits Next 16's one-dev-server lock; verify `just e2e` passes with `just dev` up; add the dir to .gitignore/eslint ignores.
+  - [x] **DEPLOY-008.3** [light]🔧 | e2e-dev-coexistence — Completed 2026-09-24.
   - [ ] **DEPLOY-008.N** [light]🔧 | verification-gate-reach audit
 - [ ] **BI-EPIC-058** [medium]🧩 | loopback-bind — bind the dev/start servers to 127.0.0.1 so the imagegen guard's Host/Sec-Fetch-Site checks cannot be forged from the LAN. Loopback only, no opt-in LAN script (operator confirmed 2026-09-24). Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Local trust boundary relies on headers only browsers enforce)
   - [x] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — Completed 2026-09-24.

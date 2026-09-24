@@ -54,11 +54,13 @@ const eslintConfig = tseslint.config(
   {
     ignores: [
       "node_modules/**",
-      // Both `distDir` outputs: `.next/` (dev + prod builds) and `.next-verify/`
-      // (CORE-002's isolated verification build). Flat config does not
-      // auto-ignore dot-directories, so each needs an explicit entry (BI-001).
+      // Every `distDir` output: `.next/` (dev + prod builds), `.next-verify/`
+      // (CORE-002's isolated verification build), and `.next-e2e/` (the
+      // Playwright server, DEPLOY-008.3). Flat config does not auto-ignore
+      // dot-directories, so each needs an explicit entry (BI-001).
       ".next/**",
       ".next-verify/**",
+      ".next-e2e/**",
       "out/**",
       "build/**",
       "next-env.d.ts",

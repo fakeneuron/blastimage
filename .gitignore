@@ -8,6 +8,7 @@ dist/
 build/
 .next/
 .next-verify/
+.next-e2e/
 out/
 next-env.d.ts
 **/__pycache__/

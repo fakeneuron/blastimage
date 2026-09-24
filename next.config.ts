@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   // re-dirties the working tree at the start of every task (DEPLOY-002).
   agentRules: false,
   ...(process.env.NEXT_VERIFY_BUILD ? { distDir: ".next-verify" } : {}),
+  // The Playwright webServer's own `next dev` (DEPLOY-008.3). Next 16 holds one
+  // dev lock per `distDir`, so sharing `.next/` with `just dev` refused to start.
+  ...(process.env.NEXT_E2E_BUILD ? { distDir: ".next-e2e" } : {}),
 };
 
 export default nextConfig;
