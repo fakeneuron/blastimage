@@ -327,11 +327,14 @@ async function isNavigableDir(parent: string, entry: { name: string; isDirectory
  * linking is navigation rather than a typed absolute path — no browser API
  * hands one out, and the FSA picker that used to was Chromium-only (BI-045).
  *
- * Deliberately **unconfined**: any readable directory, `/` included. The trust
- * boundary is `lib/imagegenGuard.ts` — loopback `Host`, same origin — and
- * anything past it can already name any root on the other routes. Confinement
- * belongs where it does real work, under the *linked* root
- * ({@link resolveUnderRoot}), not over the operator's own machine.
+ * Deliberately **unconfined**: any readable directory, `/` included. The
+ * loopback bind (BI-058) is the first boundary — a LAN client never opens a
+ * TCP connection — with `lib/imagegenGuard.ts`'s `Host`/`Origin`/
+ * `Sec-Fetch-Site` checks as browser-only defenses a non-browser client can
+ * forge once it can reach the port; anything past both can already name any
+ * root on the other routes. Confinement belongs where it does real work,
+ * under the *linked* root ({@link resolveUnderRoot}), not over the
+ * operator's own machine.
  *
  * Dot-directories are skipped: an `imagegen/` folder is never hidden, and the
  * picker keeps a typed path as the fallback for anything the tree omits.
