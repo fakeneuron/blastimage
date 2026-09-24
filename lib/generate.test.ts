@@ -32,8 +32,7 @@ function installTestMockProvider() {
     return `https://picsum.photos/seed/${seed}-${index}/${MOCK_WIDTH}/${MOCK_HEIGHT}`;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).__grokImagineProvider = async (req: GenerationRequest) => {
+  globalThis.__grokImagineProvider = async (req: GenerationRequest) => {
     const seed = baseSeed(req);
     await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
     return Array.from({ length: req.batchSize }, (_, i) => ({
@@ -44,8 +43,7 @@ function installTestMockProvider() {
 }
 
 function uninstallTestMockProvider() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (globalThis as any).__grokImagineProvider;
+  globalThis.__grokImagineProvider = undefined;
 }
 
 /** Runs generateBatch (now provider-backed) with fake timers for the latency. */
@@ -124,8 +122,9 @@ describe('isGenerationAvailable (BI-031.2)', () => {
   });
 
   it('is false for a non-function value on the global', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).__grokImagineProvider = 'not a provider';
+    globalThis.__grokImagineProvider = 'not a provider' as unknown as NonNullable<
+      typeof globalThis.__grokImagineProvider
+    >;
     expect(isGenerationAvailable()).toBe(false);
   });
 });

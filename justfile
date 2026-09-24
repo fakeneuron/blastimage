@@ -11,9 +11,9 @@
 # app at the repo root (`package.json` → npm, `pyproject.toml` → uv). Nothing
 # to trim; delete a recipe only if it genuinely doesn't apply.
 #
-# Note: `lint` / `test` / `typecheck` / `e2e` here call the native tools
-# (eslint/vitest/ruff/pytest/tsc/playwright) so they work for humans, agents,
-# and CI alike.
+# Note: `lint` / `test` / `typecheck` / `e2e` / `coverage` here call the native
+# tools (eslint/vitest/ruff/pytest/tsc/playwright/diff-cover) so they work for
+# humans, agents, and CI alike. `coverage` mirrors the CI changed-line gate.
 
 # list available recipes
 default:
@@ -96,6 +96,53 @@ typecheck:
     if [ -d frontend ]; then echo "› frontend: tsc"; (cd frontend && npm run typecheck); ran=1; fi
     if [ "$ran" = 0 ] && [ -f package.json ]; then echo "› root: tsc"; npm run typecheck; ran=1; fi
     if [ "$ran" = 0 ]; then echo "nothing to type-check"; fi
+
+# changed-line coverage for every stack present (mirrors the CI gate)
+# Usage: `just coverage` (vs. origin/main) or `just coverage HEAD~3`.
+coverage BASE="origin/main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Same gate CI runs, same tool, same threshold. Pin matches
+    # DIFF_COVER_VERSION in .github/workflows/ci.yml; bump both together.
+    DC="diff-cover@10.5.1"; MIN=80
+    ran=0; main=0
+    if [ -d backend ]; then
+      echo "› backend: pytest --cov + diff-cover"
+      (cd backend && uv run pytest -q --cov=. --cov-report=xml >/dev/null)
+      uvx "$DC" backend/coverage.xml --compare-branch="{{BASE}}" --fail-under=$MIN --show-uncovered
+      ran=1; main=1
+    fi
+    if [ -d frontend ]; then
+      echo "› frontend: vitest --coverage + diff-cover"
+      (cd frontend && npm test -- --run --coverage >/dev/null)
+      # lcov SF: paths are stack-dir-relative; git diff paths are repo-root
+      # relative, and diff-cover's --src-roots does not remap lcov.
+      sed -i.bak 's|^SF:|SF:frontend/|' frontend/coverage/lcov.info && rm -f frontend/coverage/lcov.info.bak
+      uvx "$DC" frontend/coverage/lcov.info --compare-branch="{{BASE}}" --fail-under=$MIN --show-uncovered
+      ran=1; main=1
+    fi
+    if [ -d worker ]; then
+      echo "› worker: vitest --coverage + diff-cover"
+      (cd worker && npm test -- --run --coverage >/dev/null)
+      sed -i.bak 's|^SF:|SF:worker/|' worker/coverage/lcov.info && rm -f worker/coverage/lcov.info.bak
+      uvx "$DC" worker/coverage/lcov.info --compare-branch="{{BASE}}" --fail-under=$MIN --show-uncovered
+      ran=1
+    fi
+    if [ "$main" = 0 ]; then
+      if [ -f package.json ]; then
+        echo "› root: vitest --coverage + diff-cover"
+        npm test -- --run --coverage >/dev/null
+        # Root layout: SF: paths are already repo-root-relative, no rewrite.
+        uvx "$DC" coverage/lcov.info --compare-branch="{{BASE}}" --fail-under=$MIN --show-uncovered
+        ran=1
+      elif [ -f pyproject.toml ]; then
+        echo "› root: pytest --cov + diff-cover"
+        uv run pytest -q --cov=. --cov-report=xml >/dev/null
+        uvx "$DC" coverage.xml --compare-branch="{{BASE}}" --fail-under=$MIN --show-uncovered
+        ran=1
+      fi
+    fi
+    if [ "$ran" = 0 ]; then echo "nothing to measure"; fi
 
 # build every stack present (backend has no build step by default)
 build:

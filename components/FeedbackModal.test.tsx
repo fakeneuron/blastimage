@@ -76,8 +76,8 @@ function mountOpener() {
 
 const dialog = () => screen.getByRole('dialog', { name: 'Image feedback' });
 const button = (name: string) => screen.getByRole('button', { name });
-const notes = () => screen.getByLabelText(/Refinement notes/i) as HTMLTextAreaElement;
-const refBox = () => screen.getByRole('checkbox') as HTMLInputElement;
+const notes = () => screen.getByLabelText<HTMLTextAreaElement>(/Refinement notes/i);
+const refBox = () => screen.getByRole<HTMLInputElement>('checkbox');
 
 afterEach(() => {
   cleanup();

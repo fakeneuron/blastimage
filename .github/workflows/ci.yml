@@ -9,12 +9,24 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Pin matches the `DC` pin in the justfile `coverage` recipe. Bump both
+  # together. uvx rather than a dependency, because this repo has no Python
+  # stack for diff-cover to live in.
+  DIFF_COVER_VERSION: "10.5.1"
+  COVERAGE_MIN: "80"
+
 jobs:
   ci:
     runs-on: ubuntu-latest
 
     steps:
+      # fetch-depth 0 so the changed-line gate can resolve github.event.before
+      # on a push. A shallow clone makes that base unresolvable and the gate
+      # skips. The secrets and e2e jobs do not run the gate.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -22,6 +34,12 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: package-lock.json
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
 
       - name: Install dependencies
         run: npm ci
@@ -33,7 +51,40 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm run test
+        run: npm test -- --coverage
+
+      - name: Resolve coverage diff base
+        id: covbase
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.base_ref }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          base=""
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="origin/$PR_BASE"
+          elif [ -n "${PUSH_BEFORE:-}" ] \
+            && [ "$PUSH_BEFORE" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
+            base="$PUSH_BEFORE"
+          fi
+          if [ -z "$base" ]; then
+            echo "::notice::No usable diff base — changed-line coverage gate skipped for this run."
+          else
+            echo "Coverage diff base: $base"
+          fi
+          echo "ref=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Coverage (changed lines)
+        if: steps.covbase.outputs.ref != ''
+        env:
+          BASE: ${{ steps.covbase.outputs.ref }}
+        run: |
+          set -euo pipefail
+          # Root layout: lcov SF: paths are already repo-root-relative.
+          uvx "diff-cover@${DIFF_COVER_VERSION}" coverage/lcov.info \
+            --compare-branch="$BASE" --fail-under="$COVERAGE_MIN" --show-uncovered
 
       - name: Build
         run: npm run build

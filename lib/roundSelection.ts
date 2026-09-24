@@ -105,6 +105,11 @@ export function serializeRoundSelection(selection: RoundSelection): string {
  * Validates and parses a `selection.json` string. Returns a user-facing error on
  * schema mismatch or malformed input.
  */
+// `Array.isArray` narrows to `any[]`. This predicate keeps elements `unknown`.
+function isUnknownArray(x: unknown): x is readonly unknown[] {
+  return Array.isArray(x);
+}
+
 export function parseRoundSelection(text: string): Result<RoundSelection> {
   let raw: unknown;
   try {
@@ -128,7 +133,7 @@ export function parseRoundSelection(text: string): Result<RoundSelection> {
   if (typeof obj.selectedAt !== 'string' || !obj.selectedAt.trim()) {
     return { ok: false, error: 'selection.json "selectedAt" must be a non-empty ISO timestamp string.' };
   }
-  if (!Array.isArray(obj.tasks)) {
+  if (!isUnknownArray(obj.tasks)) {
     return { ok: false, error: 'selection.json "tasks" must be an array.' };
   }
   const tasks: RoundSelectionTask[] = [];

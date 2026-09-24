@@ -44,7 +44,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete globalThis.__grokImagineProvider;
+  globalThis.__grokImagineProvider = undefined;
   cleanup();
 });
 
@@ -388,7 +388,7 @@ function recordingImagegen(batches: Record<number, RoundBatch>): {
         }),
     readRound: async (round) =>
       batches[round]
-        ? { ok: true, value: batches[round]! }
+        ? { ok: true, value: batches[round] }
         : { ok: false, error: `no round ${round}` },
     writeSelection: async (round, tasks) => {
       selections.push({ round, tasks });

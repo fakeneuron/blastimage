@@ -30,6 +30,8 @@ describe('terminalRound helpers', () => {
         ref: 'refs/hero-banner.jpg',
       },
     ]);
+    const bare = planGenerateTasks([{ name: 'Footer', basePrompt: 'plain' }]);
+    expect(bare[0]).not.toHaveProperty('ref');
   });
 
   it('indexes ref paths by slug', () => {
@@ -69,6 +71,13 @@ describe('terminalRound helpers', () => {
       images: ['hero-001.jpg', 'hero-002.jpg'],
       ref: 'refs/hero.jpg',
     });
+    const noRef = buildRoundBatch(
+      1,
+      '2026-06-18T00:00:00Z',
+      [{ slug: 'hero', name: 'Hero', prompt: 'p' }],
+      { hero: ['hero-001.jpg'] },
+    );
+    expect(noRef.tasks[0]).not.toHaveProperty('ref');
   });
 
   it('plans iterate tasks with append vs overhaul', () => {
@@ -106,9 +115,10 @@ describe('terminalRound helpers', () => {
     expect(plans[1]).toEqual({
       slug: 'footer',
       prompt: 'completely new scene',
-      keeperPath: undefined,
       useReference: false,
     });
+    // Omitted, not set to undefined: exactOptionalPropertyTypes.
+    expect(plans[1]).not.toHaveProperty('keeperPath');
   });
 
   it('plans ref-bootstrap copies from selection', () => {

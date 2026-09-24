@@ -15,6 +15,19 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["{lib,components}/**/*.test.{ts,tsx}"],
+    // `include` is what puts a never-imported module in the lcov report at 0%
+    // so the changed-line gate can see it (NAT-229). Tests are colocated, so
+    // they are excluded — the gate covers source, not the tests themselves.
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcovonly"],
+      include: [
+        "app/**/*.{ts,tsx}",
+        "components/**/*.{ts,tsx}",
+        "lib/**/*.{ts,tsx}",
+      ],
+      exclude: ["**/*.test.{ts,tsx}"],
+    },
   },
   resolve: {
     alias: {

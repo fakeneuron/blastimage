@@ -17,7 +17,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 
 - [ ] **TEST-009** [light]🔧 [unattended] | playwright-exact-pin — `package.json` declares `@playwright/test: "^1.63.0"`; the fleet pins it exact (11 repos on `1.62.1`) because a Playwright minor carries a browser-revision bump, so a caret lets `npm install` silently change which browser the suite runs against (natabula `docs/STACK-TENDENCIES.md` §"End-to-end testing (Playwright)", NAT-186.5). Pin exact — to `1.62.1`, or to `1.63.x` as a deliberate, reviewed bump. Surfaced by natabula fleet audit 2026-09-12 at `90ef067`.
-- [ ] **CORE-5** [medium]🧩 [unattended] | quality-stack-gaps — Adopt missing fleet quality-stack items: eslint type-checked, eslint --max-warnings 0, tsconfig exactOptionalPropertyTypes, justfile coverage recipe, diff-cover gate. Recipes: STACK-TENDENCIES.md §Frontend / §Command interface / §Continuous integration. Routed by natabula `NAT-247.4` (NAT-EPIC-247 gap sweep, NAT-103.4 lazy backfill).
 
 ## Future Opportunities
 
@@ -25,6 +24,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **CORE-5** [medium]🧩 | quality-stack-gaps — Completed 2026-09-24.
 
 - [x] **CORE-6** [medium]🧩 | brand-kit-fill — Completed 2026-09-24.
 

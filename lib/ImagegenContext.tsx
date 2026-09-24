@@ -199,11 +199,11 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
   );
 
   const resolveDisplayUrl = useCallback(
-    async (url: string): Promise<string> => {
-      if (!isImagegenUrl(url)) return url;
+    (url: string): Promise<string> => {
+      if (!isImagegenUrl(url)) return Promise.resolve(url);
       const root = rootRef.current;
-      if (!root) return url;
-      return imagegenFileUrl(root, imagegenPathFromUrl(url), blobEpoch);
+      if (!root) return Promise.resolve(url);
+      return Promise.resolve(imagegenFileUrl(root, imagegenPathFromUrl(url), blobEpoch));
     },
     [blobEpoch],
   );

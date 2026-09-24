@@ -96,7 +96,7 @@ describe('suggestedRoots', () => {
   it('GETs /api/imagegen/link with no params', async () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: [] }));
     await suggestedRoots();
-    const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
+    const url = new URL(fetchMock.mock.calls[0]![0], 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/link');
     expect([...url.searchParams.keys()]).toEqual([]);
   });
@@ -106,7 +106,7 @@ describe('browseDirectory', () => {
   it('omits `path` when absent', async () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: {} }));
     await browseDirectory();
-    const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
+    const url = new URL(fetchMock.mock.calls[0]![0], 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/browse');
     expect(url.searchParams.has('path')).toBe(false);
   });
@@ -114,7 +114,7 @@ describe('browseDirectory', () => {
   it('includes `path` when given', async () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: {} }));
     await browseDirectory('/home/user/projects');
-    const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
+    const url = new URL(fetchMock.mock.calls[0]![0], 'http://localhost:3003');
     expect(url.searchParams.get('path')).toBe('/home/user/projects');
   });
 });
@@ -124,7 +124,7 @@ describe('linkRoot / linkImagegenRoot', () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: { root: ROOT, recognized: true } }));
     await linkRoot('/candidate');
     const [input, init] = fetchMock.mock.calls[0]!;
-    expect(new URL(input as string, 'http://localhost:3003').pathname).toBe('/api/imagegen/link');
+    expect(new URL(input, 'http://localhost:3003').pathname).toBe('/api/imagegen/link');
     expect(init?.method).toBe('POST');
     expect(JSON.parse(init?.body as string)).toEqual({ path: '/candidate' });
   });
@@ -149,7 +149,7 @@ describe('listRounds', () => {
     ];
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: summaries }));
     expect(await listRounds(ROOT)).toEqual(summaries);
-    const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
+    const url = new URL(fetchMock.mock.calls[0]![0], 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/rounds');
     expect(url.searchParams.get('root')).toBe(ROOT);
   });
@@ -172,8 +172,8 @@ describe('readRoundBatch', () => {
   it('GETs /api/imagegen/round with root + round, and parses a matching batch', async () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: batchJson(3) }));
     const result = await readRoundBatch(ROOT, 3);
-    expect(result).toEqual({ ok: true, value: JSON.parse(batchJson(3)) });
-    const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
+    expect(result).toEqual({ ok: true, value: JSON.parse(batchJson(3)) as unknown });
+    const url = new URL(fetchMock.mock.calls[0]![0], 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/round');
     expect(url.searchParams.get('root')).toBe(ROOT);
     expect(url.searchParams.get('round')).toBe('3');
@@ -206,7 +206,7 @@ describe('writeRoundSelection', () => {
     const tasks = [{ slug: 'hero', decision: 'approve' as const, keeper: 'hero-01.png' }];
     await writeRoundSelection(ROOT, 3, tasks, '2026-08-30T00:00:00.000Z');
     const [input, init] = fetchMock.mock.calls[0]!;
-    expect(new URL(input as string, 'http://localhost:3003').pathname).toBe('/api/imagegen/selection');
+    expect(new URL(input, 'http://localhost:3003').pathname).toBe('/api/imagegen/selection');
     expect(init?.method).toBe('POST');
     expect(JSON.parse(init?.body as string)).toEqual({
       root: ROOT,
@@ -221,7 +221,7 @@ describe('approvedConflict', () => {
   it('GETs /api/imagegen/approved with root, round, filename', async () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: true }));
     expect(await approvedConflict(ROOT, 3, 'hero-01.png')).toEqual({ ok: true, value: true });
-    const url = new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost:3003');
+    const url = new URL(fetchMock.mock.calls[0]![0], 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/approved');
     expect(url.searchParams.get('root')).toBe(ROOT);
     expect(url.searchParams.get('round')).toBe('3');
@@ -234,7 +234,7 @@ describe('promoteApproved', () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: undefined }));
     await promoteApproved(ROOT, 3, 'hero-01.png');
     const [input, init] = fetchMock.mock.calls[0]!;
-    expect(new URL(input as string, 'http://localhost:3003').pathname).toBe('/api/imagegen/approved');
+    expect(new URL(input, 'http://localhost:3003').pathname).toBe('/api/imagegen/approved');
     expect(init?.method).toBe('POST');
     expect(JSON.parse(init?.body as string)).toEqual({ root: ROOT, round: 3, filename: 'hero-01.png' });
   });
@@ -245,7 +245,7 @@ describe('removeApproved', () => {
     const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: undefined }));
     await removeApproved(ROOT, 'hero-01.png');
     const [input, init] = fetchMock.mock.calls[0]!;
-    const url = new URL(input as string, 'http://localhost:3003');
+    const url = new URL(input, 'http://localhost:3003');
     expect(url.pathname).toBe('/api/imagegen/approved');
     expect(url.searchParams.get('root')).toBe(ROOT);
     expect(url.searchParams.get('filename')).toBe('hero-01.png');

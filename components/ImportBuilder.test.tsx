@@ -46,7 +46,7 @@ function mountOpener() {
 }
 
 function pasteTextarea() {
-  return screen.getByLabelText(/Paste prompts/i) as HTMLTextAreaElement;
+  return screen.getByLabelText<HTMLTextAreaElement>(/Paste prompts/i);
 }
 
 function addFromPasteButton() {
@@ -54,19 +54,19 @@ function addFromPasteButton() {
 }
 
 function downloadButton() {
-  return screen.getByRole('button', { name: 'Download tasks.json' }) as HTMLButtonElement;
+  return screen.getByRole<HTMLButtonElement>('button', { name: 'Download tasks.json' });
 }
 
 function nameInputs() {
-  return screen.queryAllByPlaceholderText('task name') as HTMLInputElement[];
+  return screen.queryAllByPlaceholderText<HTMLInputElement>('task name');
 }
 
 function promptInputs() {
-  return screen.queryAllByPlaceholderText('base prompt (may be empty)') as HTMLTextAreaElement[];
+  return screen.queryAllByPlaceholderText<HTMLTextAreaElement>('base prompt (may be empty)');
 }
 
 function removeButtons() {
-  return screen.queryAllByTitle('Remove task') as HTMLButtonElement[];
+  return screen.queryAllByTitle<HTMLButtonElement>('Remove task');
 }
 
 function txtInput(container: HTMLElement) {

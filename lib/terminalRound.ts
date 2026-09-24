@@ -44,12 +44,14 @@ export function planGenerateTasks(
 ): TerminalTaskPlan[] {
   return drafts.map((d) => {
     const slug = slugify(d.name);
-    return {
+    const ref = refIndex[slug];
+    const plan: TerminalTaskPlan = {
       slug,
       name: d.name,
       prompt: d.basePrompt,
-      ref: refIndex[slug],
     };
+    if (ref !== undefined) plan.ref = ref;
+    return plan;
   });
 }
 
@@ -106,13 +108,16 @@ export function buildRoundBatch(
   tasks: ReadonlyArray<TerminalTaskPlan>,
   imageLists: Readonly<Record<string, ReadonlyArray<string>>>,
 ): RoundBatch {
-  const batchTasks: RoundBatchTask[] = tasks.map((t) => ({
-    slug: t.slug,
-    name: t.name,
-    prompt: t.prompt,
-    ref: t.ref,
-    images: [...(imageLists[t.slug] ?? [])],
-  }));
+  const batchTasks: RoundBatchTask[] = tasks.map((t) => {
+    const task: RoundBatchTask = {
+      slug: t.slug,
+      name: t.name,
+      prompt: t.prompt,
+      images: [...(imageLists[t.slug] ?? [])],
+    };
+    if (t.ref !== undefined) task.ref = t.ref;
+    return task;
+  });
   return {
     schemaVersion: ROUND_BATCH_SCHEMA_VERSION,
     round,
@@ -143,12 +148,9 @@ export function planIterateTasks(
     const keeper = task.keeper?.trim();
     const keeperPath = keeper ? `rounds/r${round}/${keeper}` : undefined;
     const useReference = task.promptMode !== 'overhaul' && Boolean(keeperPath);
-    plans.push({
-      slug: task.slug,
-      prompt,
-      keeperPath: useReference ? keeperPath : undefined,
-      useReference,
-    });
+    const plan: IterateTaskPlan = { slug: task.slug, prompt, useReference };
+    if (useReference && keeperPath !== undefined) plan.keeperPath = keeperPath;
+    plans.push(plan);
   }
   return plans;
 }

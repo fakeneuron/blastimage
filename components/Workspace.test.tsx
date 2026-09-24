@@ -25,13 +25,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 
 import Workspace from './Workspace';
 import type { UseWorkspace } from '@/lib/useWorkspace';
-import { SCHEMA_VERSION, type ID, type PromptTask, type Session } from '@/lib/types';
+import { SCHEMA_VERSION, type ApprovedImage, type ID, type PromptTask, type Session } from '@/lib/types';
 
 /**
  * The hook result the mocked `useWorkspace` hands back, swapped per test.
  * Hoisted so the `vi.mock` factory below can close over it.
  */
-const hoisted = vi.hoisted(() => ({ ws: null as unknown }));
+const hoisted = vi.hoisted((): { ws: UseWorkspace | null } => ({ ws: null }));
 
 // Only `useWorkspace` itself is replaced — `DEFAULT_BATCH_SIZE` lives in the
 // same module and is imported by TaskDetail + BulkReviewPane, so the original
@@ -353,5 +353,50 @@ describe('iterate save ack (BI-057)', () => {
 
     fireEvent.click(status.querySelector('button')!);
     expect(dismissNotice).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('promise handlers (CORE-5)', () => {
+  it('fires Generate, Folder, and Sheet without returning those promises to the click', async () => {
+    const session = makeSession();
+    const task = session.tasks[0]!;
+    task.basePrompt = 'a hero';
+    const approved: ApprovedImage = {
+      imageId: 'img-1',
+      taskId: 't1',
+      taskName: 'Hero banner',
+      url: 'https://example.test/img-1.png',
+      finalPrompt: 'a hero',
+      promptHistory: ['a hero'],
+      refImageIds: [],
+      rating: 0,
+      feedback: null,
+      approvedAt: NOW,
+    };
+    const generate = vi.fn(async () => {});
+    const exportToFolder = vi.fn(async () => {});
+    const exportReviewSheet = vi.fn(async () => {});
+    install({
+      session,
+      activeTask: task,
+      activeTaskId: task.id,
+      generationAvailable: true,
+      approvedImages: [approved],
+      generate,
+      exportToFolder,
+      exportReviewSheet,
+      loadRound: vi.fn(async () => null),
+    });
+
+    render(<Workspace />);
+    await flush();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sheet' }));
+
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(exportToFolder).toHaveBeenCalledTimes(1);
+    expect(exportReviewSheet).toHaveBeenCalledTimes(1);
   });
 });

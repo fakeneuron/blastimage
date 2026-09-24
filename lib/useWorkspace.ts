@@ -101,7 +101,12 @@ export const DEFAULT_BATCH_SIZE: BatchSize = 4;
 /** How often to re-check for the Grok Imagine bridge while it is absent (BI-031.2). */
 const PROVIDER_PROBE_MS = 1500;
 
-/** Stand-in when the hook runs outside {@link ImagegenProvider} (unit tests). */
+/**
+ * Stand-in when the hook runs outside {@link ImagegenProvider} (unit tests).
+ * `async` with no await: the seam returns a Promise and these bodies do not
+ * throw. require-await stays on for source that actually awaits.
+ */
+/* eslint-disable @typescript-eslint/require-await */
 const NOOP_IMAGEGEN: ImagegenApi = {
   root: null,
   linked: false,
@@ -121,6 +126,7 @@ const NOOP_IMAGEGEN: ImagegenApi = {
   // No linked root: `data:`/`https:` still resolve, `imagegen:` rejects (BI-029.2).
   resolveBlob: (url) => resolveImageBlob(url, null),
 };
+/* eslint-enable @typescript-eslint/require-await */
 
 /**
  * Blocking confirm for a rename that would orphan a task from the round files

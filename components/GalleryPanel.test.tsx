@@ -7,9 +7,9 @@
  * the right one. BI-054 hides the whole rail when `approved` is empty, so the
  * empty-state cases assert absence rather than placeholder copy.
  *
- * Deliberately out of scope: the per-item ↓ download button (`downloadImage` →
- * `resolveBlob` → `downloadBlob`), which is BI-029.2's byte-resolution seam and
- * already unit-tested at `lib/imageBlob.test.ts`; and the thumbnail → `Lightbox`
+ * The per-item ↓ download button is covered only as far as the click reaching
+ * `resolveBlob`. The byte seam itself stays in `lib/imageBlob.test.ts`
+ * (BI-029.2). Deliberately out of scope: the thumbnail → `Lightbox`
  * wiring, structurally identical to `ReviewGrid`'s (TEST-002.2) and the overlay
  * itself (TEST-002.4) — re-asserting the same open/close wiring here would be
  * redundant coverage, not new risk.
@@ -85,6 +85,7 @@ async function renderGallery(options: GalleryOptions = {}) {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe('GalleryPanel — empty state (BI-054)', () => {
@@ -131,6 +132,19 @@ describe('GalleryPanel — export group (BI-008 / BI-021.2 / BI-021.4)', () => {
     expect(onExportReviewSheet).toHaveBeenCalledTimes(1);
     expect(onExportAll).not.toHaveBeenCalled();
     expect(onExportToFolder).not.toHaveBeenCalled();
+  });
+
+  it('starts a per-image download from the row button', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(new Blob(['x'], { type: 'image/png' }), { status: 200 })),
+    );
+    await renderGallery({ approved: [makeApproved('img-1')] });
+
+    fireEvent.click(screen.getByTitle('Download image'));
+    await act(async () => {});
+
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
   });
 
   it('reports JSON export', async () => {

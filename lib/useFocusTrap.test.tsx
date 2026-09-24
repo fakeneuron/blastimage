@@ -31,7 +31,10 @@ interface DialogProps {
 
 function Dialog({ onEscape, focusTarget, withFocusables = true }: DialogProps) {
   const ref = useRef<HTMLDivElement>(null);
-  useFocusTrap(ref, { onEscape, focusTarget });
+  useFocusTrap(ref, {
+    onEscape,
+    ...(focusTarget !== undefined ? { focusTarget } : {}),
+  });
   return (
     <div ref={ref} role="dialog" aria-modal="true" tabIndex={-1} data-testid="dialog">
       {withFocusables && (
@@ -66,7 +69,13 @@ function Harness({ open, onEscape, focusTarget, withFocusables }: HarnessProps) 
   return (
     <div>
       <button>opener</button>
-      {open && <Dialog onEscape={onEscape} focusTarget={focusTarget} withFocusables={withFocusables} />}
+      {open && (
+        <Dialog
+          onEscape={onEscape}
+          {...(focusTarget !== undefined ? { focusTarget } : {})}
+          {...(withFocusables !== undefined ? { withFocusables } : {})}
+        />
+      )}
     </div>
   );
 }

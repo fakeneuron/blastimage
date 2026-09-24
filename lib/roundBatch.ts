@@ -63,6 +63,12 @@ function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
 }
 
+// `Array.isArray` narrows to `any[]`. This predicate keeps elements `unknown`
+// so a JSON array is not an `any` assignment (type-checked lint).
+function isUnknownArray(x: unknown): x is readonly unknown[] {
+  return Array.isArray(x);
+}
+
 /**
  * Validates and parses a `batch.json` string. Returns a user-facing error on
  * schema drift, missing fields, or empty task/image lists.
@@ -89,7 +95,7 @@ export function parseRoundBatch(json: string): Result<RoundBatch> {
   if (typeof raw.generatedAt !== 'string' || raw.generatedAt.trim() === '') {
     return { ok: false, error: 'batch.json "generatedAt" must be a non-empty ISO timestamp string.' };
   }
-  if (!Array.isArray(raw.tasks) || raw.tasks.length === 0) {
+  if (!isUnknownArray(raw.tasks) || raw.tasks.length === 0) {
     return { ok: false, error: 'batch.json must include at least one task.' };
   }
 
@@ -111,7 +117,7 @@ export function parseRoundBatch(json: string): Result<RoundBatch> {
     if (entry.ref !== undefined && typeof entry.ref !== 'string') {
       return { ok: false, error: `Task ${i + 1} "ref" must be a string when present.` };
     }
-    if (!Array.isArray(entry.images) || entry.images.length === 0) {
+    if (!isUnknownArray(entry.images) || entry.images.length === 0) {
       return { ok: false, error: `Task ${i + 1} must include at least one image filename.` };
     }
     const images: string[] = [];
@@ -122,11 +128,12 @@ export function parseRoundBatch(json: string): Result<RoundBatch> {
       }
       images.push(img.trim());
     }
+    const ref = typeof entry.ref === 'string' ? entry.ref.trim() : undefined;
     tasks.push({
       slug: entry.slug.trim(),
       name: entry.name.trim(),
       prompt: entry.prompt,
-      ref: typeof entry.ref === 'string' ? entry.ref.trim() : undefined,
+      ...(ref !== undefined ? { ref } : {}),
       images,
     });
   }

@@ -188,9 +188,11 @@ function WorkspaceInner() {
           roundSummaries={ws.roundSummaries}
           currentRound={ws.currentRound}
           onLinkImagegen={() => setShowLinkPicker(true)}
-          onLoadRound={async (round?: number) => {
-            const loaded = await ws.loadRound(round);
-            if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
+          onLoadRound={(round) => {
+            void (async () => {
+              const loaded = await ws.loadRound(round);
+              if (loaded && loaded.length > 1) setBulkTaskIds(loaded);
+            })();
           }}
           onSelectRound={ws.setCurrentRound}
         />
@@ -216,7 +218,9 @@ function WorkspaceInner() {
             onAddRefImage={ws.addRefImage}
             onRemoveRefImage={ws.removeRefImage}
             onToggleRef={ws.toggleTaskRef}
-            onGenerate={ws.generate}
+            onGenerate={(taskId, opts) => {
+              void ws.generate(taskId, opts);
+            }}
             onSetImageDecision={ws.setImageDecision}
             onSetImageRating={ws.setImageRating}
             onFeedback={(taskId, imageId) => setFeedbackFor({ taskId, imageId })}
@@ -226,8 +230,12 @@ function WorkspaceInner() {
         <GalleryPanel
           approved={ws.approvedImages}
           onExportAll={ws.exportAll}
-          onExportToFolder={ws.exportToFolder}
-          onExportReviewSheet={ws.exportReviewSheet}
+          onExportToFolder={() => {
+            void ws.exportToFolder();
+          }}
+          onExportReviewSheet={() => {
+            void ws.exportReviewSheet();
+          }}
         />
       </div>
       {feedbackFor && feedbackImage && (

@@ -59,8 +59,11 @@ export interface PersistenceAdapter {
 /**
  * localStorage-backed adapter — the default; delegates to the BI-002
  * `storage.ts` functions, wrapping their synchronous results in promises to
- * satisfy the async interface.
+ * satisfy the async interface. The methods stay `async` so a throw inside
+ * storage.ts rejects that promise. require-await is off for this object
+ * because there is no await to write.
  */
+/* eslint-disable @typescript-eslint/require-await */
 export const localStorageAdapter: PersistenceAdapter = {
   async listSessions() {
     return listSessions();
@@ -87,6 +90,7 @@ export const localStorageAdapter: PersistenceAdapter = {
     return loadActiveSession();
   },
 };
+/* eslint-enable @typescript-eslint/require-await */
 
 /**
  * The active persistence adapter. BI-028 removed the Supabase hosted adapter;

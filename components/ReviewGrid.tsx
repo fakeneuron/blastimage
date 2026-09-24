@@ -162,7 +162,7 @@ function ReviewCard({ image, onOpen, onSetDecision, onSetRating, onFeedback, onI
               role="radio"
               aria-checked={image.rating === n}
               aria-label={`${n} star${n > 1 ? 's' : ''}`}
-              onClick={() => onSetRating(image.id, image.rating === n ? 0 : (n as StarRating))}
+              onClick={() => onSetRating(image.id, image.rating === n ? 0 : n)}
               className={`text-lg leading-none transition ${
                 n <= image.rating ? 'text-amber-400' : 'text-foreground/25 hover:text-foreground/50'
               }`}

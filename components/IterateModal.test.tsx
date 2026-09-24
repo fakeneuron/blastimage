@@ -83,7 +83,7 @@ function mountOpener() {
 
 const dialog = () => screen.getByRole('dialog', { name: 'Iterate from keeper' });
 const button = (name: string) => screen.getByRole('button', { name });
-const promptBox = () => screen.getByLabelText(/Refined prompt/i) as HTMLTextAreaElement;
+const promptBox = () => screen.getByLabelText<HTMLTextAreaElement>(/Refined prompt/i);
 const submitButton = () => button('Save selection request') as HTMLButtonElement;
 
 afterEach(() => {

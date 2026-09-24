@@ -225,7 +225,7 @@ describe('ReviewGrid — iterate (BI-009 / BI-055)', () => {
   it('shows a disabled Iterate on an undecided card', async () => {
     await renderGrid([makeImage('i1', { decision: 'undecided' })]);
 
-    const iterate = screen.getByRole('button', { name: 'Iterate →' }) as HTMLButtonElement;
+    const iterate = screen.getByRole<HTMLButtonElement>('button', { name: 'Iterate →' });
     expect(iterate.disabled).toBe(true);
     expect(iterate.getAttribute('title')).toBe('Keep this image first');
   });

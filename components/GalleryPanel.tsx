@@ -118,13 +118,13 @@ export default function GalleryPanel({
                 </div>
                 <button
                   className="shrink-0 rounded border border-black/15 px-1.5 py-0.5 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-                  onClick={() =>
-                    downloadImage(
+                  onClick={() => {
+                    void downloadImage(
                       item.url,
                       `${slugify(item.taskName) || 'image'}-${item.imageId.slice(0, 8)}`,
                       resolveBlob,
-                    )
-                  }
+                    );
+                  }}
                   title="Download image"
                 >
                   ↓

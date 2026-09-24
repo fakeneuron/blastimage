@@ -220,7 +220,7 @@ describe('round selection', () => {
     );
 
     expect(written).toEqual({ ok: true, value: undefined });
-    const onDisk = JSON.parse(await readFile(join(root, 'rounds/r1/selection.json'), 'utf8'));
+    const onDisk = JSON.parse(await readFile(join(root, 'rounds/r1/selection.json'), 'utf8')) as unknown;
     expect(onDisk).toMatchObject({ round: 1, tasks: [{ slug: 'hero', decision: 'approve' }] });
   });
 

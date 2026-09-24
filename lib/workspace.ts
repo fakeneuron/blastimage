@@ -93,7 +93,15 @@ export function newRefImage(
   width?: number,
   height?: number,
 ): RefImage {
-  return { id: newId(), name, dataUrl, mimeType, width, height, addedAt: now() };
+  return {
+    id: newId(),
+    name,
+    dataUrl,
+    mimeType,
+    ...(width !== undefined ? { width } : {}),
+    ...(height !== undefined ? { height } : {}),
+    addedAt: now(),
+  };
 }
 
 /**
