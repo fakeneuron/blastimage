@@ -23,7 +23,7 @@ BI-045) — Next.js routes over Node `fs` that link a project's `imagegen/` fold
 load rounds, and write `selection.json` / `approved/`. Those routes are not this
 bridge; they are the file surface the viewer/selector already uses. See
 [`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §4. There is no hosted backend and no
-credentials on either surface; the Next dev server (`next dev -p 3003`) must be
+credentials on either surface; the Next dev server (`next dev -H 127.0.0.1 -p 3003`) must be
 running for the imagegen routes to exist.
 
 **User flow:**

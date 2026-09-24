@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-008.3** [light]🔧 | e2e-dev-coexistence — give the Playwright webServer its own env-selected distDir (like `build:verify`'s `.next-verify`) so it no longer hits Next 16's one-dev-server lock; verify `just e2e` passes with `just dev` up; add the dir to .gitignore/eslint ignores.
   - [ ] **DEPLOY-008.N** [light]🔧 | verification-gate-reach audit
 - [ ] **BI-EPIC-058** [medium]🧩 | loopback-bind — bind the dev/start servers to 127.0.0.1 so the imagegen guard's Host/Sec-Fetch-Site checks cannot be forged from the LAN. Loopback only, no opt-in LAN script (operator confirmed 2026-09-24). Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Local trust boundary relies on headers only browsers enforce)
-  - [ ] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — add `-H 127.0.0.1` to the `dev`/`start` scripts and the Playwright webServer command (keep `baseURL` working); verify with `lsof -iTCP:3003 -sTCP:LISTEN` showing 127.0.0.1.
+  - [x] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — Completed 2026-09-24.
   - [ ] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — state in the `lib/imagegenGuard.ts` header and the CLAUDE.md Stack note that the loopback bind is the first boundary and the header checks are browser-only defenses.
   - [ ] **BI-058.N** [light]🔧 | loopback-bind audit
 

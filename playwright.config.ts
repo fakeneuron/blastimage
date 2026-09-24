@@ -28,7 +28,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npx next dev --turbopack -p ${E2E_PORT}`,
+    command: `npx next dev --turbopack -H 127.0.0.1 -p ${E2E_PORT}`,
     url: `http://localhost:${E2E_PORT}`,
     reuseExistingServer: false,
     timeout: 120_000,
