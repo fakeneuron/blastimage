@@ -20,7 +20,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 - [ ] **DEPLOY-EPIC-009** [light]🔧 | upkeep-drift — clear the stale dependency and doc drift. Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Upkeep drift)
-  - [ ] **DEPLOY-009.2** [light]🔧 [unattended] | useworkspace-size-fossil — refresh the CLAUDE.md `useWorkspace.ts` line-count claim (1223 → current) or restate the BI-049 decision without the hard count.
+  - [x] **DEPLOY-009.2** [light]🔧 [unattended] | useworkspace-size-fossil — Completed 2026-09-24.
   - [ ] **DEPLOY-009.3** [light]🔧 | dependabot-backlog-triage — operator merges #1/#2 (checkout 7, setup-node 7) and #12 once CI is green, closes #7 (@types/node 26), and adds a `@types/node` major-ignore in `.github/dependabot.yml` tied to `engines`.
   - [ ] **DEPLOY-009.N** [light]🔧 | upkeep-drift audit
 
