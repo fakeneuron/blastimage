@@ -26,7 +26,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-(none)
+- [ ] **BI-059** [light]🔧 | browse-comment-boundary — restate the browse-listing comment in `lib/imagegenServerFs.ts` so the trust boundary names the loopback bind first and the guard headers as browser-only defenses.
 
 ## Future Opportunities
 
