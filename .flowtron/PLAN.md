@@ -8,11 +8,21 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **DEPLOY-EPIC-008** [medium]🧩 | verification-gate-reach — make CI and local e2e actually run against current main. Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Verification only counts where it runs)
+  - [ ] **DEPLOY-008.2** [light]🔧 | push-backlog-ci-verify — operator pushes the 49-commit backlog, watches CI (typecheck/lint/test+changed-line coverage/build/audit/gitleaks/e2e), and fixes any red gate before new feature work.
+  - [ ] **DEPLOY-008.3** [light]🔧 | e2e-dev-coexistence — give the Playwright webServer its own env-selected distDir (like `build:verify`'s `.next-verify`) so it no longer hits Next 16's one-dev-server lock; verify `just e2e` passes with `just dev` up; add the dir to .gitignore/eslint ignores.
+  - [ ] **DEPLOY-008.N** [light]🔧 | verification-gate-reach audit
+- [ ] **BI-EPIC-058** [medium]🧩 | loopback-bind — bind the dev/start servers to 127.0.0.1 so the imagegen guard's Host/Sec-Fetch-Site checks cannot be forged from the LAN. Loopback only, no opt-in LAN script (operator confirmed 2026-09-24). Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Local trust boundary relies on headers only browsers enforce)
+  - [ ] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — add `-H 127.0.0.1` to the `dev`/`start` scripts and the Playwright webServer command (keep `baseURL` working); verify with `lsof -iTCP:3003 -sTCP:LISTEN` showing 127.0.0.1.
+  - [ ] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — state in the `lib/imagegenGuard.ts` header and the CLAUDE.md Stack note that the loopback bind is the first boundary and the header checks are browser-only defenses.
+  - [ ] **BI-058.N** [light]🔧 | loopback-bind audit
 
 ## Medium
 
-(none)
+- [ ] **DEPLOY-EPIC-009** [light]🔧 | upkeep-drift — clear the stale dependency and doc drift. Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Upkeep drift)
+  - [ ] **DEPLOY-009.2** [light]🔧 [unattended] | useworkspace-size-fossil — refresh the CLAUDE.md `useWorkspace.ts` line-count claim (1223 → current) or restate the BI-049 decision without the hard count.
+  - [ ] **DEPLOY-009.3** [light]🔧 | dependabot-backlog-triage — operator merges #1/#2 (checkout 7, setup-node 7) and #12 once CI is green, closes #7 (@types/node 26), and adds a `@types/node` major-ignore in `.github/dependabot.yml` tied to `engines`.
+  - [ ] **DEPLOY-009.N** [light]🔧 | upkeep-drift audit
 
 ## Low
 
