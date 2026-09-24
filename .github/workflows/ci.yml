@@ -24,7 +24,7 @@ jobs:
       # fetch-depth 0 so the changed-line gate can resolve github.event.before
       # on a push. A shallow clone makes that base unresolvable and the gate
       # skips. The secrets and e2e jobs do not run the gate.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -112,7 +112,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install gitleaks
         env:
@@ -135,7 +135,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
