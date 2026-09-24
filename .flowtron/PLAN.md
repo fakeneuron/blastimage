@@ -12,10 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **DEPLOY-EPIC-009** [light]🔧 | upkeep-drift — clear the stale dependency and doc drift. Discovery supplied by audit-repo 2026-09-24. Surfaced by audit-repo 2026-09-24 (Theme: Upkeep drift)
-  - [x] **DEPLOY-009.2** [light]🔧 [unattended] | useworkspace-size-fossil — Completed 2026-09-24.
-  - [x] **DEPLOY-009.3** [light]🔧 | dependabot-backlog-triage — Completed 2026-09-24.
-  - [ ] **DEPLOY-009.N** [light]🔧 | upkeep-drift audit
+(none)
 
 ## Low
 
@@ -27,6 +24,11 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **DEPLOY-EPIC-009** [light]🔧 | upkeep-drift — Completed 2026-09-24.
+  - [x] **DEPLOY-009.2** [light]🔧 [unattended] | useworkspace-size-fossil — Completed 2026-09-24.
+  - [x] **DEPLOY-009.3** [light]🔧 | dependabot-backlog-triage — Completed 2026-09-24.
+  - [x] **DEPLOY-009.N** [light]🔧 | upkeep-drift audit — Completed 2026-09-24.
 
 - [x] **DEPLOY-EPIC-008** [medium]🧩 | verification-gate-reach — Completed 2026-09-24.
   - [x] **DEPLOY-008.2** [light]🔧 | push-backlog-ci-verify — Completed 2026-09-24.
