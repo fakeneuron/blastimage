@@ -362,8 +362,16 @@ export interface UseWorkspace {
   /**
    * Writes `rounds/r<N>/selection.json` for an iterate-from-keeper request
    * (replaces the iterate modal's in-browser `generateBatch` call).
+   * On success sets {@link UseWorkspace.notice}; failures use {@link UseWorkspace.error}.
    */
   requestNextRound: (taskId: ID, imageId: ID, nextPrompt: string) => Promise<void>;
+  /**
+   * Dismissible success text (BI-057). Distinct from {@link UseWorkspace.error}:
+   * a saved iterate request is not a failure, and the modal has already closed.
+   */
+  notice: string | null;
+  /** Clears {@link UseWorkspace.notice}. */
+  dismissNotice: () => void;
   /** Round numbers under `imagegen/rounds/` that contain a `batch.json`. */
   availableRounds: number[];
   /** Per-round counts from `batch.json`, same order as {@link UseWorkspace.availableRounds}. */
@@ -379,6 +387,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   const [activeTaskId, setActiveTaskId] = useState<ID | null>(null);
   const [generatingTaskIds, setGeneratingTaskIds] = useState<ID[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [roundSummaries, setRoundSummaries] = useState<RoundSummary[]>([]);
   const [generationAvailable, setGenerationAvailable] = useState(false);
   const availableRounds = roundSummaries.map((s) => s.round);
@@ -958,6 +967,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
   async function requestNextRound(taskId: ID, imageId: ID, nextPrompt: string): Promise<void> {
     if (!session) return;
     if (!imagegen.linked) {
+      setNotice(null);
       setError('Link your imagegen folder first (🔗 in the sidebar).');
       return;
     }
@@ -966,6 +976,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const round = roundNumberFromImageUrl(hit.image.url) ?? session.currentRound ?? null;
     const keeper = roundImageFilenameFromUrl(hit.image.url);
     if (round === null || !keeper) {
+      setNotice(null);
       setError('This image is not from a terminal round — load a round from imagegen first.');
       return;
     }
@@ -974,8 +985,15 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const slug = slugify(hit.task.name);
     const entry = buildIterateSelectionTask(slug, keeper, hit.task.basePrompt, trimmed);
     const result = await imagegen.writeSelection(round, [entry], new Date().toISOString());
-    if (!result.ok) setError(result.error);
-    else setError(null);
+    if (!result.ok) {
+      setNotice(null);
+      setError(result.error);
+    } else {
+      setError(null);
+      setNotice(
+        `Saved rounds/r${round}/selection.json. Next: run /blast-iterate, then ↻ Refresh rounds.`,
+      );
+    }
   }
 
   function addRefImage(ref: RefImage): void {
@@ -995,6 +1013,10 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
 
   function dismissError(): void {
     setError(null);
+  }
+
+  function dismissNotice(): void {
+    setNotice(null);
   }
 
   const activeTask = session?.tasks.find((t) => t.id === activeTaskId) ?? null;
@@ -1182,6 +1204,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     activeTaskId,
     generatingTaskIds,
     error,
+    notice,
     approvedImages,
     createSession,
     switchSession,
@@ -1202,6 +1225,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     removeRefImage,
     toggleTaskRef,
     dismissError,
+    dismissNotice,
     exportSession,
     exportAll,
     exportToFolder,

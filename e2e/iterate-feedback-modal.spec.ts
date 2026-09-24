@@ -98,6 +98,13 @@ test.describe('iterate and feedback modals', () => {
     await iterate.getByRole('button', { name: 'Save selection request' }).click();
     await expect(iterate).toBeHidden();
 
+    // The modal closes either way (BI-057). The status is what says the write
+    // landed and names the terminal step that actually generates the next round.
+    const saved = page.getByRole('status');
+    await expect(saved).toContainText('rounds/r1/selection.json');
+    await expect(saved).toContainText('/blast-iterate');
+    await expect(saved).toContainText('Refresh rounds');
+
     // The request lands on disk for /blast-iterate to pick up.
     await expect
       .poll(() => readSelection(root)?.tasks ?? null, { message: 'selection.json written' })

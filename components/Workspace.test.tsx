@@ -84,6 +84,8 @@ function makeWorkspace(overrides: Partial<UseWorkspace> = {}): UseWorkspace {
     activeTaskId: null,
     generatingTaskIds: [],
     error: null,
+    notice: null,
+    dismissNotice: () => {},
     approvedImages: [],
     createSession: () => {},
     switchSession: () => {},
@@ -327,5 +329,29 @@ describe('Workspace auto-load bulk-review branch (BI-026)', () => {
     await flush();
 
     expect(screen.queryByRole('heading', { name: /Bulk review/ })).toBeNull();
+  });
+});
+
+describe('iterate save ack (BI-057)', () => {
+  it('shows the save notice as a status, not the red error banner', () => {
+    const dismissNotice = vi.fn();
+    install({
+      loadRound: vi.fn(async () => null),
+      notice: 'Saved rounds/r1/selection.json. Next: run /blast-iterate, then ↻ Refresh rounds.',
+      dismissNotice,
+      error: 'Link your imagegen folder first (🔗 in the sidebar).',
+    });
+
+    render(<Workspace />);
+
+    const status = screen.getByRole('status');
+    expect(status.textContent).toContain('rounds/r1/selection.json');
+    expect(status.textContent).toContain('/blast-iterate');
+    expect(status.textContent).toContain('Refresh rounds');
+    expect(status.className).not.toContain('bg-red-600');
+    expect(screen.getByText('Link your imagegen folder first (🔗 in the sidebar).')).toBeTruthy();
+
+    fireEvent.click(status.querySelector('button')!);
+    expect(dismissNotice).toHaveBeenCalledTimes(1);
   });
 });

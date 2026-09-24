@@ -6,7 +6,8 @@
  * Client island that owns the {@link useWorkspace} hook and lays out the
  * two-column shell: {@link Sidebar} (project header, rounds, tasks, ⋯ menu) beside
  * {@link TaskDetail} (the active task). Renders a neutral shell until the
- * mount-time load completes, and a dismissible banner on a save failure.
+ * mount-time load completes, a dismissible banner on a save failure, and a
+ * separate status line after an iterate selection is written (BI-057).
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -125,6 +126,17 @@ function WorkspaceInner() {
         <div className="flex items-center justify-between gap-4 bg-red-600 px-4 py-2 text-sm text-white">
           <span>{ws.error}</span>
           <button className="shrink-0 underline" onClick={ws.dismissError}>
+            Dismiss
+          </button>
+        </div>
+      )}
+      {ws.notice && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-4 bg-foreground px-4 py-2 text-sm text-background"
+        >
+          <span>{ws.notice}</span>
+          <button className="shrink-0 underline" onClick={ws.dismissNotice}>
             Dismiss
           </button>
         </div>

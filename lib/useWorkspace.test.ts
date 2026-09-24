@@ -1246,3 +1246,77 @@ describe('loadRound no-arg ingests missing rounds only (BI-053.3)', () => {
     expect(result.current.session!.tasks[0]!.iterations[0]!.images[0]!.id).toBe(imageId);
   });
 });
+
+describe('iterate save ack (BI-057)', () => {
+  it('names the written selection.json and the terminal next step', async () => {
+    const { api, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => {
+      await result.current.requestNextRound(taskId, imageIds[0]!, 'a tighter crop');
+    });
+
+    expect(selections).toEqual([
+      {
+        round: 1,
+        tasks: [
+          expect.objectContaining({
+            decision: 'iterate',
+            keeper: 'hero-001.jpg',
+            nextPrompt: 'a tighter crop',
+          }),
+        ],
+      },
+    ]);
+    expect(result.current.error).toBeNull();
+    expect(result.current.notice).toBe(
+      'Saved rounds/r1/selection.json. Next: run /blast-iterate, then ↻ Refresh rounds.',
+    );
+
+    act(() => result.current.dismissNotice());
+    expect(result.current.notice).toBeNull();
+  });
+
+  it('does not claim a save when the write fails', async () => {
+    const { api } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+    });
+    api.writeSelection = async () => ({ ok: false, error: 'disk full' });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => {
+      await result.current.requestNextRound(taskId, imageIds[0]!, 'a tighter crop');
+    });
+
+    expect(result.current.notice).toBeNull();
+    expect(result.current.error).toBe('disk full');
+  });
+
+  it('clears a previous save notice when the next write fails', async () => {
+    const { api } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.jpg']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => {
+      await result.current.requestNextRound(taskId, imageIds[0]!, 'first');
+    });
+    expect(result.current.notice).toContain('selection.json');
+
+    api.writeSelection = async () => ({ ok: false, error: 'disk full' });
+    await act(async () => {
+      await result.current.requestNextRound(taskId, imageIds[0]!, 'second');
+    });
+
+    expect(result.current.notice).toBeNull();
+    expect(result.current.error).toBe('disk full');
+  });
+});
