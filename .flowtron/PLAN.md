@@ -8,7 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-061** [heavy]🧠 [!critical] | link-race-ownership — make a superseded `setLinkedRoot` call lose: add a latest-call-wins token in `ImagegenProvider.setLinkedRoot` (`lib/ImagegenContext.tsx`), drop a stale-project result after the await in `linkImagegenFolder` (`lib/useWorkspace.ts`), and add tests where a slow `/link` response resolves after a project switch or create. Surfaced by audit 2026-09-25 (Finding #1, Critical).
 - [ ] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — serialize `writeRoundSelection` per file path and write via tmp + rename (`lib/imagegenServerFs.ts`); validate incoming selection tasks in `app/api/imagegen/selection/route.ts` with a per-entry parser shared with `parseRoundSelection` and require a non-empty `selectedAt`; make `filenameFrom` reject `.`/`..`; tests for concurrent writes and malformed bodies. Surfaced by audit 2026-09-25 (Finding #3, High; Finding #2, Medium).
 
 ## Medium
@@ -27,6 +26,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **BI-061** [heavy]🧠 | link-race-ownership — Completed 2026-09-25.
 
 - [x] **CORE-8** [light] | doc-drift-inline — ADOPT.md:149/199/201 now say blastimage reads/writes the linked imagegen/ folder (localhost only) with session metadata in localStorage; "⟳ Iterate" → "Iterate →" in REVIEW-LOOP.md:91 and lib/useWorkspace.ts:151; GROK-AGENT.md line-number refs → "inside generate()" and error surfacing → "error banner"; REVIEW-LOOP.md:99 "undo above" → "approve undo below (BI-030.2)". Surfaced by audit 2026-09-25 (Finding #11, Medium; Findings #14–#16, Low), fixed inline.
 

@@ -1088,6 +1088,147 @@ describe('a folder another project already owns (BI-047)', () => {
 });
 
 /**
+ * {@link bindingImagegen} with a network round trip: each path in `slow` holds
+ * its `/link` answer until `release(path)`. `latestWins` models the real
+ * provider's call token (BI-061) — an overtaken call applies nothing and comes
+ * back `superseded`; turn it off to exercise the hook's own stale-project check.
+ */
+function racingImagegen(
+  slow: string[],
+  latestWins = true,
+): { api: ImagegenApi; live: () => string | null; release: (path: string) => void } {
+  const base = bindingImagegen();
+  let live: string | null = null;
+  let latest = 0;
+  const gates = new Map<string, () => void>();
+  const api: ImagegenApi = {
+    ...base.api,
+    get root() {
+      return live;
+    },
+    get linked() {
+      return live !== null;
+    },
+    setLinkedRoot: async (path) => {
+      const call = ++latest;
+      if (path !== null && slow.includes(path)) {
+        await new Promise<void>((r) => gates.set(path, r));
+      }
+      if (latestWins && call !== latest) {
+        return { ok: false, error: 'superseded', superseded: true };
+      }
+      live = path;
+      return { ok: true, value: path };
+    },
+  };
+  return {
+    api,
+    live: () => live,
+    release: (path) => {
+      const open = gates.get(path);
+      if (!open) throw new Error(`No /link in flight for ${path}`);
+      open();
+    },
+  };
+}
+
+/**
+ * A slow `/link` answer for the project the operator has since left must not
+ * land on the one they opened (BI-061): not as the live link, not as a binding,
+ * and not as a commit that flips the UI back to the old project.
+ */
+describe('a slow link answer loses to a project change (BI-061)', () => {
+  it('drops a folder link that resolves after a project create', async () => {
+    const { api, live, release } = racingImagegen(['/Code/alpha/imagegen']);
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const alphaId = result.current.session!.id;
+
+    let pending!: Promise<LinkOutcome>;
+    act(() => {
+      pending = result.current.linkImagegenFolder('/Code/alpha/imagegen');
+    });
+    await act(async () => result.current.createSession('Beta'));
+    release('/Code/alpha/imagegen');
+    const outcome = await act(async () => pending);
+
+    expect(outcome.status).toBe('error');
+    expect(result.current.session!.name).toBe('Beta');
+    expect(result.current.session!.imagegenRoot ?? null).toBe(null);
+    expect(live()).toBe(null);
+    const alpha = loadSession(alphaId);
+    expect(alpha.status === 'ok' && (alpha.session.imagegenRoot ?? null)).toBe(null);
+  });
+
+  it.each([
+    ['the provider supersedes it', true],
+    ['only the hook sees the project changed', false],
+  ])('drops a folder link that resolves after a project switch (%s)', async (_label, latestWins) => {
+    const { api, live, release } = racingImagegen(['/Code/beta/imagegen'], latestWins);
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await link(result, '/Code/alpha/imagegen');
+    const alphaId = result.current.session!.id;
+    await act(async () => result.current.createSession('Beta'));
+    const betaId = result.current.session!.id;
+
+    let pending!: Promise<LinkOutcome>;
+    act(() => {
+      pending = result.current.linkImagegenFolder('/Code/beta/imagegen');
+    });
+    await act(async () => result.current.switchSession(alphaId));
+    await waitFor(() => expect(result.current.session!.id).toBe(alphaId));
+    release('/Code/beta/imagegen');
+    const outcome = await act(async () => pending);
+
+    expect(outcome.status).toBe('error');
+    expect(result.current.session!.id).toBe(alphaId);
+    expect(result.current.session!.imagegenRoot).toBe('/Code/alpha/imagegen');
+    const beta = loadSession(betaId);
+    expect(beta.status === 'ok' && (beta.session.imagegenRoot ?? null)).toBe(null);
+    if (latestWins) expect(live()).toBe('/Code/alpha/imagegen');
+  });
+
+  it('raises no unreadable-folder banner when a bound project\'s link is overtaken', async () => {
+    seedStoredSession('slow-1', 'Acme Site', storedSessionJson('slow-1', 'Acme Site', '/slow/imagegen'));
+    localStorage.setItem('blastimage:active', 'slow-1');
+    const { api, live, release } = racingImagegen(['/slow/imagegen']);
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await act(async () => result.current.createSession('Beta'));
+    await act(async () => {
+      release('/slow/imagegen');
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(result.current.error).toBe(null);
+    expect(result.current.session!.name).toBe('Beta');
+    expect(live()).toBe(null);
+  });
+
+  it('does not commit a legacy-root adoption over a project created meanwhile', async () => {
+    localStorage.setItem('blastimage:imagegen-root', '/Code/legacy/imagegen');
+    const { api, live, release } = racingImagegen(['/Code/legacy/imagegen']);
+    const { result } = renderHook(() => useWorkspace(api));
+    // The bootstrap path holds `ready` until the adoption settles.
+    await waitFor(() => expect(result.current.session).not.toBe(null));
+
+    await act(async () => result.current.createSession('Beta'));
+    await act(async () => {
+      release('/Code/legacy/imagegen');
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(result.current.session!.name).toBe('Beta');
+    expect(result.current.session!.imagegenRoot ?? null).toBe(null);
+    expect(live()).toBe(null);
+    // Nobody adopted it, so the next load still can.
+    expect(localStorage.getItem('blastimage:imagegen-root')).toBe('/Code/legacy/imagegen');
+  });
+});
+
+/**
  * Before BI-047 the root lived in one app-wide key. Adopting it means an
  * operator who had linked a folder does not have to link it again; clearing it
  * means a second project never inherits the same folder silently.

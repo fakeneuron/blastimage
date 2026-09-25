@@ -59,6 +59,15 @@ import type { Result } from './storage';
 /** The message every operation returns before a folder has been linked. */
 const UNLINKED = 'Link your imagegen folder first (🔗 in the sidebar).';
 
+/**
+ * What {@link ImagegenApi.setLinkedRoot} yields (BI-061). The `superseded`
+ * failure is a call a later one overtook: it applied nothing, and the later
+ * call owns the link — so it is neither the folder's answer nor a rejection.
+ */
+export type LinkResult =
+  | Result<string | null>
+  | { ok: false; error: string; superseded: true };
+
 /** Imagegen surface consumed by {@link useWorkspace} for round ingest + selection writes. */
 export interface ImagegenApi {
   /** Absolute path of the folder currently being served, or `null`. */
@@ -69,9 +78,11 @@ export interface ImagegenApi {
    * Points the live link at `path`, or unlinks with `null` (BI-047); yields the
    * canonical root. A path the server rejects leaves the link **cleared**, never
    * pointing at whatever was live before — a project whose folder has moved must
-   * not silently inherit the previous project's.
+   * not silently inherit the previous project's. The latest call wins (BI-061):
+   * one overtaken while its `/link` request was in flight comes back
+   * `superseded` and leaves the link alone.
    */
-  setLinkedRoot: (path: string | null) => Promise<Result<string | null>>;
+  setLinkedRoot: (path: string | null) => Promise<LinkResult>;
   /** Subdirectories of `path` for the picker's tree; absent `path` starts at home (BI-046). */
   browse: (path?: string) => Promise<Result<DirectoryListing>>;
   /** Absolute paths worth offering as the picker's shortcuts (BI-046). */
@@ -116,9 +127,13 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
   const rootRef = useRef<string | null>(null);
   const [root, setRoot] = useState<string | null>(null);
   const [blobEpoch, setBlobEpoch] = useState(0);
+  // Numbers each setLinkedRoot call, so a `/link` answer for a project the
+  // operator has since left cannot land on the one they opened (BI-061).
+  const linkCallRef = useRef(0);
 
   const setLinkedRoot = useCallback(
-    async (path: string | null): Promise<Result<string | null>> => {
+    async (path: string | null): Promise<LinkResult> => {
+      const call = ++linkCallRef.current;
       const apply = (next: string | null): void => {
         rootRef.current = next;
         setRoot(next);
@@ -128,6 +143,9 @@ export function ImagegenProvider({ children }: { children: ReactNode }) {
         return { ok: true, value: null };
       }
       const result = await linkImagegenRoot(path);
+      if (call !== linkCallRef.current) {
+        return { ok: false, error: `Linking ${path} was overtaken by a later link.`, superseded: true };
+      }
       // Clear on failure rather than leaving the previous project's folder live
       // under a project that does not own it (BI-047).
       apply(result.ok ? result.value : null);

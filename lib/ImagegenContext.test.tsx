@@ -213,6 +213,61 @@ describe('setLinkedRoot (BI-046 · BI-047)', () => {
 });
 
 /**
+ * Every project change re-points the link, but `/link` is a network round trip:
+ * a slow answer for the project the operator just left must not land on top of
+ * the one they opened (BI-061). The latest call owns the link.
+ */
+describe('setLinkedRoot is latest-call-wins (BI-061)', () => {
+  /** Holds the next `/link` response open until `release()`. */
+  async function slowLink(root: string): Promise<() => void> {
+    const client = await import('./imagegenClient');
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    vi.mocked(client.linkImagegenRoot).mockImplementationOnce(async () => {
+      await gate;
+      return { ok: true as const, value: root };
+    });
+    return release;
+  }
+
+  it('lets an unlink issued while a link is in flight stand', async () => {
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    const release = await slowLink('/old/imagegen');
+
+    let slow!: Promise<Awaited<ReturnType<ImagegenApi['setLinkedRoot']>>>;
+    act(() => {
+      slow = result.current.setLinkedRoot('/old/imagegen');
+    });
+    await act(async () => {
+      await result.current.setLinkedRoot(null);
+    });
+    release();
+    const outcome = await act(async () => slow);
+
+    expect(outcome).toMatchObject({ ok: false, superseded: true });
+    expect(result.current.root).toBe(null);
+  });
+
+  it('keeps the later link when an earlier one answers last', async () => {
+    const { result } = renderHook(() => useImagegen(), { wrapper: Wrapper });
+    const release = await slowLink('/old/imagegen');
+
+    let slow!: Promise<Awaited<ReturnType<ImagegenApi['setLinkedRoot']>>>;
+    act(() => {
+      slow = result.current.setLinkedRoot('/old/imagegen');
+    });
+    await act(async () => {
+      await result.current.setLinkedRoot(hoisted.root);
+    });
+    release();
+    const outcome = await act(async () => slow);
+
+    expect(outcome).toMatchObject({ ok: false, superseded: true });
+    expect(result.current.root).toBe(hoisted.root);
+  });
+});
+
+/**
  * Without useMemo, every provider re-render mints a new context object and
  * re-fires consumers that list `imagegen` by identity (useWorkspace's
  * listRounds effect). Memo keeps identity stable across pure parent re-renders.

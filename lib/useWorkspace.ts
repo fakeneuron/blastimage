@@ -519,15 +519,18 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
    *
    * A project with no binding adopts the pre-BI-047 app-wide root if one is
    * still stored, so an operator who linked a folder before this change does not
-   * have to link it again; the key is cleared either way, since a second
-   * adoption would hand the same folder to a second project. Returns the session
+   * have to link it again; the key is cleared whether the folder is adopted or
+   * rejected, since a second adoption would hand the same folder to a second
+   * project — only a superseded link leaves it for the next load. Returns the session
    * to persist when that happens, and `null` otherwise.
    */
   async function syncImagegenLink(project: Session): Promise<Session | null> {
     const bound = project.imagegenRoot ?? null;
     if (bound) {
       const linked = await imagegen.setLinkedRoot(bound);
-      if (!linked.ok) {
+      // Overtaken by a later project change: that project owns the link now,
+      // and this one's folder was never found wanting (BI-061).
+      if (!linked.ok && !('superseded' in linked)) {
         setError(
           `Project “${project.name}” is linked to ${bound}, which is no longer readable — ` +
             're-link it with 🔗 in the sidebar.',
@@ -541,6 +544,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       return null;
     }
     const linked = await imagegen.setLinkedRoot(legacy);
+    // Overtaken, nobody adopted it: keep the key for the next load (BI-061).
+    if ('superseded' in linked) return null;
     clearStoredRoot();
     return linked.ok && linked.value ? bindImagegenRoot(project, linked.value) : null;
   }
@@ -1093,6 +1098,11 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const project = sessionRef.current;
     if (!project) return { status: 'error', message: 'No project is open.' };
     const linked = await imagegen.setLinkedRoot(path);
+    // The project changed while `/link` was in flight: binding now would commit
+    // the old project back over the one on screen (BI-061). Drop it.
+    if ('superseded' in linked || sessionRef.current?.id !== project.id) {
+      return { status: 'error', message: 'The project changed before the folder linked — link it again.' };
+    }
     if (!linked.ok) return { status: 'error', message: linked.error };
     const root = linked.value;
     if (!root) return { status: 'error', message: 'The server named no folder.' };
@@ -1115,7 +1125,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
       if (derived) next = renameSessionName(next, derived);
     }
     commit(next);
-    setRoundSummaries(await imagegen.listRounds());
+    const rounds = await imagegen.listRounds();
+    if (sessionRef.current?.id === project.id) setRoundSummaries(rounds);
     return { status: 'linked' };
   }
 
