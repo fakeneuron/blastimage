@@ -12,7 +12,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-060.1** [heavy]🧠 | review-ux-speed discovery — Completed 2026-09-24.
   - [x] **BI-060.2** [medium]🧩 | review-progress-status — Completed 2026-09-24.
   - [x] **BI-060.3** [heavy]🧠 | lightbox-review-surface — Completed 2026-09-24.
-  - [ ] **BI-060.4** [light]🔧 | viewer-mode-layout — In viewer mode (`!generationAvailable`), TaskDetail folds the prompt editor, ReferenceLibrary, disabled Generate and the BI-031.2 note into a closed "Prompt & references" disclosure so the review grid sits under the task name. In-app layout unchanged; sweep docs describing TaskDetail.
+  - [x] **BI-060.4** [light]🔧 | viewer-mode-layout — Completed 2026-09-25.
   - [ ] **BI-060.N** [heavy]🧠 | review-ux-speed audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed now with the reserved terminal `.N` suffix (never renumbers as children are added).
 
 ## Medium

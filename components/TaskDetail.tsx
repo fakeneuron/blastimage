@@ -115,24 +115,10 @@ export default function TaskDetail({
     onGenerate(task.id, { prompt: promptDraft });
   };
 
-  return (
-    <section className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
-      {/* Editable task name */}
-      <input
-        key={task.id}
-        defaultValue={task.name}
-        aria-label="Task name"
-        className="w-full border-b border-transparent bg-transparent text-xl font-semibold focus:border-black/20 focus:outline-none dark:focus:border-white/20"
-        onBlur={(e) => {
-          const v = e.target.value.trim();
-          if (!v || v === task.name) return;
-          // The field is uncontrolled, so a declined rename would leave it
-          // showing a name the session never took — put it back (BI-030.3).
-          if (!onRenameTask(task.id, v)) e.target.value = task.name;
-        }}
-      />
-
-      {/* Prompt editor */}
+  // Shared by both branches below — a plain `<div>` in-app, folded into a closed
+  // `<details>` disclosure in viewer mode (BI-060.4).
+  const promptAndReferences = (
+    <>
       <div className="flex flex-col gap-1">
         <label
           htmlFor="task-prompt"
@@ -172,6 +158,39 @@ export default function TaskDetail({
         </button>
         {generateHint && <span className="text-xs opacity-50">{generateHint.note}</span>}
       </div>
+    </>
+  );
+
+  return (
+    <section className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
+      {/* Editable task name */}
+      <input
+        key={task.id}
+        defaultValue={task.name}
+        aria-label="Task name"
+        className="w-full border-b border-transparent bg-transparent text-xl font-semibold focus:border-black/20 focus:outline-none dark:focus:border-white/20"
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          if (!v || v === task.name) return;
+          // The field is uncontrolled, so a declined rename would leave it
+          // showing a name the session never took — put it back (BI-030.3).
+          if (!onRenameTask(task.id, v)) e.target.value = task.name;
+        }}
+      />
+
+      {/* Prompt editor + references + Generate — folded into a closed disclosure in
+          viewer mode (BI-060.4), since there's nothing to act on without the
+          provider bridge; unchanged (no wrapper) when generation is available. */}
+      {generationAvailable ? (
+        <div className="flex flex-col gap-6">{promptAndReferences}</div>
+      ) : (
+        <details className="rounded border border-black/15 dark:border-white/15">
+          <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium uppercase tracking-wide opacity-60">
+            Prompt &amp; references
+          </summary>
+          <div className="flex flex-col gap-6 p-3 pt-0">{promptAndReferences}</div>
+        </details>
+      )}
 
       {/* Current-round batch — the review grid (BI-005 / BI-053.4) */}
       {(generating || shown) && (
