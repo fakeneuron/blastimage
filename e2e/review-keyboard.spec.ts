@@ -76,11 +76,18 @@ test.describe('review keyboard', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: 'Next image' })).toBeFocused();
 
+    // The review controls (BI-060.3) sit inside the dialog, so the cycle reaches them.
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Close' })).toBeFocused();
+    await expect(viewer.getByRole('button', { name: 'Keep' })).toBeFocused();
 
     await page.keyboard.press('Shift+Tab');
     await expect(page.getByRole('button', { name: 'Next image' })).toBeFocused();
+
+    // Shift+Tab off the first control wraps to the dialog's last one, not the page.
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Close' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(viewer.getByRole('button', { name: 'Feedback' })).toBeFocused();
 
     await expect(page.getByRole('button', { name: 'Project menu' })).not.toBeFocused();
     await expect(page.getByRole('button', { name: 'Keep' }).first()).not.toBeFocused();

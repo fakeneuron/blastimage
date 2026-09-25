@@ -15,9 +15,14 @@
  * dismisses, and closing restores focus to whatever opened it. Arrow keys stay
  * local here (lightbox-only). Both consumers unmount on close, so the restore
  * rides the trap's effect cleanup and covers all three close paths at once.
+ *
+ * Review mode (BI-060.3): two generic slots let {@link ReviewGrid} turn the
+ * overlay into a review surface without Lightbox learning review semantics —
+ * `children` renders inside the dialog figure (so the trap holds it) and `onKey`
+ * joins the arrow-key listener. GalleryPanel passes neither and stays view-only.
  */
 
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import ResolvedImage from '@/components/ResolvedImage';
 import { stepIndex } from '@/lib/lightbox';
@@ -33,9 +38,20 @@ interface LightboxProps {
   index: number;
   onClose: () => void;
   onIndexChange: (index: number) => void;
+  /** Extra content inside the dialog, below the image (review controls). */
+  children?: ReactNode;
+  /** Extra keydown handling while open, beside ←/→ (review keys). */
+  onKey?: (e: KeyboardEvent) => void;
 }
 
-export default function Lightbox({ images, index, onClose, onIndexChange }: LightboxProps) {
+export default function Lightbox({
+  images,
+  index,
+  onClose,
+  onIndexChange,
+  children,
+  onKey: onExtraKey,
+}: LightboxProps) {
   const image = images[index];
   const dialogRef = useRef<HTMLElement>(null);
 
@@ -46,10 +62,11 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') onIndexChange(stepIndex(index, -1, images.length));
       else if (e.key === 'ArrowRight') onIndexChange(stepIndex(index, 1, images.length));
+      else onExtraKey?.(e);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [index, images.length, onIndexChange]);
+  }, [index, images.length, onIndexChange, onExtraKey]);
 
   if (!image) return null;
 
@@ -81,7 +98,7 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
         aria-modal="true"
         aria-label="Image viewer"
         tabIndex={-1}
-        className="flex max-h-full max-w-full flex-col items-center gap-2 focus:outline-none"
+        className="flex max-h-full max-w-full flex-col items-center gap-2 overflow-y-auto focus:outline-none"
       >
         <button
           type="button"
@@ -110,7 +127,8 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
         <ResolvedImage
           src={image.src}
           alt={image.alt}
-          className="max-h-[85vh] max-w-[90vw] rounded object-contain"
+          // Review controls need room under the image, so it gives up some height.
+          className={`${children ? 'max-h-[60vh]' : 'max-h-[85vh]'} max-w-[90vw] rounded object-contain`}
         />
         {multiple && (
           <figcaption className="text-xs text-white/70">
@@ -132,6 +150,9 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
             ›
           </button>
         )}
+
+        {/* After the nav buttons so Tab runs Close → ‹ → › → review controls. */}
+        {children}
       </figure>
     </div>
   );

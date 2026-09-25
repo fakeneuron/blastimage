@@ -11,7 +11,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **BI-EPIC-060** [heavy]🧠 | review-ux-speed — Make round review faster and better oriented: per-task progress badges and a bulk-review progress header, a lightbox that can decide, rate, caption and hand off to Feedback/Iterate, and a viewer-mode TaskDetail that puts the grid first. Global hotkeys, batch iterate, URL state and polish deliberately out of scope.
   - [x] **BI-060.1** [heavy]🧠 | review-ux-speed discovery — Completed 2026-09-24.
   - [x] **BI-060.2** [medium]🧩 | review-progress-status — Completed 2026-09-24.
-  - [ ] **BI-060.3** [heavy]🧠 | lightbox-review-surface — ReviewGrid's lightbox gains Keep/Discard/Approve + 0–5 star buttons and lightbox-scoped keys (K/D/A, 0–5 beside ←/→), a prompt + saved-feedback caption, and Feedback/Iterate buttons that close the lightbox then open the existing modals. Controls stay inside the focus-trapped dialog; GalleryPanel's lightbox stays view-only.
+  - [x] **BI-060.3** [heavy]🧠 | lightbox-review-surface — Completed 2026-09-24.
   - [ ] **BI-060.4** [light]🔧 | viewer-mode-layout — In viewer mode (`!generationAvailable`), TaskDetail folds the prompt editor, ReferenceLibrary, disabled Generate and the BI-031.2 note into a closed "Prompt & references" disclosure so the review grid sits under the task name. In-app layout unchanged; sweep docs describing TaskDetail.
   - [ ] **BI-060.N** [heavy]🧠 | review-ux-speed audit — Final-subtask audit per SPEC/epic.md (fixed doc-drift sweep acceptance line). Filed now with the reserved terminal `.N` suffix (never renumbers as children are added).
 

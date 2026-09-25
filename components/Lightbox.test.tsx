@@ -383,3 +383,42 @@ describe('Lightbox — rendering (BI-027)', () => {
     expect(screen.queryByRole('dialog', { name: 'Image viewer' })).toBeNull();
   });
 });
+
+describe('Lightbox — review slots (BI-060.3)', () => {
+  it('renders no extra content and ignores letter keys without the slots (GalleryPanel)', async () => {
+    const { onClose, onIndexChange } = await renderLightbox(makeImages(3), 1);
+
+    fireEvent.keyDown(window, { key: 'k' });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Keep' })).toBeNull();
+  });
+
+  it('renders children inside the dialog and forwards non-arrow keys to onKey', async () => {
+    const onKey = vi.fn<(e: KeyboardEvent) => void>();
+    const onIndexChange = vi.fn();
+    render(
+      <ImagegenProvider>
+        <Lightbox
+          images={makeImages(3)}
+          index={1}
+          onClose={vi.fn()}
+          onIndexChange={onIndexChange}
+          onKey={onKey}
+        >
+          <button type="button">Keep</button>
+        </Lightbox>
+      </ImagegenProvider>,
+    );
+    await act(async () => {});
+
+    expect(dialog().contains(button('Keep'))).toBe(true);
+    fireEvent.keyDown(window, { key: 'k' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+
+    expect(onKey).toHaveBeenCalledTimes(1);
+    expect(onKey.mock.calls[0]![0].key).toBe('k');
+    expect(onIndexChange).toHaveBeenCalledWith(2);
+  });
+});

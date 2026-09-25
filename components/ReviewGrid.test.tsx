@@ -269,3 +269,116 @@ describe('ReviewGrid — lightbox wiring (BI-027)', () => {
     expect(screen.queryByRole('dialog', { name: 'Image viewer' })).toBeNull();
   });
 });
+
+describe('ReviewGrid — lightbox review surface (BI-060.3)', () => {
+  async function openLightbox(images: GeneratedImage[], at = 0) {
+    const spies = await renderGrid(images);
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'View full size' })[at]!);
+    });
+    return { ...spies, dialog: screen.getByRole('dialog', { name: 'Image viewer' }) };
+  }
+
+  it('renders the decision and rating controls inside the dialog', async () => {
+    const { dialog } = await openLightbox([makeImage('i1', { decision: 'kept', rating: 3 })]);
+
+    expect(within(dialog).getByRole('button', { name: 'Keep' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(dialog).getByRole('radio', { name: '3 stars' }).getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('decides and rates the image in view, not the first one', async () => {
+    const { dialog, onSetDecision, onSetRating } = await openLightbox(
+      [makeImage('i1'), makeImage('i2')],
+      1,
+    );
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Approve' }));
+    fireEvent.click(within(dialog).getByRole('radio', { name: '4 stars' }));
+
+    expect(onSetDecision).toHaveBeenCalledWith('i2', 'approved');
+    expect(onSetRating).toHaveBeenCalledWith('i2', 4);
+  });
+
+  it('captions the prompt and saved feedback', async () => {
+    const { dialog } = await openLightbox([
+      makeImage('i1', { feedback: { text: 'warmer light', useAsReference: false, updatedAt: NOW } }),
+    ]);
+
+    expect(within(dialog).getByText('prompt i1')).toBeTruthy();
+    expect(within(dialog).getByText(/warmer light/)).toBeTruthy();
+  });
+
+  it.each([
+    ['k', 'kept'],
+    ['D', 'discarded'],
+    ['a', 'approved'],
+  ] as const)('key %s sets the %s decision', async (key, decision) => {
+    const { onSetDecision } = await openLightbox([makeImage('i1')]);
+
+    fireEvent.keyDown(window, { key });
+
+    expect(onSetDecision).toHaveBeenCalledWith('i1', decision);
+  });
+
+  it('pressing the active decision key clears it, like the button', async () => {
+    const { onSetDecision } = await openLightbox([makeImage('i1', { decision: 'kept' })]);
+
+    fireEvent.keyDown(window, { key: 'k' });
+
+    expect(onSetDecision).toHaveBeenCalledWith('i1', 'undecided');
+  });
+
+  it('digit keys set the rating, 0 clearing it', async () => {
+    const { onSetRating } = await openLightbox([makeImage('i1', { rating: 2 })]);
+
+    fireEvent.keyDown(window, { key: '5' });
+    fireEvent.keyDown(window, { key: '0' });
+
+    expect(onSetRating.mock.calls).toEqual([
+      ['i1', 5],
+      ['i1', 0],
+    ]);
+  });
+
+  it('ignores modifier chords', async () => {
+    const { onSetDecision } = await openLightbox([makeImage('i1')]);
+
+    fireEvent.keyDown(window, { key: 'a', metaKey: true });
+
+    expect(onSetDecision).not.toHaveBeenCalled();
+  });
+
+  it('review keys do nothing while the lightbox is closed', async () => {
+    const { onSetDecision, onSetRating } = await renderGrid();
+
+    fireEvent.keyDown(window, { key: 'k' });
+    fireEvent.keyDown(window, { key: '3' });
+
+    expect(onSetDecision).not.toHaveBeenCalled();
+    expect(onSetRating).not.toHaveBeenCalled();
+  });
+
+  it('Feedback closes the lightbox, then hands off', async () => {
+    const { dialog, onFeedback } = await openLightbox([makeImage('i1')]);
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Feedback' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Image viewer' })).toBeNull();
+    expect(onFeedback).toHaveBeenCalledWith('i1');
+  });
+
+  it('Iterate closes the lightbox, then hands off', async () => {
+    const { dialog, onIterate } = await openLightbox([makeImage('i1', { decision: 'kept' })]);
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Iterate →' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Image viewer' })).toBeNull();
+    expect(onIterate).toHaveBeenCalledWith('i1');
+  });
+
+  it('keeps Iterate keep-first in the lightbox', async () => {
+    const { dialog } = await openLightbox([makeImage('i1')]);
+
+    expect(within(dialog).getByRole('button', { name: 'Iterate →' }).hasAttribute('disabled')).toBe(true);
+  });
+});
