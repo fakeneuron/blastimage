@@ -121,7 +121,7 @@ describe('browseDirectory', () => {
 
 describe('linkRoot / linkImagegenRoot', () => {
   it('POSTs the candidate path to /api/imagegen/link', async () => {
-    const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: { root: ROOT, recognized: true } }));
+    const fetchMock = stubFetch(() => jsonResponse(200, { ok: true, value: { root: ROOT } }));
     await linkRoot('/candidate');
     const [input, init] = fetchMock.mock.calls[0]!;
     expect(new URL(input, 'http://localhost:3003').pathname).toBe('/api/imagegen/link');
@@ -130,7 +130,7 @@ describe('linkRoot / linkImagegenRoot', () => {
   });
 
   it('linkImagegenRoot returns just the canonical root on success', async () => {
-    stubFetch(() => jsonResponse(200, { ok: true, value: { root: ROOT, recognized: false } }));
+    stubFetch(() => jsonResponse(200, { ok: true, value: { root: ROOT } }));
     expect(await linkImagegenRoot('/candidate')).toEqual({ ok: true, value: ROOT });
   });
 

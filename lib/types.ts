@@ -33,8 +33,8 @@ export type StarRating = 0 | 1 | 2 | 3 | 4 | 5;
 /** Number of candidate images generated per batch (VISION: 3–5). */
 export type BatchSize = 3 | 4 | 5;
 
-/** Lifecycle of a single generated image as it is produced. */
-export type GenerationStatus = 'pending' | 'generating' | 'ready' | 'failed';
+/** Lifecycle of a single generated image as it is produced; every image is `'ready'` once ingested. */
+export type GenerationStatus = 'ready';
 
 /**
  * Reviewer's verdict on a generated image.

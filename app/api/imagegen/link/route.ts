@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server';
 
 import { jsonBody, refuseUnguarded, resultResponse } from '@/lib/imagegenRoute';
-import { looksLikeImagegenRoot, resolveRoot, suggestRoots } from '@/lib/imagegenServerFs';
+import { resolveRoot, suggestRoots } from '@/lib/imagegenServerFs';
 
 export async function GET(req: Request) {
   const refusal = refuseUnguarded(req);
@@ -28,8 +28,5 @@ export async function POST(req: Request) {
   }
   const root = await resolveRoot(path);
   if (!root.ok) return resultResponse(root);
-  // An empty folder is legitimate before the first `/blast-generate`, so a
-  // missing rounds/approved/tasks.json is a note on a successful link.
-  const recognized = await looksLikeImagegenRoot(root.value);
-  return NextResponse.json({ ok: true, value: { root: root.value, recognized } });
+  return NextResponse.json({ ok: true, value: { root: root.value } });
 }

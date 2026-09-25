@@ -118,8 +118,8 @@ export async function browseDirectory(path?: string): Promise<Result<DirectoryLi
 }
 
 /** Validates a candidate root against the server, returning its canonical path. */
-export async function linkRoot(path: string): Promise<Result<{ root: string; recognized: boolean }>> {
-  return sendJson<{ root: string; recognized: boolean }>('/api/imagegen/link', 'POST', { path });
+export async function linkRoot(path: string): Promise<Result<{ root: string }>> {
+  return sendJson<{ root: string }>('/api/imagegen/link', 'POST', { path });
 }
 
 /**

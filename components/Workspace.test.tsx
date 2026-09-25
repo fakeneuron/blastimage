@@ -122,7 +122,6 @@ function makeWorkspace(overrides: Partial<UseWorkspace> = {}): UseWorkspace {
     requestNextRound: async () => {},
     availableRounds: [1],
     roundSummaries: [{ round: 1, generatedAt: '', taskCount: 0, imageCount: 0 }],
-    refreshAvailableRounds: async () => {},
     ...overrides,
   };
 }

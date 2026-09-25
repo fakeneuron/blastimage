@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { parseRoundBatch } from './roundBatch';
 import type { RoundSelection } from './roundSelection';
 import { ROUND_SELECTION_SCHEMA_VERSION } from './roundSelection';
 import {
@@ -13,10 +14,17 @@ import {
   planRefBootstrapCopies,
   roundImageFilename,
   selectionMatchesRound,
+  serializeRoundBatch,
+  TERMINAL_BATCH_SIZE,
   validateIterateSelectionTasks,
 } from './terminalRound';
+import { DEFAULT_BATCH_SIZE } from './useWorkspace';
 
 describe('terminalRound helpers', () => {
+  it('keeps TERMINAL_BATCH_SIZE in sync with useWorkspace.DEFAULT_BATCH_SIZE', () => {
+    expect(TERMINAL_BATCH_SIZE).toBe(DEFAULT_BATCH_SIZE);
+  });
+
   it('plans generate tasks with slugs and refs', () => {
     const plans = planGenerateTasks(
       [{ name: 'Hero Banner', basePrompt: 'warm hero' }],
@@ -78,6 +86,17 @@ describe('terminalRound helpers', () => {
       { hero: ['hero-001.jpg'] },
     );
     expect(noRef.tasks[0]).not.toHaveProperty('ref');
+  });
+
+  it('round-trips a batch through serializeRoundBatch and parseRoundBatch', () => {
+    const batch = buildRoundBatch(
+      1,
+      '2026-06-18T00:00:00Z',
+      [{ slug: 'hero', name: 'Hero', prompt: 'p', ref: 'refs/hero.jpg' }],
+      { hero: ['hero-001.jpg', 'hero-002.jpg'] },
+    );
+    const parsed = parseRoundBatch(serializeRoundBatch(batch));
+    expect(parsed).toEqual({ ok: true, value: batch });
   });
 
   it('plans iterate tasks with append vs overhaul', () => {

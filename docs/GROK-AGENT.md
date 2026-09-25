@@ -45,7 +45,7 @@ running for the imagegen routes to exist.
 | `Session` | `{ tasks: PromptTask[]; refLibrary: RefImage[]; … }` |
 | `PromptTask` | `{ basePrompt: string; activeRefImageIds: ID[]; iterations: Iteration[]; … }` |
 | `Iteration` | `{ prompt: string; refImageIds: ID[]; primaryRefImageId: ID \| null; images: GeneratedImage[]; … }` |
-| `GeneratedImage` | `{ url: string; prompt: string; status: GenerationStatus; decision: ReviewDecision; … }` |
+| `GeneratedImage` | `{ url: string; prompt: string; status: 'ready'; decision: ReviewDecision; … }` |
 | `RefImage` | `{ id: ID; name: string; dataUrl: string; mimeType: string; … }` — `dataUrl` is a base64 data URL |
 | `BatchSize` | `3 \| 4 \| 5` |
 

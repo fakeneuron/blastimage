@@ -382,8 +382,6 @@ export interface UseWorkspace {
   availableRounds: number[];
   /** Per-round counts from `batch.json`, same order as {@link UseWorkspace.availableRounds}. */
   roundSummaries: RoundSummary[];
-  /** Refreshes {@link UseWorkspace.availableRounds} from the linked folder. */
-  refreshAvailableRounds: () => Promise<void>;
 }
 
 export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspace {
@@ -1139,14 +1137,6 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     return { status: 'linked' };
   }
 
-  async function refreshAvailableRounds(): Promise<void> {
-    if (!imagegen.linked) {
-      setRoundSummaries([]);
-      return;
-    }
-    setRoundSummaries(await imagegen.listRounds());
-  }
-
   async function ingestOne(
     current: Session,
     target: number,
@@ -1268,6 +1258,5 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     requestNextRound,
     availableRounds,
     roundSummaries,
-    refreshAvailableRounds,
   };
 }
