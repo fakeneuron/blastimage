@@ -146,8 +146,8 @@ imagegen/
    └─ *.png            ← exported approved images
 ```
 
-This layout is a **convention, not a requirement** — blastimage never reads the
-parent repo. But treat it as canonical: agents and future tooling will look for
+This layout is a **convention, not a requirement** — blastimage reads and writes only
+the linked `imagegen/` folder, never the rest of the parent repo. But treat it as canonical: agents and future tooling will look for
 these exact paths, so deviating costs more than it saves.
 
 **`tasks.json`** — the import file from §6. Compose it in-app with **⋯ → 🛠 Build**
@@ -196,9 +196,9 @@ git commit -m "chore: bump blastimage to latest"
 
 ## Notes
 
-- **Isolation.** blastimage's `node_modules`, dev server, and `localStorage` data are fully isolated from the parent project. Running `npm install` inside `blastimage/` will not affect the parent's dependencies.
+- **Isolation.** blastimage's `node_modules`, dev server, and `localStorage` data are isolated from the parent project; the one shared surface is the linked `imagegen/` folder, which it reads (`rounds/`) and writes (`selection.json`, `approved/`) through its localhost-only API. Running `npm install` inside `blastimage/` will not affect the parent's dependencies.
 - **Detached HEAD.** After `git submodule add` or `update --init`, the submodule is checked out at a pinned commit (detached HEAD). This is intentional — the parent tracks a specific blastimage version. Run `git checkout main` inside `blastimage/` to work on the latest branch.
-- **Clearing state.** All blastimage sessions and generated images live in browser `localStorage` at the `localhost:3003` origin. Clearing browser storage for that origin resets all blastimage data.
+- **Clearing state.** blastimage sessions (project metadata, tasks, decisions) live in browser `localStorage` at the `localhost:3003` origin; round images stay on disk in `imagegen/` and are referenced as `imagegen:` URLs. Clearing browser storage for that origin resets the sessions, not the files in `imagegen/`.
 
 ## Troubleshooting
 

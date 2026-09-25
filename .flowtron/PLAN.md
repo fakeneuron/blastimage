@@ -8,15 +8,18 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-061** [heavy]🧠 [!critical] | link-race-ownership — make a superseded `setLinkedRoot` call lose: add a latest-call-wins token in `ImagegenProvider.setLinkedRoot` (`lib/ImagegenContext.tsx`), drop a stale-project result after the await in `linkImagegenFolder` (`lib/useWorkspace.ts`), and add tests where a slow `/link` response resolves after a project switch or create. Surfaced by audit 2026-09-25 (Finding #1, Critical).
+- [ ] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — serialize `writeRoundSelection` per file path and write via tmp + rename (`lib/imagegenServerFs.ts`); validate incoming selection tasks in `app/api/imagegen/selection/route.ts` with a per-entry parser shared with `parseRoundSelection` and require a non-empty `selectedAt`; make `filenameFrom` reject `.`/`..`; tests for concurrent writes and malformed bodies. Surfaced by audit 2026-09-25 (Finding #3, High; Finding #2, Medium).
 
 ## Medium
 
-(none)
+- [ ] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — when `promoteApproved` fails in `handleImagegenApprove` (`lib/useWorkspace.ts`), roll the image decision back to its previous value as the conflict-decline branch already does; add a failing-promote case to `lib/useWorkspace.test.ts`. Surfaced by audit 2026-09-25 (Finding #4, Medium).
+- [ ] **BI-064** [light]🔧 [unattended] | adopter-docs-disk-era — rewrite `docs/WORKFLOW.md` steps 4 and 8/9 and `docs/ADOPT.md` §7 for the on-disk adopter flow: refs are staged in `imagegen/refs/<slug>.<ext>`, Approve already fills `imagegen/approved/`, and the Folder export targets a separate directory. Surfaced by audit 2026-09-25 (Finding #12, Medium; Finding #13, Medium).
 
 ## Low
 
-(none)
+- [ ] **BI-065** [light]🔧 [unattended] | orphan-sweep — remove `refreshAvailableRounds` from `useWorkspace` and its `Workspace.test.tsx` stub; narrow `GenerationStatus` to `'ready'` (schema version unchanged) and correct `docs/GROK-AGENT.md:48`; drop `recognized` from the `/api/imagegen/link` POST response and `linkRoot`'s type; add `TERMINAL_BATCH_SIZE === DEFAULT_BATCH_SIZE` and `serializeRoundBatch` round-trip tests to `lib/terminalRound.test.ts`. Surfaced by audit 2026-09-25 (Finding #7, Medium; Findings #8–#10, Low).
+- [ ] **CORE-7** [light]🔧 [unattended] | shared-result-and-strings — move `Result<T>` from `lib/storage.ts` to `lib/types.ts` (re-export from storage for now) and replace the five literal "Link your imagegen folder first" copies with one exported constant. Surfaced by audit 2026-09-25 (Finding #6, Low; Finding #5, Low).
 
 ## Future Opportunities
 
@@ -24,6 +27,8 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **CORE-8** [light] | doc-drift-inline — ADOPT.md:149/199/201 now say blastimage reads/writes the linked imagegen/ folder (localhost only) with session metadata in localStorage; "⟳ Iterate" → "Iterate →" in REVIEW-LOOP.md:91 and lib/useWorkspace.ts:151; GROK-AGENT.md line-number refs → "inside generate()" and error surfacing → "error banner"; REVIEW-LOOP.md:99 "undo above" → "approve undo below (BI-030.2)". Surfaced by audit 2026-09-25 (Finding #11, Medium; Findings #14–#16, Low), fixed inline.
 
 - [x] **BI-EPIC-060** [heavy]🧠 | review-ux-speed — Completed 2026-09-25.
   - [x] **BI-060.1** [heavy]🧠 | review-ux-speed discovery — Completed 2026-09-24.

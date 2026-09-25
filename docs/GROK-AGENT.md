@@ -102,8 +102,8 @@ export interface GeneratedCandidate {
  *
  * Must return a Promise that resolves to exactly `batchSize` candidates.
  * Throws if no provider is installed; the installed provider throws (or
- * rejects) on error — the caller catches and surfaces a non-fatal
- * "Generation failed" message to the user.
+ * rejects) on error — the caller catches and surfaces the thrown message
+ * in the error banner.
  */
 export async function generateBatch(req: GenerationRequest): Promise<GeneratedCandidate[]> {
   // delegates to your installed provider — see §The provider bridge
@@ -123,7 +123,7 @@ export async function generateBatch(req: GenerationRequest): Promise<GeneratedCa
 ### The only caller
 
 ```typescript
-// lib/useWorkspace.ts  (inside generate(); the call site is ~line 731)
+// lib/useWorkspace.ts  (inside generate())
 
 const candidates = await generateBatch({
   prompt,                       // trimmed string; may be empty if refs are present
@@ -143,7 +143,7 @@ The mock once used `referenceSeeds?: string[]` (opaque ID strings). That is gone
 `GenerationRequest` now carries **`referenceImages?: string[]`** — actual base64
 `data:` URLs the imagine backend can consume. The caller already resolves IDs to
 data URLs before calling `generateBatch`, so the provider receives ready-to-use
-bytes. This is what `lib/useWorkspace.ts` does inside `generate()` (~line 711):
+bytes. This is what `lib/useWorkspace.ts` does inside `generate()`:
 
 ```typescript
 // Resolve reference IDs → base64 data URLs. Covers both library RefImages
@@ -183,7 +183,7 @@ do not touch `lib/useWorkspace.ts`** — you only supply a provider (next sectio
 - `batchSize` is always `3`, `4`, or `5` — never outside this range.
 - `prompt` is always `.trim()`'d before the call.
 - The function is `await`'d inside a `try/catch`. Throw on any error; the UI
-  handles it gracefully with a non-fatal toast and never leaves a half-written
+  surfaces the thrown message in the error banner and never leaves a half-written
   iteration in state.
 
 ---

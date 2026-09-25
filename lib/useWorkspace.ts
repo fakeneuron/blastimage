@@ -148,7 +148,7 @@ function confirmSlugBreak(
       `This task is joined to imagegen ${risk.rounds.length > 1 ? 'rounds' : 'round'} ` +
       `${rounds} by the slug “${risk.currentSlug}”. Renaming changes its slug to ` +
       `“${risk.nextSlug}”, so reloading the current round from disk will mint a duplicate task and ` +
-      `⟳ Iterate will write a slug /blast-iterate won't match.\n\n` +
+      `Iterate → will write a slug /blast-iterate won't match.\n\n` +
       `Rename imagegen/tasks.json to match, or keep the old name.`,
   );
 }
