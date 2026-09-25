@@ -8,13 +8,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-EPIC-060** [heavy]🧠 | review-ux-speed — Make round review faster and better oriented: per-task progress badges and a bulk-review progress header, a lightbox that can decide, rate, caption and hand off to Feedback/Iterate, and a viewer-mode TaskDetail that puts the grid first. Global hotkeys, batch iterate, URL state and polish deliberately out of scope.
-  - [x] **BI-060.1** [heavy]🧠 | review-ux-speed discovery — Completed 2026-09-24.
-  - [x] **BI-060.2** [medium]🧩 | review-progress-status — Completed 2026-09-24.
-  - [x] **BI-060.3** [heavy]🧠 | lightbox-review-surface — Completed 2026-09-24.
-  - [x] **BI-060.4** [light]🔧 | viewer-mode-layout — Completed 2026-09-25.
-  - [x] **BI-060.5** [light]🔧 | kept-badge-e2e-collision — Completed 2026-09-25.
-  - [x] **BI-060.N** [heavy]🧠 | review-ux-speed audit — Completed 2026-09-25.
+(none)
 
 ## Medium
 
@@ -30,6 +24,14 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **BI-EPIC-060** [heavy]🧠 | review-ux-speed — Completed 2026-09-25.
+  - [x] **BI-060.1** [heavy]🧠 | review-ux-speed discovery — Completed 2026-09-24.
+  - [x] **BI-060.2** [medium]🧩 | review-progress-status — Completed 2026-09-24.
+  - [x] **BI-060.3** [heavy]🧠 | lightbox-review-surface — Completed 2026-09-24.
+  - [x] **BI-060.4** [light]🔧 | viewer-mode-layout — Completed 2026-09-25.
+  - [x] **BI-060.5** [light]🔧 | kept-badge-e2e-collision — Completed 2026-09-25.
+  - [x] **BI-060.N** [heavy]🧠 | review-ux-speed audit — Completed 2026-09-25.
 
 - [x] **BI-059** [light]🔧 | browse-comment-boundary — Completed 2026-09-24.
 
