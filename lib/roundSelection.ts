@@ -102,6 +102,30 @@ export function serializeRoundSelection(selection: RoundSelection): string {
 }
 
 /**
+ * Validates one task entry at 0-based `index`. Shared by the file reader and
+ * the selection write route (BI-062), so the server never persists an entry
+ * the reader would reject — a rejected entry fails every later merge into that
+ * round, since each write reads the file first.
+ */
+export function parseRoundSelectionTask(entry: unknown, index: number): Result<RoundSelectionTask> {
+  if (!entry || typeof entry !== 'object') {
+    return { ok: false, error: `Task ${index + 1} must be an object.` };
+  }
+  const e = entry as Record<string, unknown>;
+  if (typeof e.slug !== 'string' || !e.slug.trim()) {
+    return { ok: false, error: `Task ${index + 1} needs a non-empty "slug".` };
+  }
+  if (e.decision !== 'iterate' && e.decision !== 'approve' && e.decision !== 'skip') {
+    return { ok: false, error: `Task ${index + 1} "decision" must be iterate, approve, or skip.` };
+  }
+  const task: RoundSelectionTask = { slug: e.slug.trim(), decision: e.decision };
+  if (typeof e.keeper === 'string' && e.keeper.trim()) task.keeper = e.keeper.trim();
+  if (e.promptMode === 'append' || e.promptMode === 'overhaul') task.promptMode = e.promptMode;
+  if (typeof e.nextPrompt === 'string' && e.nextPrompt.trim()) task.nextPrompt = e.nextPrompt.trim();
+  return { ok: true, value: task };
+}
+
+/**
  * Validates and parses a `selection.json` string. Returns a user-facing error on
  * schema mismatch or malformed input.
  */
@@ -138,22 +162,9 @@ export function parseRoundSelection(text: string): Result<RoundSelection> {
   }
   const tasks: RoundSelectionTask[] = [];
   for (let i = 0; i < obj.tasks.length; i++) {
-    const entry = obj.tasks[i];
-    if (!entry || typeof entry !== 'object') {
-      return { ok: false, error: `Task ${i + 1} must be an object.` };
-    }
-    const e = entry as Record<string, unknown>;
-    if (typeof e.slug !== 'string' || !e.slug.trim()) {
-      return { ok: false, error: `Task ${i + 1} needs a non-empty "slug".` };
-    }
-    if (e.decision !== 'iterate' && e.decision !== 'approve' && e.decision !== 'skip') {
-      return { ok: false, error: `Task ${i + 1} "decision" must be iterate, approve, or skip.` };
-    }
-    const task: RoundSelectionTask = { slug: e.slug.trim(), decision: e.decision };
-    if (typeof e.keeper === 'string' && e.keeper.trim()) task.keeper = e.keeper.trim();
-    if (e.promptMode === 'append' || e.promptMode === 'overhaul') task.promptMode = e.promptMode;
-    if (typeof e.nextPrompt === 'string' && e.nextPrompt.trim()) task.nextPrompt = e.nextPrompt.trim();
-    tasks.push(task);
+    const task = parseRoundSelectionTask(obj.tasks[i], i);
+    if (!task.ok) return task;
+    tasks.push(task.value);
   }
   return {
     ok: true,

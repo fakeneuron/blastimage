@@ -5,6 +5,7 @@ import {
   detectPromptMode,
   mergeRoundSelection,
   parseRoundSelection,
+  parseRoundSelectionTask,
   ROUND_SELECTION_SCHEMA_VERSION,
   serializeRoundSelection,
   type RoundSelection,
@@ -61,6 +62,49 @@ describe('parseRoundSelection / serializeRoundSelection', () => {
     const bad = { ...sample, schemaVersion: 99 };
     const parsed = parseRoundSelection(JSON.stringify(bad));
     expect(parsed.ok).toBe(false);
+  });
+});
+
+describe('parseRoundSelectionTask', () => {
+  it('trims fields and keeps valid optional ones', () => {
+    expect(
+      parseRoundSelectionTask(
+        { slug: ' hero ', decision: 'iterate', keeper: ' hero-001.jpg ', promptMode: 'append', nextPrompt: ' p ' },
+        0,
+      ),
+    ).toEqual({
+      ok: true,
+      value: { slug: 'hero', decision: 'iterate', keeper: 'hero-001.jpg', promptMode: 'append', nextPrompt: 'p' },
+    });
+  });
+
+  it('drops malformed optional fields rather than failing', () => {
+    expect(
+      parseRoundSelectionTask({ slug: 'hero', decision: 'skip', keeper: 7, promptMode: 'x', nextPrompt: ' ' }, 0),
+    ).toEqual({ ok: true, value: { slug: 'hero', decision: 'skip' } });
+  });
+
+  it('names the 1-based task on each rejection', () => {
+    const cases: [unknown, string][] = [
+      [null, 'Task 3 must be an object.'],
+      ['hero', 'Task 3 must be an object.'],
+      [{ decision: 'skip' }, 'Task 3 needs a non-empty "slug".'],
+      [{ slug: '  ', decision: 'skip' }, 'Task 3 needs a non-empty "slug".'],
+      [{ slug: 'hero', decision: 'delete' }, 'Task 3 "decision" must be iterate, approve, or skip.'],
+    ];
+    for (const [entry, error] of cases) {
+      expect(parseRoundSelectionTask(entry, 2)).toEqual({ ok: false, error });
+    }
+  });
+
+  it('is the rule parseRoundSelection applies to every entry', () => {
+    const text = JSON.stringify({
+      schemaVersion: ROUND_SELECTION_SCHEMA_VERSION,
+      round: 1,
+      selectedAt: 'x',
+      tasks: [{ slug: 'a', decision: 'skip' }, { slug: 'b', decision: 'nope' }],
+    });
+    expect(parseRoundSelection(text)).toEqual(parseRoundSelectionTask({ slug: 'b', decision: 'nope' }, 1));
   });
 });
 

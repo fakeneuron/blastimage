@@ -8,8 +8,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — serialize `writeRoundSelection` per file path and write via tmp + rename (`lib/imagegenServerFs.ts`); validate incoming selection tasks in `app/api/imagegen/selection/route.ts` with a per-entry parser shared with `parseRoundSelection` and require a non-empty `selectedAt`; make `filenameFrom` reject `.`/`..`; tests for concurrent writes and malformed bodies. Surfaced by audit 2026-09-25 (Finding #3, High; Finding #2, Medium).
-
 ## Medium
 
 - [ ] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — when `promoteApproved` fails in `handleImagegenApprove` (`lib/useWorkspace.ts`), roll the image decision back to its previous value as the conflict-decline branch already does; add a failing-promote case to `lib/useWorkspace.test.ts`. Surfaced by audit 2026-09-25 (Finding #4, Medium).
@@ -27,6 +25,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — Completed 2026-09-25.
 - [x] **BI-061** [heavy]🧠 | link-race-ownership — Completed 2026-09-25.
 
 - [x] **CORE-8** [light] | doc-drift-inline — ADOPT.md:149/199/201 now say blastimage reads/writes the linked imagegen/ folder (localhost only) with session metadata in localStorage; "⟳ Iterate" → "Iterate →" in REVIEW-LOOP.md:91 and lib/useWorkspace.ts:151; GROK-AGENT.md line-number refs → "inside generate()" and error surfacing → "error banner"; REVIEW-LOOP.md:99 "undo above" → "approve undo below (BI-030.2)". Surfaced by audit 2026-09-25 (Finding #11, Medium; Findings #14–#16, Low), fixed inline.

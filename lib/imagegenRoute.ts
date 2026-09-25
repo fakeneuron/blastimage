@@ -68,10 +68,13 @@ export function roundFrom(raw: unknown): Result<number> {
   return { ok: true, value: n };
 }
 
-/** Reads a non-empty filename, rejecting path separators outright. */
+/**
+ * Reads a non-empty filename, rejecting path separators outright and the `.`
+ * / `..` segments, which name a directory rather than a file (BI-062).
+ */
 export function filenameFrom(raw: unknown): Result<string> {
   if (typeof raw !== 'string' || !raw.trim()) return { ok: false, error: 'Missing filename.' };
-  if (raw.includes('/') || raw.includes('\\')) {
+  if (raw.includes('/') || raw.includes('\\') || raw === '.' || raw === '..') {
     return { ok: false, error: `Filename must not contain a path: ${raw}` };
   }
   return { ok: true, value: raw };

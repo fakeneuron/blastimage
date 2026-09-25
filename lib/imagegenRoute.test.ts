@@ -240,6 +240,21 @@ describe('filenameFrom', () => {
     }
   });
 
+  // `approved/..` resolves to the root itself, which confinement allows
+  // (BI-062); a filename must never name a directory.
+  it('rejects the dot segments', () => {
+    for (const raw of ['.', '..']) {
+      const result = filenameFrom(raw);
+      expect(result.ok === false && result.error).toBe(`Filename must not contain a path: ${raw}`);
+    }
+  });
+
+  it('accepts names that merely contain dots', () => {
+    for (const raw of ['...', '.hidden.png', 'a..b.png']) {
+      expect(filenameFrom(raw)).toEqual({ ok: true, value: raw });
+    }
+  });
+
   // Trimming decides only whether the name is empty; the value is returned
   // verbatim, so a padded name stays padded for the caller that joins it.
   it('returns the name unmodified rather than trimmed', () => {

@@ -8,7 +8,7 @@
 
 import { jsonBody, refuseUnguarded, resultResponse, rootFrom, roundFrom } from '@/lib/imagegenRoute';
 import { writeRoundSelection } from '@/lib/imagegenServerFs';
-import type { RoundSelectionTask } from '@/lib/roundSelection';
+import { parseRoundSelectionTask, type RoundSelectionTask } from '@/lib/roundSelection';
 
 export async function POST(req: Request) {
   const refusal = refuseUnguarded(req);
@@ -21,10 +21,16 @@ export async function POST(req: Request) {
   if (!round.ok) return resultResponse(round);
   const { tasks, selectedAt } = body.value;
   if (!Array.isArray(tasks)) return resultResponse({ ok: false, error: 'Expected a tasks array.' });
-  if (typeof selectedAt !== 'string') {
+  if (typeof selectedAt !== 'string' || !selectedAt.trim()) {
     return resultResponse({ ok: false, error: 'Expected a selectedAt timestamp.' });
   }
-  return resultResponse(
-    await writeRoundSelection(root.value, round.value, tasks as RoundSelectionTask[], selectedAt),
-  );
+  // Validated with the reader's own per-entry rule (BI-062): an entry the
+  // reader rejects, once written, fails every later write to this round.
+  const parsed: RoundSelectionTask[] = [];
+  for (const [i, entry] of tasks.entries()) {
+    const task = parseRoundSelectionTask(entry, i);
+    if (!task.ok) return resultResponse(task);
+    parsed.push(task.value);
+  }
+  return resultResponse(await writeRoundSelection(root.value, round.value, parsed, selectedAt));
 }

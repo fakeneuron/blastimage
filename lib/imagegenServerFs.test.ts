@@ -9,7 +9,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, realpath, rm, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, realpath, rm, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -242,6 +242,26 @@ describe('round selection', () => {
       { slug: 'hero', decision: 'approve', keeper: 'hero-01.png' },
       { slug: 'about', decision: 'skip' },
     ]);
+  });
+
+  // Each write is read → merge → write. Unserialized, overlapping posts all
+  // read the same base and the last write drops everyone else's slug (BI-062).
+  it('keeps every slug when writes to one round overlap', async () => {
+    const slugs = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const results = await Promise.all(
+      slugs.map((slug) => writeRoundSelection(root, 1, [{ slug, decision: 'skip' }], slug)),
+    );
+
+    expect(results.every((r) => r.ok)).toBe(true);
+    const result = await readRoundSelection(root, 1);
+    expect(result.ok && result.value.tasks.map((t) => t.slug).sort()).toEqual(slugs);
+  });
+
+  it('leaves no temp file beside selection.json', async () => {
+    await writeRoundSelection(root, 1, [{ slug: 'hero', decision: 'skip' }], 'a');
+    await writeRoundSelection(root, 1, [{ slug: 'about', decision: 'skip' }], 'b');
+
+    expect(await readdir(join(root, 'rounds/r1'))).toEqual(['selection.json']);
   });
 });
 

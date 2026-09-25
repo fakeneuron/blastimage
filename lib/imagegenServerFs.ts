@@ -23,8 +23,21 @@
  * validators it ran against FSA reads.
  */
 
+import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, copyFile, mkdir, readFile, readdir, realpath, stat, unlink, writeFile } from 'node:fs/promises';
+import {
+  access,
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve, sep } from 'node:path';
 
@@ -207,8 +220,31 @@ export async function readRoundSelection(root: string, round: number): Promise<R
 }
 
 /**
+ * Tail of the pending-write chain per `selection.json` path (BI-062). Each
+ * write is read → merge → write, so two overlapping writes to one file would
+ * both merge into the same base and the later one would drop the other's
+ * slugs. Chaining them makes each merge see its predecessor's result. The lock
+ * is in-process only: this server is the file's one writer; the terminal skill
+ * only reads it, and the rename below keeps that reader from seeing a torn file.
+ */
+const selectionWrites = new Map<string, Promise<unknown>>();
+
+async function serializedByPath<T>(path: string, run: () => Promise<T>): Promise<T> {
+  const previous = selectionWrites.get(path) ?? Promise.resolve();
+  const current = previous.then(run, run);
+  selectionWrites.set(path, current);
+  try {
+    return await current;
+  } finally {
+    if (selectionWrites.get(path) === current) selectionWrites.delete(path);
+  }
+}
+
+/**
  * Merges `incoming` into `rounds/r<N>/selection.json` and writes it back,
  * creating the round directory when the terminal loop has not yet made one.
+ * Serialized per file, and written to a sibling temp file then renamed over
+ * the target, so a crash mid-write leaves the previous file intact (BI-062).
  */
 export async function writeRoundSelection(
   root: string,
@@ -216,18 +252,23 @@ export async function writeRoundSelection(
   incoming: RoundSelectionTask[],
   selectedAt: string,
 ): Promise<Result<void>> {
-  const existing = await readRoundSelection(root, round);
-  if (!existing.ok) return existing;
-  const merged = mergeRoundSelection(existing.value, incoming, selectedAt);
   const target = await resolveUnderRoot(root, `rounds/r${round}/selection.json`);
   if (!target.ok) return target;
-  try {
-    await mkdir(join(root, 'rounds', `r${round}`), { recursive: true });
-    await writeFile(target.value, serializeRoundSelection(merged), 'utf8');
-    return { ok: true, value: undefined };
-  } catch {
-    return { ok: false, error: `Could not write rounds/r${round}/selection.json.` };
-  }
+  return serializedByPath(target.value, async (): Promise<Result<void>> => {
+    const existing = await readRoundSelection(root, round);
+    if (!existing.ok) return existing;
+    const merged = mergeRoundSelection(existing.value, incoming, selectedAt);
+    const temp = `${target.value}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      await mkdir(join(root, 'rounds', `r${round}`), { recursive: true });
+      await writeFile(temp, serializeRoundSelection(merged), 'utf8');
+      await rename(temp, target.value);
+      return { ok: true, value: undefined };
+    } catch {
+      await rm(temp, { force: true }).catch(() => undefined);
+      return { ok: false, error: `Could not write rounds/r${round}/selection.json.` };
+    }
+  });
 }
 
 /**
