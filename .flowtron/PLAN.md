@@ -10,7 +10,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — when `promoteApproved` fails in `handleImagegenApprove` (`lib/useWorkspace.ts`), roll the image decision back to its previous value as the conflict-decline branch already does; add a failing-promote case to `lib/useWorkspace.test.ts`. Surfaced by audit 2026-09-25 (Finding #4, Medium).
 - [ ] **BI-064** [light]🔧 [unattended] | adopter-docs-disk-era — rewrite `docs/WORKFLOW.md` steps 4 and 8/9 and `docs/ADOPT.md` §7 for the on-disk adopter flow: refs are staged in `imagegen/refs/<slug>.<ext>`, Approve already fills `imagegen/approved/`, and the Folder export targets a separate directory. Surfaced by audit 2026-09-25 (Finding #12, Medium; Finding #13, Medium).
 
 ## Low
@@ -25,6 +24,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — Completed 2026-09-25.
 - [x] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — Completed 2026-09-25.
 - [x] **BI-061** [heavy]🧠 | link-race-ownership — Completed 2026-09-25.
 

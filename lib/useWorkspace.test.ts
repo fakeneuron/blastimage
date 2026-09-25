@@ -670,6 +670,56 @@ describe('approve collision guard (BI-032)', () => {
       expect(image.feedback?.text).toBe('warmer tones');
     });
   });
+
+  it('a failed promote writes no entry, reverts the decision, and keeps the error (BI-063)', async () => {
+    const recording = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    const { selections } = recording;
+    const api: ImagegenApi = {
+      ...recording.api,
+      promoteApproved: async () => ({ ok: false, error: 'approved/ is read-only' }),
+    };
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'kept'));
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+
+    await waitFor(() => expect(result.current.error).toBe('approved/ is read-only'));
+    expect(selections).toHaveLength(0);
+    const task = result.current.session!.tasks.find((t) => t.id === taskId)!;
+    const image = task.iterations
+      .flatMap((it) => it.images)
+      .find((img) => img.id === imageIds[0]!)!;
+    expect(image.decision).toBe('kept');
+  });
+
+  it('a failed promote does not undo a decision changed while it was in flight (BI-063)', async () => {
+    const recording = recordingImagegen({ 1: roundBatch(1, ['hero-001.jpg']) });
+    let failPromote: () => void = () => {};
+    const api: ImagegenApi = {
+      ...recording.api,
+      promoteApproved: () =>
+        new Promise((resolve) => {
+          failPromote = () => resolve({ ok: false, error: 'approved/ is read-only' });
+        }),
+    };
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'kept'));
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'approved'));
+    await act(async () => result.current.setImageDecision(taskId, imageIds[0]!, 'discarded'));
+    await act(async () => failPromote());
+
+    await waitFor(() => expect(result.current.error).toBe('approved/ is read-only'));
+    const task = result.current.session!.tasks.find((t) => t.id === taskId)!;
+    const image = task.iterations
+      .flatMap((it) => it.images)
+      .find((img) => img.id === imageIds[0]!)!;
+    expect(image.decision).toBe('discarded');
+  });
 });
 
 /**

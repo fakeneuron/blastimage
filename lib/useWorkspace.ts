@@ -836,7 +836,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
    * in `selection.json`.
    *
    * `previous` is the decision held *before* the caller's `commit`, so a
-   * declined overwrite confirm (BI-032) can roll the decision back. The rollback
+   * declined overwrite confirm (BI-032) or a failed promote (BI-063) can roll
+   * the decision back — either way nothing reached `approved/`. The rollback
    * reads `sessionRef.current` — the *post*-commit session — so that
    * `submitFeedback`'s feedback text survives a declined approve and only the
    * decision field moves. (`handleImagegenUnapprove` deliberately uses the
@@ -855,6 +856,15 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const keeper = roundImageFilenameFromUrl(hit.image.url);
     if (round === null || !keeper) return;
 
+    const rollbackDecision = (): void => {
+      const current = sessionRef.current;
+      // Only undo this approve: a decision the user changed while the disk
+      // calls were in flight is theirs to keep.
+      if (current && findGeneratedImage(current, taskId, imageId)?.image.decision === 'approved') {
+        commit(setImageDecisionOn(current, taskId, imageId, previous ?? 'undecided'));
+      }
+    };
+
     // approved/ is flat and filename-keyed: the same task approved from two
     // rounds lands on one name. Ask before replacing a different image there.
     const conflict = await imagegen.approvedConflict(round, keeper);
@@ -869,10 +879,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
           .map((a) => roundNumberFromImageUrl(a.url))
           .find((r): r is number => r !== null) ?? null;
       if (!confirmApprovedOverwrite(keeper, priorRound)) {
-        const current = sessionRef.current;
-        if (current) {
-          commit(setImageDecisionOn(current, taskId, imageId, previous ?? 'undecided'));
-        }
+        rollbackDecision();
         return;
       }
     }
@@ -881,6 +888,8 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const selectedAt = new Date().toISOString();
     const promote = await imagegen.promoteApproved(round, keeper);
     if (!promote.ok) {
+      // Roll back before surfacing: commit() clears the error banner.
+      rollbackDecision();
       setError(promote.error);
       return;
     }
