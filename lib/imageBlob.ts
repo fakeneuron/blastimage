@@ -19,6 +19,7 @@
 
 import { imagegenFileUrl } from './imagegenClient';
 import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
+import { UNLINKED_FOLDER_MESSAGE } from './types';
 
 /** A root-bound {@link resolveImageBlob}, as injected into byte-consuming call sites. */
 export type ImageBlobResolver = (url: string) => Promise<Blob>;
@@ -31,7 +32,7 @@ export type ImageBlobResolver = (url: string) => Promise<Blob>;
  */
 export async function resolveImageBlob(url: string, root: string | null): Promise<Blob> {
   if (isImagegenUrl(url)) {
-    if (!root) throw new Error('Link your imagegen folder first (🔗 in the sidebar).');
+    if (!root) throw new Error(UNLINKED_FOLDER_MESSAGE);
     const res = await fetch(imagegenFileUrl(root, imagegenPathFromUrl(url), 0));
     if (!res.ok) throw new Error(`Could not read ${imagegenPathFromUrl(url)}.`);
     return res.blob();

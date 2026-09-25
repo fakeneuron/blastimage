@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import { guardImagegenRequest } from './imagegenGuard';
 import { resolveRoot } from './imagegenServerFs';
 import type { Result } from './storage';
+import { UNLINKED_FOLDER_MESSAGE } from './types';
 
 /** A 403 when the request must not proceed, else `null`. */
 export function refuseUnguarded(req: Request): NextResponse | null {
@@ -32,7 +33,7 @@ export function resultResponse<T>(result: Result<T>): NextResponse {
  * linked a folder, which is a caller error rather than a server one.
  */
 export async function rootFrom(raw: string | null | undefined): Promise<Result<string>> {
-  if (!raw) return { ok: false, error: 'Link your imagegen folder first (🔗 in the sidebar).' };
+  if (!raw) return { ok: false, error: UNLINKED_FOLDER_MESSAGE };
   return resolveRoot(raw);
 }
 

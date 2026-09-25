@@ -12,8 +12,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **CORE-7** [light]🔧 [unattended] | shared-result-and-strings — move `Result<T>` from `lib/storage.ts` to `lib/types.ts` (re-export from storage for now) and replace the five literal "Link your imagegen folder first" copies with one exported constant. Surfaced by audit 2026-09-25 (Finding #6, Low; Finding #5, Low).
-
 ## Future Opportunities
 
 - [ ] **DEPLOY-005** [light]🔧 | eslint-10-revisit — retry ESLint 9→10 once `eslint-plugin-react` supports ESLint 10. DEPLOY-003 measured the blocker: that plugin (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 — `context.getFilename is not a function` — and 7.37.5 is `latest`, so there is nothing to bump to. Everything else in the tree is already 10-ready; with `react/*` off, ESLint 10 lint this repo clean. Unblock check: `npm view eslint-plugin-react peerDependencies`. On landing, also drop the `eslint` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: still 7.37.5, peer still `^9.7`.
@@ -21,6 +19,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-7** [light]🔧 [unattended] | shared-result-and-strings — Completed 2026-09-25.
 - [x] **BI-065** [light]🔧 [unattended] | orphan-sweep — Completed 2026-09-25.
 - [x] **BI-064** [light]🔧 [unattended] | adopter-docs-disk-era — Completed 2026-09-25.
 - [x] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — Completed 2026-09-25.

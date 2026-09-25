@@ -11,11 +11,18 @@
  * {@link ExportManifest} on export.
  *
  * State is persisted to localStorage (BI-002). This file is type-only except
- * for {@link SCHEMA_VERSION}, which anchors the persisted model version.
+ * for {@link SCHEMA_VERSION}, which anchors the persisted model version, and
+ * the small constants below that the rest of the app shares.
  */
 
 /** Bump when the persisted shape changes in a non-backward-compatible way (BI-002 reads this). */
 export const SCHEMA_VERSION = 1;
+
+/** Discriminated result for operations that can fail with a user-facing reason. */
+export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
+
+/** The message every operation returns before a folder has been linked. */
+export const UNLINKED_FOLDER_MESSAGE = 'Link your imagegen folder first (🔗 in the sidebar).';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Primitives

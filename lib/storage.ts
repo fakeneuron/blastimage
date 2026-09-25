@@ -25,9 +25,12 @@ import {
   type ApprovedImage,
   type ExportManifest,
   type ID,
+  type Result,
   type Session,
   type Timestamp,
 } from './types';
+
+export type { Result } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Keys & result types
@@ -52,9 +55,6 @@ export interface SessionMeta {
    */
   imagegenRoot?: string | null;
 }
-
-/** Discriminated result for operations that can fail with a user-facing reason. */
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
 /**
  * Outcome of a session load (BI-030.4). BI-002 collapsed every failure into a

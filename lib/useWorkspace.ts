@@ -45,7 +45,7 @@ import type {
   Session,
   StarRating,
 } from './types';
-import { SCHEMA_VERSION } from './types';
+import { SCHEMA_VERSION, UNLINKED_FOLDER_MESSAGE } from './types';
 import {
   downloadBlob,
   downloadManifestBundle,
@@ -986,7 +986,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     if (!session) return;
     if (!imagegen.linked) {
       setNotice(null);
-      setError('Link your imagegen folder first (🔗 in the sidebar).');
+      setError(UNLINKED_FOLDER_MESSAGE);
       return;
     }
     const hit = findGeneratedImage(session, taskId, imageId);
@@ -1164,7 +1164,7 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const current = sessionRef.current;
     if (!current) return null;
     if (!imagegen.linked) {
-      setError('Link your imagegen folder first (🔗 in the sidebar).');
+      setError(UNLINKED_FOLDER_MESSAGE);
       return null;
     }
     if (round !== undefined) {

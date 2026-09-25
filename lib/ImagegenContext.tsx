@@ -55,9 +55,7 @@ import { imagegenPathFromUrl, isImagegenUrl } from './imagegenUrl';
 import type { RoundBatch, RoundSummary } from './roundBatch';
 import type { RoundSelectionTask } from './roundSelection';
 import type { Result } from './storage';
-
-/** The message every operation returns before a folder has been linked. */
-const UNLINKED = 'Link your imagegen folder first (🔗 in the sidebar).';
+import { UNLINKED_FOLDER_MESSAGE as UNLINKED } from './types';
 
 /**
  * What {@link ImagegenApi.setLinkedRoot} yields (BI-061). The `superseded`
