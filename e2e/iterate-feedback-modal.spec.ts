@@ -72,7 +72,10 @@ test.describe('iterate and feedback modals', () => {
       'aria-pressed',
       'true',
     );
-    await expect(page.getByText('Kept')).toBeVisible();
+    // Exact match: the Sidebar's sr-only progress badge (BI-060.2, e.g. "1 kept")
+    // substring-collides with a loose match under Playwright's default
+    // case-insensitive getByText (BI-060.5).
+    await expect(page.getByText('Kept', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Iterate →', disabled: false })).toBeVisible();
   });
 

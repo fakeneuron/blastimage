@@ -28,7 +28,10 @@ test.describe('review keyboard', () => {
 
     await keep.nth(0).click();
     await expect(keep.nth(0)).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByText('Kept')).toBeVisible();
+    // Exact match: the Sidebar's sr-only progress badge (BI-060.2, e.g. "1 kept")
+    // substring-collides with a loose match under Playwright's default
+    // case-insensitive getByText (BI-060.5).
+    await expect(page.getByText('Kept', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Iterate →', disabled: false })).toBeVisible();
 
     await discard.nth(1).click();
@@ -38,7 +41,7 @@ test.describe('review keyboard', () => {
     await approve.nth(0).click();
     await expect(approve.nth(0)).toHaveAttribute('aria-pressed', 'true');
     await expect(keep.nth(0)).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByText('Approved')).toBeVisible();
+    await expect(page.getByText('Approved', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Iterate →' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Folder' })).toBeVisible();
   });

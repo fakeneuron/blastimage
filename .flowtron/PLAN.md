@@ -13,7 +13,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **BI-060.2** [medium]🧩 | review-progress-status — Completed 2026-09-24.
   - [x] **BI-060.3** [heavy]🧠 | lightbox-review-surface — Completed 2026-09-24.
   - [x] **BI-060.4** [light]🔧 | viewer-mode-layout — Completed 2026-09-25.
-  - [ ] **BI-060.5** [light]🔧 | kept-badge-e2e-collision — `.N` audit found `.2`'s new sr-only Sidebar badge text ("1 kept") substring-collides with 2 pre-existing `e2e/*.spec.ts` `getByText('Kept')` assertions (Playwright's default match is case-insensitive substring). Fix: scope both assertions to `{ exact: true }`, which the error output already shows resolves uniquely — test-only, no product code.
+  - [x] **BI-060.5** [light]🔧 | kept-badge-e2e-collision — Completed 2026-09-25.
   - [x] **BI-060.N** [heavy]🧠 | review-ux-speed audit — Completed 2026-09-25.
 
 ## Medium
