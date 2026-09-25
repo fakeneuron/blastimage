@@ -32,7 +32,7 @@ imagegen/tasks.json + prompts/*.txt    ← the prompt set (host repo owns these;
         ▼
    imagegen/rounds/r<N+1>/ …   (repeat until satisfied)
         ▼
-   imagegen/approved/ + manifest.json   →   host repo promotes → public/…
+   imagegen/approved/ (+ export/manifest.json)   →   host repo promotes → public/…
 ```
 
 **Round 0 (optional ref bootstrap).** If `imagegen/refs/` is empty, run `/blast-generate`

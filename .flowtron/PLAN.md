@@ -10,8 +10,6 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-064** [light]🔧 [unattended] | adopter-docs-disk-era — rewrite `docs/WORKFLOW.md` steps 4 and 8/9 and `docs/ADOPT.md` §7 for the on-disk adopter flow: refs are staged in `imagegen/refs/<slug>.<ext>`, Approve already fills `imagegen/approved/`, and the Folder export targets a separate directory. Surfaced by audit 2026-09-25 (Finding #12, Medium; Finding #13, Medium).
-
 ## Low
 
 - [ ] **BI-065** [light]🔧 [unattended] | orphan-sweep — remove `refreshAvailableRounds` from `useWorkspace` and its `Workspace.test.tsx` stub; narrow `GenerationStatus` to `'ready'` (schema version unchanged) and correct `docs/GROK-AGENT.md:48`; drop `recognized` from the `/api/imagegen/link` POST response and `linkRoot`'s type; add `TERMINAL_BATCH_SIZE === DEFAULT_BATCH_SIZE` and `serializeRoundBatch` round-trip tests to `lib/terminalRound.test.ts`. Surfaced by audit 2026-09-25 (Finding #7, Medium; Findings #8–#10, Low).
@@ -24,6 +22,7 @@ See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-064** [light]🔧 [unattended] | adopter-docs-disk-era — Completed 2026-09-25.
 - [x] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — Completed 2026-09-25.
 - [x] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — Completed 2026-09-25.
 - [x] **BI-061** [heavy]🧠 | link-race-ownership — Completed 2026-09-25.

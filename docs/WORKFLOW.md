@@ -52,10 +52,17 @@ its base prompt, ready for references and generation.
 
 ### 4. Attach references
 
-Stage reference images in `imagegen/refs/` (kebab-case names, under the 2 MB
-cap), upload them through the in-app **Reference Library**, then activate up to 3
-per task. Resolution, sizing, framing, and naming guidance:
-[`docs/USAGE.md`](USAGE.md#reference-image-preparation).
+References are optional and **1:1 per task, on disk**: stage one image per task
+as `imagegen/refs/<slug>.<ext>`, where `<slug>` is the task name lowercased, with
+every run of non-alphanumerics turned into `-` and any leading or trailing `-`
+dropped (`Pressure relief — hero` → `pressure-relief-hero.jpg`). `/blast-generate` finds it by that name and passes
+it as the task's reference; there is no in-app upload step in this flow.
+
+No refs yet? Leave `refs/` empty and `/blast-generate` runs a prompt-only
+**round 0**: review it in blastimage, pick one winner per task, and the skill
+copies each winner to `refs/<slug>.<ext>` before the real run (see
+[`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1). Sizing, framing, and naming
+guidance: [`docs/USAGE.md`](USAGE.md#reference-image-preparation).
 
 ### 5. Generate
 
@@ -97,23 +104,32 @@ picks up the new round, then loop back to step 6 until the task has an image wor
 
 ### 8. Export
 
-From the Gallery panel, once a task (or the whole set) has approved images:
+The images are already on disk: each **Approve** copied its keeper into
+`imagegen/approved/` under its round filename (`<slug>-NNN.<ext>`). Export adds
+the provenance around them. From the Gallery panel:
 
-- **Folder** — writes every approved image plus `manifest.json` (full prompt
-  history, ratings, references used) into a directory you pick, in one gesture.
-  Point it at `imagegen/approved/`. On browsers without folder access it falls
+- **Folder** — writes `manifest.json` (full prompt history and ratings) plus a
+  copy of every approved image into a directory you pick, in one gesture. Point
+  it at **`imagegen/export/`**, not `approved/`: the export names its copies
+  `<task-slug>-<id8>.<ext>`, so aiming it at `approved/` would put a second copy
+  of every image there. On browsers without folder access it falls
   back to downloading each file individually.
 - **JSON** — downloads the provenance manifest on its own.
 - **Sheet** — downloads a self-contained `review.html` (embedded thumbnails +
   prompt, rating, and provenance per image) for the consistency pass in step 10.
+  Move it into `imagegen/export/` next to the manifest.
 
 ### 9. Land in the repo
 
-The export lands the manifest + images in `imagegen/approved/` (the canonical
-layout: [`docs/ADOPT.md`](ADOPT.md) §7). The manifest is the durable provenance
-record — commit it alongside the images so the set is reproducible. From
-`approved/`, copy or process images into your project's real asset pipeline
-(`public/`, `src/assets/`, …) as a separate, project-owned step.
+Commit `imagegen/approved/` together with `export/manifest.json` and
+`export/review.html` (the canonical layout: [`docs/ADOPT.md`](ADOPT.md) §7).
+Leave out the image copies the Folder export put in `export/` — they duplicate
+`approved/` — or use **JSON** instead of **Folder** to get the manifest alone
+(it downloads as `<session-slug>-export.json`; rename it to `manifest.json`).
+The manifest is the durable provenance record, so commit it with the images to
+keep the set reproducible. From `approved/`, copy or process images into your
+project's real asset pipeline (`public/`, `src/assets/`, …) as a separate,
+project-owned step.
 
 ### 10. Review the set for house style
 

@@ -117,7 +117,7 @@ same menu's **🛠 Build** action composes this file in-app — upload your
   prompt is allowed but the task won't be eligible for ⚡ Generate All until it
   gets a prompt or a reference).
 - Import **appends** to the current session — create or switch sessions first
-  if you want a clean slate. Reference photos are attached in-app afterwards.
+  if you want a clean slate. References are staged on disk in `refs/` (§7).
 
 Where this file (and everything around it) should live in your repo: see §7.
 
@@ -134,16 +134,18 @@ imagegen/
 ├─ prompts/
 │  └─ <task-name>.txt  ← prompt source, one file per task
 ├─ refs/
-│  └─ <slug>.<ext>     ← 1:1 reference per task (terminal skills + in-app upload)
+│  └─ <slug>.<ext>     ← optional 1:1 reference per task, read by /blast-generate
 ├─ rounds/
 │  └─ r<N>/
 │     ├─ batch.json    ← written by /blast-generate or /blast-iterate
 │     ├─ selection.json← written by blastimage after review
 │     └─ <slug>-NNN.<ext>
-└─ approved/
-   ├─ manifest.json    ← export provenance manifest
-   ├─ review.html      ← self-contained house-style review sheet
-   └─ *.png            ← exported approved images
+├─ approved/
+│  └─ <slug>-NNN.<ext> ← written by blastimage on Approve (keeper copied from rounds/)
+└─ export/
+   ├─ manifest.json    ← Gallery Folder export: provenance manifest
+   ├─ <task-slug>-<id8>.<ext> ← Folder export's image copies (duplicate approved/; don't commit)
+   └─ review.html      ← Gallery Sheet: self-contained house-style review sheet
 ```
 
 This layout is a **convention, not a requirement** — blastimage reads and writes only
@@ -160,24 +162,35 @@ name. This is the editable source of truth; `tasks.json` is the generated (or
 hand-assembled) artifact. Prompt-writing craft lives in
 [`docs/USAGE.md`](USAGE.md).
 
-**`refs/`** — reference images staged for upload through the in-app Reference
-Library. Keep each under the **2 MB upload cap** and use descriptive kebab-case
-names (`brand-palette-forest-gold.png`, not `IMG_4291.jpg`) — names surface in
-the UI and in the export manifest. Sizing and framing guidance:
+**`refs/`** — optional reference images, one per task, named
+`<slug>.<ext>` where `<slug>` is the task name lowercased, with every run of
+non-alphanumerics turned into `-` and any leading or trailing `-` dropped
+(`pressure-relief — hero` → `pressure-relief-hero.jpg`). `/blast-generate` reads them straight from disk and
+passes each as its task's reference; nothing is uploaded in-app. Leave `refs/`
+empty to have the skill bootstrap them from a prompt-only round 0
+([`docs/REVIEW-LOOP.md`](REVIEW-LOOP.md) §1). Sizing and framing guidance:
 [`docs/USAGE.md`](USAGE.md).
 
-**`approved/`** — the landing spot for gallery output. Three Gallery export
-actions feed it:
+**`approved/`** — the final images. blastimage writes it: **Approve** copies the
+keeper from `rounds/r<N>/` into `approved/` under its round filename, and
+clearing the approval removes that copy. It is flat and keyed by filename.
 
-- **Folder** — writes every approved image plus `manifest.json` (full
-  provenance: final prompts, prompt history, ratings, and the references used per
-  image) into a directory you pick, in one step. Point it straight at
-  `imagegen/approved/`. On browsers without folder access it falls back to
-  downloading each file individually (then move them here).
-- **JSON** — downloads the provenance manifest on its own.
+**`export/`** — the provenance around the approved set, written by the Gallery
+export actions. Keep it out of `approved/`: the Folder export names its image
+copies differently, so pointing it at `approved/` duplicates every image there.
+
+- **Folder** — writes `manifest.json` (provenance: final prompts, prompt
+  history, and ratings) plus a copy of every approved image into a directory you
+  pick, in one step. Point it at `imagegen/export/`. On browsers without folder
+  access it falls back to downloading each file individually (then move them
+  here). The image copies duplicate `approved/`; commit only the manifest.
+- **JSON** — downloads the provenance manifest on its own, as
+  `<session-slug>-export.json`; rename it to `export/manifest.json` for the
+  copy-free way to fill it.
 - **Sheet** — downloads `review.html`, a self-contained house-style review sheet
-  (embedded thumbnails + prompt, rating, and provenance per image). Commit it
-  alongside the manifest so the consistency decision travels with the assets.
+  (embedded thumbnails + prompt, rating, and provenance per image). Move it here
+  and commit it alongside the manifest so the consistency decision travels with
+  the assets.
 
 From `approved/`, copy or process images into your project's real asset
 pipeline (`public/`, `src/assets/`, …) as a separate, project-owned step. The
