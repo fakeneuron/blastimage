@@ -24,7 +24,7 @@ htmlcov/
 playwright-report*/
 test-results/
 .playwright-mcp/
-.flowtron/screenshots/
+.flaitron/screenshots/
 
 # Tool caches
 .pytest_cache/
