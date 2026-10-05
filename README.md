@@ -74,4 +74,4 @@ A stored project written by a different schema version — or one whose saved da
 - [`docs/ADOPT.md`](docs/ADOPT.md) — how to add blastimage as a git submodule in another project
 - [`docs/GROK-AGENT.md`](docs/GROK-AGENT.md) — Grok Build integration guide for wiring real Grok Imagine
 - [`CLAUDE.md`](CLAUDE.md) — coding standards and AI workflow
-- [`.flowtron/PLAN.md`](.flowtron/PLAN.md) — task plan and status
+- [`.flaitron/PLAN.md`](.flaitron/PLAN.md) — task plan and status

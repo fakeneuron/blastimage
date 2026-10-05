@@ -4,7 +4,7 @@
 
 blastimage is a local Next.js application that helps create the many images needed for new or refreshed websites. Users define multiple prompt tasks, optionally attach reference photos, generate batches of candidate images with Grok Imagine, and work through an iterative review loop: keep the best results, discard the rest, attach targeted feedback to promising ones, and generate refined batches from the keepers until satisfied. Approved images are automatically collected with full provenance and can be exported together with a manifest.
 
-See [.flowtron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
+See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 

@@ -15,7 +15,7 @@ updates:
       # ESLint 10. That plugin arrives transitively with `eslint-config-next`
       # and crashes at rule load on 10 (`context.getFilename` was removed);
       # 7.37.5 is `latest`, so there is nothing to bump to. Measured in
-      # DEPLOY-003 — see `.flowtron/tasknote/archive/deployment/DEPLOY-003.md`
+      # DEPLOY-003 — see `.flaitron/tasknote/archive/deployment/DEPLOY-003.md`
       # for the probe. Drop this entry when DEPLOY-005 lands.
       - dependency-name: "eslint"
         update-types:
@@ -26,7 +26,7 @@ updates:
       # `createProgram`). Microsoft's dual-install (typescript →
       # @typescript/typescript6) then breaks Next 16.3.3 package detection.
       # tsc and next build are already clean on 7.0.2. Measured in
-      # DEPLOY-004 — see `.flowtron/tasknote/archive/deployment/DEPLOY-004.md`
+      # DEPLOY-004 — see `.flaitron/tasknote/archive/deployment/DEPLOY-004.md`
       # for the probe. Drop this entry when DEPLOY-006 lands.
       - dependency-name: "typescript"
         update-types:
@@ -38,7 +38,7 @@ updates:
       # like eslint/typescript above, so there's no revisit task to unblock
       # it — bump this in lockstep with a future engines.node major bump
       # instead. Closed in DEPLOY-009.3 — see
-      # `.flowtron/tasknote/archive/deployment/DEPLOY-009.3.md`.
+      # `.flaitron/tasknote/archive/deployment/DEPLOY-009.3.md`.
       - dependency-name: "@types/node"
         update-types:
           - "version-update:semver-major"

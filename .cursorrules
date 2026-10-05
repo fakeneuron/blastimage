@@ -9,6 +9,6 @@ Follow them for workflow, non-negotiables, architecture, task lifecycle, and ski
 
 **Skill definitions:** `.claude/skills/*/SKILL.md` or `.claude/commands/*.md`
 
-**Task initiation:** Before implementation, ensure `.flowtron/tasknote/<TASK-ID>.md` exists (run `/ft-task <TASK-ID>` if missing) and read it.
+**Task initiation:** Before implementation, ensure `.flaitron/tasknote/<TASK-ID>.md` exists (run `/ft-task <TASK-ID>` if missing) and read it.
 
 **Agent commits:** When committing as the agent, append `Signed-off-by:` plus the current session's agent/model identifier.
