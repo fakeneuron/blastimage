@@ -16,4 +16,4 @@ Local Next.js application for coordinated AI image generation workflows. Users d
 
 ## Workflow
 
-Active tasks live in `.flaitron/PLAN.md`. Task lifecycle is governed by flowtron (`/ft-task`).
+Active tasks live in `.flaitron/PLAN.md`. Task lifecycle is governed by flaitron (`/ft-task`).

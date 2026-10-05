@@ -10,8 +10,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **CORE-009** [medium] | flaitron rename review — Review 2 live `flowtron` references found after CORE-711.7; rename or document each intentional historical retention. Routed from [[NAT-355]].
-
 ## Low
 
 ## Future Opportunities
@@ -21,6 +19,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-009** [medium] | flaitron rename review — Completed 2026-10-05.
 - [x] **CORE-7** [light]🔧 [unattended] | shared-result-and-strings — Completed 2026-09-25.
 - [x] **BI-065** [light]🔧 [unattended] | orphan-sweep — Completed 2026-09-25.
 - [x] **BI-064** [light]🔧 [unattended] | adopter-docs-disk-era — Completed 2026-09-25.

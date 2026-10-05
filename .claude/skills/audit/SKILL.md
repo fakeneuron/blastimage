@@ -1,6 +1,6 @@
 ---
 name: audit
-description: blastimage (Next.js 16 / TypeScript) audit — thin overlay over flowtron's bundled `ft-audit` (runs its passes by reference, applies the project deltas below). Forked from flowtron's audit-overlay template; see `docs/MIGRATION.md` §1.2.1.
+description: blastimage (Next.js 16 / TypeScript) audit — thin overlay over flaitron's bundled `ft-audit` (runs its passes by reference, applies the project deltas below). Forked from flaitron's audit-overlay template; see `docs/MIGRATION.md` §1.2.1.
 flaitron-reconciled: v5.33.0
 flaitron-tracks: ft-audit
 ---
@@ -8,7 +8,7 @@ flaitron-tracks: ft-audit
 # audit — thin overlay over `ft-audit`
 
 > **Overlay skill.** This file does NOT restate the audit procedure. It points
-> at flowtron's bundled scaffold and supplies only what diverges for this
+> at flaitron's bundled scaffold and supplies only what diverges for this
 > project. First action on every run: read the referenced scaffold below and
 > run **its** procedure, finding format, closing sections, and hard rules —
 > substituting the `## Deltas` values for the scaffold's `<placeholder>` slots.
