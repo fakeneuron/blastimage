@@ -9,7 +9,7 @@ npm install
 npm run dev   # http://localhost:3003
 npm test      # vitest + happy-dom
 npx playwright install chromium   # once
-npm run e2e   # Playwright on :3009 (`just dev` on :3003 can stay up)
+npm run test:e2e   # Playwright on :3009 (`just dev` on :3003 can stay up)
 ```
 
 Commits are gated by a [gitleaks](https://github.com/gitleaks/gitleaks) secret

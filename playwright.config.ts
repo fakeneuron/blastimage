@@ -17,8 +17,15 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  ...(process.env.CI ? { workers: 1 } : {}),
-  reporter: process.env.CI ? "github" : "list",
+  // Cap local runs at 2 — the fanless M3 Air thermal-throttles above that and
+  // flakes; CI runs serial for determinism (natabula spine, TEST-010).
+  workers: process.env.CI ? 1 : 2,
+  // `open: "never"`: the html reporter's default serves the report after a
+  // failed local run and blocks the terminal until Ctrl+C (TEST-010).
+  reporter: [
+    [process.env.CI ? "github" : "list"],
+    ["html", { open: "never" }],
+  ],
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
     trace: "on-first-retry",
@@ -35,5 +42,8 @@ export default defineConfig({
     reuseExistingServer: false,
     env: { NEXT_E2E_BUILD: "1" },
     timeout: 120_000,
+    // Fleet spine (natabula NAT-186.3): SIGTERM first so `next dev` tears down
+    // instead of being SIGKILLed. No orphan reproduced here without it (TEST-010).
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
   },
 });

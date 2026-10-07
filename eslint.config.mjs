@@ -66,7 +66,7 @@ const eslintConfig = tseslint.config(
       "next-env.d.ts",
       ".flaitron/**",
       // Playwright output dirs (TEST-007.2). Gitignored, but a local
-      // `npm run e2e` leaves them on disk and flat config would lint them.
+      // `npm run test:e2e` leaves them on disk and flat config would lint them.
       "playwright-report/**",
       "test-results/**",
     ],

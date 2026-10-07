@@ -10,7 +10,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **TEST-010** [light] | playwright-spine — At d55e11d, playwright.config.ts:32 webServer has no `gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 }`, so Playwright SIGKILLs the `next dev` tree and orphans its children (the stray-process class natabula NAT-186.3 closed fleet-wide); also no local worker cap (:20 sets workers only in CI; spine is `process.env.CI ? 1 : 2`), no html reporter (:21), and the script is `e2e` (package.json:17) rather than the spine's `test:e2e`. Bring the config to the natabula STACK-TENDENCIES §"End-to-end testing (Playwright)" spine; verify `npx playwright test` leaves no `next` processes behind. Found by natabula fleet audit 2026-10-07.
 
 ## Low
 
@@ -24,6 +23,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **TEST-010** [light] | playwright-spine — Completed 2026-10-07.
 - [x] **CORE-009** [medium] | flaitron rename review — Completed 2026-10-05.
 - [x] **CORE-7** [light]🔧 [unattended] | shared-result-and-strings — Completed 2026-09-25.
 - [x] **BI-065** [light]🔧 [unattended] | orphan-sweep — Completed 2026-09-25.
