@@ -14,7 +14,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 
 - [ ] **BI-066** [light] | docs-layering — At d55e11d, AGENTS.md:1-22 is only the Flaitron Workflow block; the project and stack doctrine lives only in CLAUDE.md:5-15, so non-Claude agents never see it. Move agent-neutral sections into AGENTS.md outside the Workflow block and keep CLAUDE.md thin with a pointer (natabula docs/MIGRATION.md §3). Found by natabula fleet audit 2026-10-07.
-- [ ] **TEST-011** [light] | e2e-report-artifact — CI e2e job writes `playwright-report/` (TEST-010 html reporter) but never uploads it; add `actions/upload-artifact` with `if: failure()` in `.github/workflows/ci.yml`.
 
 ## Future Opportunities
 
@@ -23,6 +22,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **TEST-011** [light] | e2e-report-artifact — Completed 2026-10-07.
 - [x] **TEST-010** [light] | playwright-spine — Completed 2026-10-07.
 - [x] **CORE-009** [medium] | flaitron rename review — Completed 2026-10-05.
 - [x] **CORE-7** [light]🔧 [unattended] | shared-result-and-strings — Completed 2026-09-25.
