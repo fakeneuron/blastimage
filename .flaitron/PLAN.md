@@ -10,7 +10,11 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
+- [ ] **TEST-010** [light] | playwright-spine — At d55e11d, playwright.config.ts:32 webServer has no `gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 }`, so Playwright SIGKILLs the `next dev` tree and orphans its children (the stray-process class natabula NAT-186.3 closed fleet-wide); also no local worker cap (:20 sets workers only in CI; spine is `process.env.CI ? 1 : 2`), no html reporter (:21), and the script is `e2e` (package.json:17) rather than the spine's `test:e2e`. Bring the config to the natabula STACK-TENDENCIES §"End-to-end testing (Playwright)" spine; verify `npx playwright test` leaves no `next` processes behind. Found by natabula fleet audit 2026-10-07.
+
 ## Low
+
+- [ ] **BI-066** [light] | docs-layering — At d55e11d, AGENTS.md:1-22 is only the Flaitron Workflow block; the project and stack doctrine lives only in CLAUDE.md:5-15, so non-Claude agents never see it. Move agent-neutral sections into AGENTS.md outside the Workflow block and keep CLAUDE.md thin with a pointer (natabula docs/MIGRATION.md §3). Found by natabula fleet audit 2026-10-07.
 
 ## Future Opportunities
 
