@@ -12,7 +12,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **DEPLOY-010.2** [light]🔧 [unattended] | runtime-advisories — Completed 2026-10-08.
   - [x] **DEPLOY-010.3** [light]🔧 [unattended] | setup-node-align — Completed 2026-10-08.
   - [x] **DEPLOY-010.4** [light]🔧 [unattended] | readme-doctrine-pointer — Completed 2026-10-08.
-  - [ ] **DEPLOY-010.5** [light]🔧 | push-and-ci-green — main is 9+ commits ahead of origin (last CI 2026-09-30); operator pushes and confirms all three CI jobs green 📡
+  - [x] **DEPLOY-010.5** [light]🔧 | push-and-ci-green — Completed 2026-10-08.
   - [ ] **DEPLOY-010.N** [light]🔧 [unattended] | gates-green audit
 
 ## Medium
