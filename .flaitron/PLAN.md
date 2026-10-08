@@ -8,12 +8,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **DEPLOY-EPIC-010** [light]🔧 | gates-green — Milestone 0: clear runtime advisories, re-verify on CI, fix small drift. Discovery supplied by audit-repo 2026-10-07. Surfaced by audit-repo 2026-10-07 (Theme: The dependency gate fell behind the advisory feed)
-  - [x] **DEPLOY-010.2** [light]🔧 [unattended] | runtime-advisories — Completed 2026-10-08.
-  - [x] **DEPLOY-010.3** [light]🔧 [unattended] | setup-node-align — Completed 2026-10-08.
-  - [x] **DEPLOY-010.4** [light]🔧 [unattended] | readme-doctrine-pointer — Completed 2026-10-08.
-  - [x] **DEPLOY-010.5** [light]🔧 | push-and-ci-green — Completed 2026-10-08.
-  - [ ] **DEPLOY-010.N** [light]🔧 [unattended] | gates-green audit
+(none)
 
 ## Medium
 
@@ -27,6 +22,13 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **DEPLOY-EPIC-010** [light]🔧 | gates-green — Completed 2026-10-08.
+  - [x] **DEPLOY-010.2** [light]🔧 [unattended] | runtime-advisories — Completed 2026-10-08.
+  - [x] **DEPLOY-010.3** [light]🔧 [unattended] | setup-node-align — Completed 2026-10-08.
+  - [x] **DEPLOY-010.4** [light]🔧 [unattended] | readme-doctrine-pointer — Completed 2026-10-08.
+  - [x] **DEPLOY-010.5** [light]🔧 | push-and-ci-green — Completed 2026-10-08.
+  - [x] **DEPLOY-010.N** [light]🔧 [unattended] | gates-green audit — Completed 2026-10-08.
 
 - [x] **CORE-010** [light]🔧 | ci-setup-node-pin — Completed 2026-10-08.
 - [x] **BI-066** [light] | docs-layering — Completed 2026-10-07.
