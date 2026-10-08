@@ -19,7 +19,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 
 ## Low
-- [ ] **CORE-010** [light]🔧 | ci-setup-node-pin — `.github/workflows/ci.yml:32` pins `actions/setup-node@v7` while the e2e job at `:141` still pins `@v6` (a partial Dependabot bump). Unify on one version (natabula STACK-TENDENCIES §"Continuous integration" action floor). Surfaced by natabula-fleet-audit 2026-10-08 (Finding D7, Low) at `75065e0`.
 
 
 ## Future Opportunities
@@ -29,6 +28,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-010** [light]🔧 | ci-setup-node-pin — Completed 2026-10-08.
 - [x] **BI-066** [light] | docs-layering — Completed 2026-10-07.
 - [x] **TEST-011** [light] | e2e-report-artifact — Completed 2026-10-07.
 - [x] **TEST-010** [light] | playwright-spine — Completed 2026-10-07.
