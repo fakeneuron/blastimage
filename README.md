@@ -73,5 +73,5 @@ A stored project written by a different schema version — or one whose saved da
 - [`docs/USAGE.md`](docs/USAGE.md) — prompt-writing conventions and reference image preparation
 - [`docs/ADOPT.md`](docs/ADOPT.md) — how to add blastimage as a git submodule in another project
 - [`docs/GROK-AGENT.md`](docs/GROK-AGENT.md) — Grok Build integration guide for wiring real Grok Imagine
-- [`CLAUDE.md`](CLAUDE.md) — coding standards and AI workflow
+- [`AGENTS.md`](AGENTS.md) — coding standards and AI workflow (agent-neutral SSOT; [`CLAUDE.md`](CLAUDE.md) is the Claude-only addendum)
 - [`.flaitron/PLAN.md`](.flaitron/PLAN.md) — task plan and status

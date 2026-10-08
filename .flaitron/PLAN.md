@@ -11,7 +11,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-EPIC-010** [light]🔧 | gates-green — Milestone 0: clear runtime advisories, re-verify on CI, fix small drift. Discovery supplied by audit-repo 2026-10-07. Surfaced by audit-repo 2026-10-07 (Theme: The dependency gate fell behind the advisory feed)
   - [x] **DEPLOY-010.2** [light]🔧 [unattended] | runtime-advisories — Completed 2026-10-08.
   - [ ] **DEPLOY-010.3** [light]🔧 [unattended] | setup-node-align — e2e job pins `actions/setup-node@v6` while the main job runs `@v7` (`.github/workflows/ci.yml:141`); align to v7.
-  - [ ] **DEPLOY-010.4** [light]🔧 [unattended] | readme-doctrine-pointer — `README.md:76` lists `CLAUDE.md` as "coding standards and AI workflow"; since BI-066 that lives in `AGENTS.md`. Point the Docs list at `AGENTS.md`, keep `CLAUDE.md` as the Claude addendum.
+  - [x] **DEPLOY-010.4** [light]🔧 [unattended] | readme-doctrine-pointer — Completed 2026-10-08.
   - [ ] **DEPLOY-010.5** [light]🔧 | push-and-ci-green — main is 9+ commits ahead of origin (last CI 2026-09-30); operator pushes and confirms all three CI jobs green 📡
   - [ ] **DEPLOY-010.N** [light]🔧 [unattended] | gates-green audit
 
