@@ -13,7 +13,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-010.3** [light]🔧 [unattended] | setup-node-align — e2e job pins `actions/setup-node@v6` while the main job runs `@v7` (`.github/workflows/ci.yml:141`); align to v7.
   - [ ] **DEPLOY-010.4** [light]🔧 [unattended] | readme-doctrine-pointer — `README.md:76` lists `CLAUDE.md` as "coding standards and AI workflow"; since BI-066 that lives in `AGENTS.md`. Point the Docs list at `AGENTS.md`, keep `CLAUDE.md` as the Claude addendum.
   - [ ] **DEPLOY-010.5** [light]🔧 | push-and-ci-green — main is 9+ commits ahead of origin (last CI 2026-09-30); operator pushes and confirms all three CI jobs green 📡
-  - [ ] **DEPLOY-010.N** [light]🔧 | gates-green audit
+  - [ ] **DEPLOY-010.N** [light]🔧 [unattended] | gates-green audit
 
 ## Medium
 
