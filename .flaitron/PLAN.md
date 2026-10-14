@@ -13,6 +13,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 
+- [ ] **CORE-011** [heavy] | brand-pilot-manifest — Declare brand/assets.json v1 with a stable project ID, copy evidence and truthful public review/provenance for existing marks and promo. Validate the pinned kit for Natabula NAT-415.5 positive export/derivation pilot. Preserve CORE-6 artwork; export approval is a separate operator decision.
+
 ## Low
 
 
