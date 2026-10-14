@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "project_id": "2c478fff-f154-46f1-8efe-98c8680d3d3e",
+  "display_name": "blastimage",
+  "copy_source": "brand/BRAND.md",
+  "copy_evidence": {
+    "tagline": [
+      "README.md"
+    ],
+    "one_liner": [
+      "README.md",
+      "docs/REVIEW-LOOP.md",
+      "docs/GROK-AGENT.md"
+    ],
+    "description": [
+      "README.md",
+      "docs/ADOPT.md",
+      "docs/REVIEW-LOOP.md",
+      "docs/GROK-AGENT.md"
+    ]
+  },
+  "assets": [
+    {
+      "id": "symbol",
+      "path": "brand/logo.svg",
+      "role": "symbol",
+      "media_type": "image/svg+xml",
+      "dimensions": {
+        "width": 100,
+        "height": 100
+      },
+      "variant": "default",
+      "background": "transparent",
+      "audience": "public",
+      "review": "approved",
+      "provenance": {
+        "origin": "generated",
+        "source_paths": [],
+        "note_path": "brand/PROMPTS.md"
+      }
+    },
+    {
+      "id": "favicon",
+      "path": "brand/favicon.svg",
+      "role": "favicon",
+      "media_type": "image/svg+xml",
+      "dimensions": {
+        "width": 100,
+        "height": 100
+      },
+      "variant": "default",
+      "background": "transparent",
+      "audience": "public",
+      "review": "approved",
+      "provenance": {
+        "origin": "generated",
+        "source_paths": [
+          "brand/logo.svg"
+        ],
+        "note_path": "brand/PROMPTS.md"
+      }
+    },
+    {
+      "id": "promo",
+      "path": "brand/promo-16x9.webp",
+      "role": "promo",
+      "media_type": "image/webp",
+      "dimensions": {
+        "width": 1600,
+        "height": 900
+      },
+      "variant": "default",
+      "background": "dark",
+      "audience": "public",
+      "review": "approved",
+      "provenance": {
+        "origin": "generated",
+        "source_paths": [
+          "brand/logo.svg"
+        ],
+        "note_path": "brand/PROMPTS.md"
+      }
+    }
+  ]
+}

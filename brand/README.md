@@ -15,14 +15,64 @@ optional model, per-asset source path or prompt, what not to change).
 Present, **not counted** — same class as this README, never a fifth kit
 file.
 
-Only `BRAND.md` and this README are deposited; the three assets and
-`PROMPTS.md` are yours to add when the kit is filled. Presence of the
-four counted files is reported (never enforced) by natabula's
+This kit was filled and visually confirmed in
+[CORE-6](../.flaitron/tasknote/archive/core/CORE-6.md) on 2026-09-24.
+Presence of the four counted files is reported (never enforced) by natabula's
 `/natabula-layer-drift`. Standard (SSOT):
 `~/Code/natabula/docs/DESIGN-STANDARDS.md` §"Brand kit". Tab-trio magick:
 `~/Code/natabula/docs/STACK-TENDENCIES.md` §Favicons.
 
-## How to fill (producer session)
+## Manifest and evidence
+
+[`assets.json`](assets.json) is the optional v1 producer declaration. It is
+not a fifth counted kit file. Project ID
+`2c478fff-f154-46f1-8efe-98c8680d3d3e` belongs to blastimage and stays fixed
+across name, path and remote changes; a distinct product or fork allocates
+its own UUID. Asset IDs `symbol`, `favicon` and `promo` identify the existing
+files. Copy stays in [`BRAND.md`](BRAND.md); manifest evidence paths point
+to the committed product and generation-mode docs rather than duplicate copy.
+Evidence supports owner assertions, not an automatic semantic-freshness verdict.
+
+The logo is a symbol, not a wordmark or horizontal lockup. SVG dimensions
+are the 100×100 viewBox extents, not a recommended display size. The promo
+is an original 1600×900 landscape composition, not a product screenshot.
+It supports `card-landscape` and `promo-landscape`; `social-og` remains
+missing because 16:9 is not 40:21. No optional screenshot, social asset,
+separate card, crop guidance or lifecycle/release/visibility/availability/URL
+claim is declared.
+
+All three assets retain the historical `generated` origin from
+[`PROMPTS.md`](PROMPTS.md): code-drawn in-session, with no image model.
+The logo is original geometry. The favicon is a manual simplification of
+that mark, and the promo is a new composition incorporating it; their
+`source_paths` identify the committed logo reference. They are not recorded
+as reproducible `derived` assets: no recipe/version/parameters are recoverable.
+The promo's intermediate SVG was not retained; PROMPTS records its layout,
+renderer and encoding, not a missing source file. Installed `app/` icons
+are documented in PROMPTS and remain outside this brand manifest.
+
+`audience: public` records the intended public identity-kit use.
+`review: approved` records the producer's suitability/taste review: CORE-6
+documents the operator's concept B selection and final logo, favicon,
+promo, tab-icon and blurb confirmation ("go"). That history applies to the
+unchanged kit landed in commit `a57d31f4a128481c4856a4dc6c62d3d772f255b1`.
+Neither field authorizes an export. Natabula NAT-415.5 owns a later separate
+approval of exact selected items and source revisions, bundle export and
+consumer import/derivation receipts. CORE-011 adds producer metadata only.
+
+Validation reads committed blobs from an exact producer revision:
+
+```sh
+bash ~/Code/natabula/scripts/validate-brand.sh . --revision <full-commit>
+# Optional coverage input: --requests /path/to/requests.json
+```
+
+Contract and validator for CORE-011 were read at Natabula commit
+`a78a1d9562f8aafb6c6c9a7b1c746d76f895c4cc`; see DESIGN-STANDARDS §"Brand
+manifest v1" for schema, coverage and permission boundaries. Validation
+does not approve, export or import anything.
+
+## When replacing artwork (producer session)
 
 Run this from **this repo**, attended. Do not run it from natabula HQ.
 Do not run it unattended. Caobunga is not the runner.

@@ -13,7 +13,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Medium
 
 
-- [ ] **CORE-011** [heavy] | brand-pilot-manifest — Declare brand/assets.json v1 with a stable project ID, copy evidence and truthful public review/provenance for existing marks and promo. Validate the pinned kit for Natabula NAT-415.5 positive export/derivation pilot. Preserve CORE-6 artwork; export approval is a separate operator decision.
+(none)
 
 ## Low
 
@@ -24,6 +24,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **CORE-011** [heavy] | brand-pilot-manifest — Completed 2026-10-14.
 
 - [x] **DEPLOY-EPIC-010** [light]🔧 | gates-green — Completed 2026-10-08.
   - [x] **DEPLOY-010.2** [light]🔧 [unattended] | runtime-advisories — Completed 2026-10-08.
