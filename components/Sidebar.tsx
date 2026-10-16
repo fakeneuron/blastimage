@@ -7,7 +7,8 @@
  * rounds list + refresh, tasks + New task, and Generate All only when the
  * bridge is installed. Project New/Switch, Link imagegen, backup Export/Import,
  * Build, and Import tasks live in a ⋯ disclosure. Project New/Rename edit
- * inline (BI-053.2); task New/Rename still use native dialogs. Delete routes
+ * inline (BI-053.2) through {@link SidebarDraftInput} (BI-067.3); task
+ * New/Rename still use native dialogs. Delete routes
  * to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on
  * disk does not fit a `window.confirm` (BI-033). The import file-read (DOM
  * concern) lives here, per the ReferenceLibrary precedent; parse/validate/merge
@@ -33,6 +34,8 @@ import type { ID, ReviewDecision, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
 import type { RoundSummary } from '@/lib/roundBatch';
 import { decisionCounts, imagegenRootLabel, projectNameFromRoot } from '@/lib/workspace';
+
+import SidebarDraftInput from './SidebarDraftInput';
 
 /**
  * Task-row progress badges (BI-060.2), in display order. The glyph is what shows;
@@ -136,15 +139,6 @@ export default function Sidebar({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [draftKind, setDraftKind] = useState<'new' | 'rename' | null>(null);
-  const [draftValue, setDraftValue] = useState('');
-  // Enter unmounts the input, which fires blur in the browser; the ref is what
-  // makes the second submitDraft a no-op (setState would still see the old kind).
-  const draftKindRef = useRef<'new' | 'rename' | null>(null);
-  const draftInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (draftKind) draftInputRef.current?.focus();
-  }, [draftKind]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -164,35 +158,14 @@ export default function Sidebar({
     };
   }, [menuOpen]);
 
-  function openDraft(kind: 'new' | 'rename'): void {
-    draftKindRef.current = kind;
-    setDraftKind(kind);
-    setDraftValue(kind === 'rename' ? session.name : '');
-  }
-
-  function cancelDraft(): void {
-    draftKindRef.current = null;
+  function closeDraft(): void {
     setDraftKind(null);
-    setDraftValue('');
   }
 
-  function submitDraft(): void {
-    const kind = draftKindRef.current;
-    if (!kind) return;
-    const name = draftValue.trim();
-    cancelDraft();
+  function commitDraft(kind: 'new' | 'rename', name: string): void {
+    closeDraft();
     if (kind === 'new' && name) onCreateSession(name);
     if (kind === 'rename' && name) onRenameSession(name);
-  }
-
-  function handleDraftKey(e: React.KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      submitDraft();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancelDraft();
-    }
   }
 
   function handleAddTask() {
@@ -220,14 +193,12 @@ export default function Sidebar({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             {draftKind === 'rename' ? (
-              <input
-                ref={draftInputRef}
-                aria-label="Project name"
+              <SidebarDraftInput
+                ariaLabel="Project name"
                 className="w-full rounded border border-black/15 bg-background px-2 py-1 text-sm dark:border-white/15"
-                value={draftValue}
-                onChange={(e) => setDraftValue(e.target.value)}
-                onKeyDown={handleDraftKey}
-                onBlur={submitDraft}
+                initialValue={session.name}
+                onSubmit={(name) => commitDraft('rename', name)}
+                onCancel={closeDraft}
               />
             ) : (
               <button
@@ -235,7 +206,7 @@ export default function Sidebar({
                 className="block max-w-full truncate text-left"
                 aria-label={`Rename ${session.name}`}
                 title="Rename project"
-                onClick={() => openDraft('rename')}
+                onClick={() => setDraftKind('rename')}
               >
                 <h2 className="truncate text-sm font-medium">{session.name}</h2>
               </button>
@@ -279,15 +250,13 @@ export default function Sidebar({
           </button>
         </div>
         {draftKind === 'new' ? (
-          <input
-            ref={draftInputRef}
-            aria-label="New project name"
+          <SidebarDraftInput
+            ariaLabel="New project name"
             placeholder="Project name"
             className="mt-2 w-full rounded border border-black/15 bg-background px-2 py-1 text-sm dark:border-white/15"
-            value={draftValue}
-            onChange={(e) => setDraftValue(e.target.value)}
-            onKeyDown={handleDraftKey}
-            onBlur={submitDraft}
+            initialValue=""
+            onSubmit={(name) => commitDraft('new', name)}
+            onCancel={closeDraft}
           />
         ) : null}
         {menuOpen ? (
@@ -320,7 +289,7 @@ export default function Sidebar({
               type="button"
               className={menuBtnClass}
               aria-label="New project"
-              onClick={() => openMenuAction(() => openDraft('new'))}
+              onClick={() => openMenuAction(() => setDraftKind('new'))}
             >
               + New
             </button>

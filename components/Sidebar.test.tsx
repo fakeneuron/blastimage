@@ -589,8 +589,8 @@ describe('Sidebar progress badges (BI-060.2)', () => {
  * component. Everything asserts through callbacks, roles, and focus, so the tests
  * survive the move.
  *
- * The double-submit guard (`draftKindRef`) only matters for a blur that reaches
- * `submitDraft` after Enter has submitted but before React has removed the input,
+ * The double-submit guard (`settledRef` in SidebarDraftInput, BI-067.3) only matters
+ * for a blur that reaches submit after Enter has submitted but before React has removed the input,
  * while the render closure still sees the old draft state. happy-dom never blurs
  * the input by itself, and a blur sent after the removal never reaches React (the
  * root listener cannot see a detached node) — which is why the original Enter-then-
