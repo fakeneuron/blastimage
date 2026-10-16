@@ -21,7 +21,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import Sidebar from './Sidebar';
 import { roundImageUrl } from '@/lib/imagegenUrl';
@@ -579,5 +579,350 @@ describe('Sidebar progress badges (BI-060.2)', () => {
     render(<Sidebar {...makeProps({ session: makeSession({ tasks: [task] }), currentRound: 2 })} />);
 
     expect(screen.getByRole('button', { name: 'Hero banner' })).toBeTruthy();
+  });
+});
+
+/**
+ * Draft input characterization (BI-067.2)
+ *
+ * Pins the inline New / Rename draft before BI-067.3 moves it into its own
+ * component. Everything asserts through callbacks, roles, and focus, so the tests
+ * survive the move.
+ *
+ * The double-submit guard (`draftKindRef`) only matters for a blur that reaches
+ * `submitDraft` after Enter has submitted but before React has removed the input,
+ * while the render closure still sees the old draft state. happy-dom never blurs
+ * the input by itself, and a blur sent after the removal never reaches React (the
+ * root listener cannot see a detached node) — which is why the original Enter-then-
+ * blur test passed with the guard deleted. `commitThenBlur` delivers the blur from
+ * inside the commit callback, which is that window.
+ */
+describe('Sidebar project draft input (BI-067.2)', () => {
+  function commitThenBlur(getInput: () => HTMLInputElement) {
+    const handler = vi.fn<(name: string) => void>(() => {
+      if (handler.mock.calls.length === 1) fireEvent.blur(getInput());
+    });
+    return handler;
+  }
+
+  function openNewDraft(): HTMLInputElement {
+    openProjectMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    return screen.getByRole('textbox', { name: 'New project name' });
+  }
+
+  function openRenameDraft(): HTMLInputElement {
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Demo Site' }));
+    return screen.getByRole('textbox', { name: 'Project name' });
+  }
+
+  it('focuses the New draft input when it opens', () => {
+    render(<Sidebar {...makeProps()} />);
+    const input = openNewDraft();
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('focuses the Rename draft input when it opens', () => {
+    render(<Sidebar {...makeProps()} />);
+    const input = openRenameDraft();
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('commits a New draft on blur alone', () => {
+    const onCreateSession = vi.fn();
+    render(<Sidebar {...makeProps({ onCreateSession })} />);
+
+    const input = openNewDraft();
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.blur(input);
+
+    expect(onCreateSession).toHaveBeenCalledTimes(1);
+    expect(onCreateSession).toHaveBeenCalledWith('Acme Site');
+    expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
+  });
+
+  it('commits a Rename draft on blur alone', () => {
+    const onRenameSession = vi.fn();
+    render(<Sidebar {...makeProps({ onRenameSession })} />);
+
+    const input = openRenameDraft();
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.blur(input);
+
+    expect(onRenameSession).toHaveBeenCalledTimes(1);
+    expect(onRenameSession).toHaveBeenCalledWith('Acme Site');
+    expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
+  });
+
+  it('submits a New draft once when a blur lands while Enter is still committing it', () => {
+    const onCreateSession = commitThenBlur(() =>
+      screen.getByRole('textbox', { name: 'New project name' }),
+    );
+    render(<Sidebar {...makeProps({ onCreateSession })} />);
+
+    const input = openNewDraft();
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onCreateSession).toHaveBeenCalledTimes(1);
+    expect(onCreateSession).toHaveBeenCalledWith('Acme Site');
+  });
+
+  it('submits a Rename draft once when a blur lands while Enter is still committing it', () => {
+    const onRenameSession = commitThenBlur(() =>
+      screen.getByRole('textbox', { name: 'Project name' }),
+    );
+    render(<Sidebar {...makeProps({ onRenameSession })} />);
+
+    const input = openRenameDraft();
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onRenameSession).toHaveBeenCalledTimes(1);
+    expect(onRenameSession).toHaveBeenCalledWith('Acme Site');
+  });
+
+  it('discards a typed New draft on Escape', () => {
+    const onCreateSession = vi.fn();
+    render(<Sidebar {...makeProps({ onCreateSession })} />);
+
+    const input = openNewDraft();
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(onCreateSession).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
+
+    // The discarded text does not come back when the draft is opened again.
+    expect(openNewDraft().value).toBe('');
+  });
+
+  it('discards a typed Rename draft on Escape and reopens with the current name', () => {
+    const onRenameSession = vi.fn();
+    render(<Sidebar {...makeProps({ onRenameSession })} />);
+
+    const input = openRenameDraft();
+    fireEvent.change(input, { target: { value: 'Acme Site' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(onRenameSession).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Rename Demo Site' })).toBeTruthy();
+    expect(openRenameDraft().value).toBe('Demo Site');
+  });
+
+  it('trims the name before committing', () => {
+    const onCreateSession = vi.fn();
+    const onRenameSession = vi.fn();
+    render(<Sidebar {...makeProps({ onCreateSession, onRenameSession })} />);
+
+    const renameInput = openRenameDraft();
+    fireEvent.change(renameInput, { target: { value: '  Acme Site  ' } });
+    fireEvent.keyDown(renameInput, { key: 'Enter' });
+    expect(onRenameSession).toHaveBeenCalledWith('Acme Site');
+
+    const newInput = openNewDraft();
+    fireEvent.change(newInput, { target: { value: '  Beta  ' } });
+    fireEvent.keyDown(newInput, { key: 'Enter' });
+    expect(onCreateSession).toHaveBeenCalledWith('Beta');
+  });
+
+  it('treats a blank or whitespace-only draft as a no-op that still closes the input', () => {
+    const onCreateSession = vi.fn();
+    const onRenameSession = vi.fn();
+    render(<Sidebar {...makeProps({ onCreateSession, onRenameSession })} />);
+
+    const renameInput = openRenameDraft();
+    fireEvent.change(renameInput, { target: { value: '' } });
+    fireEvent.keyDown(renameInput, { key: 'Enter' });
+    expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
+
+    const renameBlurInput = openRenameDraft();
+    fireEvent.change(renameBlurInput, { target: { value: '   ' } });
+    fireEvent.blur(renameBlurInput);
+    expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
+
+    const newInput = openNewDraft();
+    fireEvent.change(newInput, { target: { value: '   ' } });
+    fireEvent.keyDown(newInput, { key: 'Enter' });
+    expect(screen.queryByRole('textbox', { name: 'New project name' })).toBeNull();
+
+    expect(onRenameSession).not.toHaveBeenCalled();
+    expect(onCreateSession).not.toHaveBeenCalled();
+  });
+
+  it('hides the Use {repo} offer while a draft is open and restores it after', () => {
+    render(<Sidebar {...makeProps({ imagegenRoot: '/Users/dev/Code/spinalcord/imagegen' })} />);
+    expect(screen.getByRole('button', { name: 'Use spinalcord' })).toBeTruthy();
+
+    const renameInput = openRenameDraft();
+    expect(screen.queryByRole('button', { name: 'Use spinalcord' })).toBeNull();
+    fireEvent.keyDown(renameInput, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'Use spinalcord' })).toBeTruthy();
+
+    const newInput = openNewDraft();
+    expect(screen.queryByRole('button', { name: 'Use spinalcord' })).toBeNull();
+    fireEvent.keyDown(newInput, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'Use spinalcord' })).toBeTruthy();
+  });
+});
+
+/**
+ * Project menu characterization (BI-067.2)
+ *
+ * Pins the ⋯ disclosure's open/close contract before BI-067.4 moves it into its
+ * own component: what dismisses it, what does not, and that every action closes
+ * it before firing. Presence of the individual buttons is already pinned above.
+ */
+describe('Sidebar project menu (BI-067.2)', () => {
+  const menuOpen = (): boolean => screen.queryByRole('combobox', { name: 'Project' }) !== null;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('toggles from the ⋯ button and reports it through aria-expanded', () => {
+    render(<Sidebar {...makeProps()} />);
+    const toggle = screen.getByRole('button', { name: 'Project menu' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(menuOpen()).toBe(false);
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(menuOpen()).toBe(true);
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(menuOpen()).toBe(false);
+  });
+
+  it('closes on a pointerdown outside the menu', () => {
+    render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(menuOpen()).toBe(false);
+  });
+
+  it('stays open on a pointerdown inside the menu or on the ⋯ button', () => {
+    render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
+
+    fireEvent.pointerDown(screen.getByRole('combobox', { name: 'Project' }));
+    expect(menuOpen()).toBe(true);
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Export project backup' }));
+    expect(menuOpen()).toBe(true);
+
+    // The ⋯ button is exempt so its own click toggles instead of close-then-reopen.
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Project menu' }));
+    expect(menuOpen()).toBe(true);
+  });
+
+  it('closes on Escape and ignores other keys', () => {
+    render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
+
+    fireEvent.keyDown(document, { key: 'Enter' });
+    expect(menuOpen()).toBe(true);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(menuOpen()).toBe(false);
+  });
+
+  it('fires each direct action once and closes the menu', () => {
+    const onLinkImagegen = vi.fn();
+    const onExportSession = vi.fn();
+    const onOpenBuilder = vi.fn();
+    render(<Sidebar {...makeProps({ onLinkImagegen, onExportSession, onOpenBuilder })} />);
+
+    for (const [name, handler] of [
+      ['Link imagegen', onLinkImagegen],
+      ['Export project backup', onExportSession],
+      ['Build task-import file', onOpenBuilder],
+    ] as const) {
+      openProjectMenu();
+      fireEvent.click(screen.getByRole('button', { name }));
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(menuOpen()).toBe(false);
+    }
+  });
+
+  it('routes each Import button to its own hidden file input and closes the menu', async () => {
+    const onImportSession = vi.fn();
+    const onImportTasks = vi.fn();
+    const clicked: HTMLInputElement[] = [];
+    vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function (
+      this: HTMLInputElement,
+    ) {
+      clicked.push(this);
+    });
+    render(<Sidebar {...makeProps({ onImportSession, onImportTasks })} />);
+
+    openProjectMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'Import project backup' }));
+    expect(menuOpen()).toBe(false);
+
+    openProjectMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'Import tasks from JSON' }));
+    expect(menuOpen()).toBe(false);
+
+    expect(clicked).toHaveLength(2);
+    const [sessionInput, tasksInput] = clicked as [HTMLInputElement, HTMLInputElement];
+    expect(sessionInput).not.toBe(tasksInput);
+    expect(sessionInput.type).toBe('file');
+    expect(tasksInput.type).toBe('file');
+
+    // The inputs outlive the closed menu, and each feeds only its own handler.
+    expect(sessionInput.isConnected).toBe(true);
+    expect(tasksInput.isConnected).toBe(true);
+    fireEvent.change(sessionInput, {
+      target: { files: [new File(['{"session":1}'], 'backup.json')] },
+    });
+    await waitFor(() => expect(onImportSession).toHaveBeenCalledWith('{"session":1}'));
+    expect(onImportTasks).not.toHaveBeenCalled();
+
+    fireEvent.change(tasksInput, {
+      target: { files: [new File(['{"tasks":1}'], 'tasks.json')] },
+    });
+    await waitFor(() => expect(onImportTasks).toHaveBeenCalledWith('{"tasks":1}'));
+    expect(onImportSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes when New project opens the draft input', () => {
+    render(<Sidebar {...makeProps()} />);
+    openProjectMenu();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+
+    expect(menuOpen()).toBe(false);
+    expect(screen.getByRole('textbox', { name: 'New project name' })).toBeTruthy();
+  });
+
+  it('switches project from the select and closes the menu', () => {
+    const onSwitchSession = vi.fn();
+    const session = makeSession();
+    render(
+      <Sidebar
+        {...makeProps({
+          session,
+          sessions: [
+            { id: session.id, name: session.name, updatedAt: session.updatedAt },
+            { id: 's2', name: 'Other Site', updatedAt: session.updatedAt },
+          ],
+          onSwitchSession,
+        })}
+      />,
+    );
+    openProjectMenu();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Project' }), {
+      target: { value: 's2' },
+    });
+
+    expect(onSwitchSession).toHaveBeenCalledTimes(1);
+    expect(onSwitchSession).toHaveBeenCalledWith('s2');
+    expect(menuOpen()).toBe(false);
   });
 });
