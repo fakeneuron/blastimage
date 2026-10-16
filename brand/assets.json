@@ -81,5 +81,23 @@
         "note_path": "brand/PROMPTS.md"
       }
     }
-  ]
+  ],
+  "public_metadata": {
+    "disclosure": {
+      "value": "listed",
+      "evidence_paths": []
+    },
+    "release_stage": {
+      "value": "beta",
+      "evidence_paths": []
+    },
+    "public_availability": {
+      "value": "available",
+      "evidence_paths": []
+    },
+    "source_visibility": {
+      "value": "public",
+      "evidence_paths": []
+    }
+  }
 }
