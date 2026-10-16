@@ -12,6 +12,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
+- [ ] **CORE-012** [medium] | brand-chamber-reference — Attended, in this repo: generate a 16:9 `chamber-reference` visual reference for Fakeneuron (role `visual-reference`, ≥1280×720, png/jpeg/webp, no tunnel crop). Record `origin: generated` and the prompt in `brand/PROMPTS.md`, declare it in `brand/assets.json` at asset review `draft`, then a person confirms `in-review → approved` (natabula `examples/visual-reference-approval.json`, checked with `brand-workflow.sh transition`). Feeds fakeneuron FE-127.
+
 - [ ] **BI-EPIC-067** [medium]🧩 | sidebar-split — Split Sidebar.tsx's inline draft input and project ⋯ menu into their own components, behavior-preserving (filed via /ft-refactor; plan on the child starters).
   - [x] **BI-067.2** [light]🔧 | sidebar-pin-draft — Completed 2026-10-15.
   - [ ] **BI-067.3** [medium]🧩 | sidebar-draft-input — Extract the new/rename draft input into a SidebarDraftInput component; behavior-preserving, Sidebar props unchanged.
