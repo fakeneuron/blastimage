@@ -12,8 +12,11 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-
-(none)
+- [ ] **BI-EPIC-067** [medium]🧩 | sidebar-split — Split Sidebar.tsx's inline draft input and project ⋯ menu into their own components, behavior-preserving (filed via /ft-refactor; plan on the child starters).
+  - [ ] **BI-067.2** [light]🔧 | sidebar-pin-draft — Pin uncovered Sidebar draft/menu behavior (Enter/blur double-submit, Escape cancel) with characterization tests before restructuring; thins if Sidebar.test.tsx already pins it.
+  - [ ] **BI-067.3** [medium]🧩 | sidebar-draft-input — Extract the new/rename draft input into a SidebarDraftInput component; behavior-preserving, Sidebar props unchanged.
+  - [ ] **BI-067.4** [medium]🧩 | sidebar-project-menu — Extract the project ⋯ menu into a ProjectMenu component; behavior-preserving, Sidebar props unchanged.
+  - [ ] **BI-067.N** [medium]🧩 | sidebar-split audit — Verify the extracted seams held and Sidebar behavior remains pinned by tests.
 
 ## Low
 
