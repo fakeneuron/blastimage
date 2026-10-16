@@ -6,7 +6,8 @@
  * Visible rail (BI-053.5): project header (name, repo, Viewer/In-app badge),
  * rounds list + refresh, tasks + New task, and Generate All only when the
  * bridge is installed. Project New/Switch, Link imagegen, backup Export/Import,
- * Build, and Import tasks live in a ⋯ disclosure. Project New/Rename edit
+ * Build, and Import tasks live in a ⋯ disclosure, {@link ProjectMenu}
+ * (BI-067.4). Project New/Rename edit
  * inline (BI-053.2) through {@link SidebarDraftInput} (BI-067.3); task
  * New/Rename still use native dialogs. Delete routes
  * to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on
@@ -17,24 +18,24 @@
  *
  * Accessible naming (BI-035.3): every button carries an explicit `aria-label`,
  * because the glyph-bearing ones would otherwise be named by their content —
- * `✎`, `🗑`, and `⋯` announce as bare glyphs, and the two `Import` buttons
- * announce identically. Each label *contains* its button's visible text (WCAG
+ * `✎` and `🗑` (and {@link ProjectMenu}'s `⋯`) announce as bare glyphs, and the
+ * two `Import` buttons in that menu announce identically. Each label *contains* its button's visible text (WCAG
  * 2.5.3 Label in Name), which is why the round chips are "View round r1" /
  * "Reload round r1", not "View round 1", and the header rename control is
  * "Rename {name}". `title`
  * stays alongside: it is the hover tooltip and carries detail the name should
  * not (the Generate All disabled reason, the chips' `rounds/rN/batch.json`
- * path). The project `<select>` is named the native way instead —
- * `htmlFor`/`id` on the visible "Project" label inside the ⋯ panel.
+ * path).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { ID, ReviewDecision, Session } from '@/lib/types';
 import type { SessionMeta } from '@/lib/storage';
 import type { RoundSummary } from '@/lib/roundBatch';
 import { decisionCounts, imagegenRootLabel, projectNameFromRoot } from '@/lib/workspace';
 
+import ProjectMenu from './ProjectMenu';
 import SidebarDraftInput from './SidebarDraftInput';
 
 /**
@@ -135,28 +136,7 @@ export default function Sidebar({
   const refreshLabel = 'Refresh rounds';
   const importInputRef = useRef<HTMLInputElement>(null);
   const sessionImportInputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [draftKind, setDraftKind] = useState<'new' | 'rename' | null>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onPointerDown(e: PointerEvent): void {
-      const t = e.target as Node;
-      if (menuRef.current?.contains(t) || menuButtonRef.current?.contains(t)) return;
-      setMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') setMenuOpen(false);
-    }
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [menuOpen]);
 
   function closeDraft(): void {
     setDraftKind(null);
@@ -178,19 +158,11 @@ export default function Sidebar({
     if (name && name.trim()) onRenameTask(id, name);
   }
 
-  function openMenuAction(action: () => void): void {
-    setMenuOpen(false);
-    action();
-  }
-
-  const menuBtnClass =
-    'w-full rounded border border-black/15 px-2 py-1 text-left text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10';
-
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col border-r border-black/10 bg-black/[.02] dark:border-white/10 dark:bg-white/[.02]">
       {/* Project header (BI-053.2 / BI-053.5): name, repo, mode; actions in ⋯. */}
-      <div className="relative border-b border-black/10 p-3 dark:border-white/10">
-        <div className="flex items-start justify-between gap-2">
+      <div className="border-b border-black/10 p-3 dark:border-white/10">
+        <div className="relative flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             {draftKind === 'rename' ? (
               <SidebarDraftInput
@@ -237,17 +209,19 @@ export default function Sidebar({
               {generationAvailable ? 'In-app' : 'Viewer'}
             </span>
           </div>
-          <button
-            ref={menuButtonRef}
-            type="button"
-            className="shrink-0 rounded border border-black/15 px-2 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-            aria-label="Project menu"
-            aria-expanded={menuOpen}
-            aria-haspopup="true"
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            ⋯
-          </button>
+          <ProjectMenu
+            sessions={sessions}
+            sessionId={session.id}
+            onSwitchSession={onSwitchSession}
+            onNewProject={() => setDraftKind('new')}
+            imagegenRoot={imagegenRoot}
+            imagegenLabel={imagegenLabel}
+            onLinkImagegen={onLinkImagegen}
+            onExportSession={onExportSession}
+            onImportSessionClick={() => sessionImportInputRef.current?.click()}
+            onOpenBuilder={onOpenBuilder}
+            onImportTasksClick={() => importInputRef.current?.click()}
+          />
         </div>
         {draftKind === 'new' ? (
           <SidebarDraftInput
@@ -258,93 +232,6 @@ export default function Sidebar({
             onSubmit={(name) => commitDraft('new', name)}
             onCancel={closeDraft}
           />
-        ) : null}
-        {menuOpen ? (
-          <div
-            ref={menuRef}
-            className="absolute inset-x-3 z-10 mt-2 flex flex-col gap-1.5 rounded border border-black/15 bg-background p-2 shadow-md dark:border-white/15"
-          >
-            <label
-              htmlFor="project-select"
-              className="text-xs font-medium uppercase tracking-wide opacity-60"
-            >
-              Project
-            </label>
-            <select
-              id="project-select"
-              className="w-full rounded border border-black/15 bg-background px-2 py-1.5 text-sm dark:border-white/15"
-              value={session.id}
-              onChange={(e) => {
-                setMenuOpen(false);
-                onSwitchSession(e.target.value);
-              }}
-            >
-              {sessions.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={menuBtnClass}
-              aria-label="New project"
-              onClick={() => openMenuAction(() => setDraftKind('new'))}
-            >
-              + New
-            </button>
-            <button
-              type="button"
-              className={`${menuBtnClass} ${
-                imagegenLinked ? 'border-green-500/50 text-green-700 dark:text-green-400' : ''
-              }`}
-              title={
-                imagegenRoot
-                  ? `This project is linked to ${imagegenRoot} — click to link a different folder`
-                  : "Link this project's imagegen/ folder (standard location per ADOPT.md §7)"
-              }
-              aria-label={imagegenRoot ? `imagegen linked: ${imagegenLabel}` : 'Link imagegen'}
-              onClick={() => openMenuAction(onLinkImagegen)}
-            >
-              {imagegenLinked ? `🔗 ${imagegenLabel}` : '🔗 Link imagegen'}
-            </button>
-            <button
-              type="button"
-              className={menuBtnClass}
-              title="Download this project as a full backup (.json)"
-              aria-label="Export project backup"
-              onClick={() => openMenuAction(onExportSession)}
-            >
-              ⤓ Export
-            </button>
-            <button
-              type="button"
-              className={menuBtnClass}
-              title="Import a project backup (.json) as a new project"
-              aria-label="Import project backup"
-              onClick={() => openMenuAction(() => sessionImportInputRef.current?.click())}
-            >
-              ⤒ Import
-            </button>
-            <button
-              type="button"
-              className={menuBtnClass}
-              title="Build a task-import file (tasks.json) from pasted prompts or prompts/*.txt"
-              aria-label="Build task-import file"
-              onClick={() => openMenuAction(onOpenBuilder)}
-            >
-              🛠 Build
-            </button>
-            <button
-              type="button"
-              className={menuBtnClass}
-              title="Import tasks from a JSON file ({version, tasks: [{name, basePrompt}]})"
-              aria-label="Import tasks from JSON"
-              onClick={() => openMenuAction(() => importInputRef.current?.click())}
-            >
-              ⇪ Import
-            </button>
-          </div>
         ) : null}
         <input
           ref={sessionImportInputRef}
