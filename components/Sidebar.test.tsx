@@ -585,13 +585,14 @@ describe('Sidebar progress badges (BI-060.2)', () => {
 /**
  * Draft input characterization (BI-067.2)
  *
- * Pins the inline New / Rename draft before BI-067.3 moves it into its own
- * component. Everything asserts through callbacks, roles, and focus, so the tests
- * survive the move.
+ * Pinned the inline New / Rename draft before BI-067.3 moved it into
+ * SidebarDraftInput. Everything asserts through callbacks, roles, and focus, so
+ * the tests survived the move.
  *
- * The double-submit guard (`settledRef` in SidebarDraftInput, BI-067.3) only matters
- * for a blur that reaches submit after Enter has submitted but before React has removed the input,
- * while the render closure still sees the old draft state. happy-dom never blurs
+ * The double-submit guard (`settledRef` in SidebarDraftInput, BI-067.3) only
+ * matters for a blur that reaches submit after Enter has submitted but before
+ * React has removed the input, while the render closure still sees the old draft
+ * state. happy-dom never blurs
  * the input by itself, and a blur sent after the removal never reaches React (the
  * root listener cannot see a detached node) — which is why the original Enter-then-
  * blur test passed with the guard deleted. `commitThenBlur` delivers the blur from
@@ -770,9 +771,9 @@ describe('Sidebar project draft input (BI-067.2)', () => {
 /**
  * Project menu characterization (BI-067.2)
  *
- * Pins the ⋯ disclosure's open/close contract before BI-067.4 moves it into its
- * own component: what dismisses it, what does not, and that every action closes
- * it before firing. Presence of the individual buttons is already pinned above.
+ * Pinned the ⋯ disclosure's open/close contract before BI-067.4 moved it into
+ * ProjectMenu: what dismisses it, what does not, and that every action closes it
+ * before firing. Presence of the individual buttons is already pinned above.
  */
 describe('Sidebar project menu (BI-067.2)', () => {
   const menuOpen = (): boolean => screen.queryByRole('combobox', { name: 'Project' }) !== null;

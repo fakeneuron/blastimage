@@ -7,10 +7,9 @@
  * rounds list + refresh, tasks + New task, and Generate All only when the
  * bridge is installed. Project New/Switch, Link imagegen, backup Export/Import,
  * Build, and Import tasks live in a ⋯ disclosure, {@link ProjectMenu}
- * (BI-067.4). Project New/Rename edit
- * inline (BI-053.2) through {@link SidebarDraftInput} (BI-067.3); task
- * New/Rename still use native dialogs. Delete routes
- * to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on
+ * (BI-067.4). Project New/Rename edit inline (BI-053.2) through
+ * {@link SidebarDraftInput} (BI-067.3); task New/Rename still use native
+ * dialogs. Delete routes to {@link DeleteTaskModal} via `onDeleteTask`, because what it severs on
  * disk does not fit a `window.confirm` (BI-033). The import file-read (DOM
  * concern) lives here, per the ReferenceLibrary precedent; parse/validate/merge
  * live in lib (BI-019). Hidden file inputs stay mounted outside the ⋯ panel so
@@ -19,13 +18,12 @@
  * Accessible naming (BI-035.3): every button carries an explicit `aria-label`,
  * because the glyph-bearing ones would otherwise be named by their content —
  * `✎` and `🗑` (and {@link ProjectMenu}'s `⋯`) announce as bare glyphs, and the
- * two `Import` buttons in that menu announce identically. Each label *contains* its button's visible text (WCAG
- * 2.5.3 Label in Name), which is why the round chips are "View round r1" /
- * "Reload round r1", not "View round 1", and the header rename control is
- * "Rename {name}". `title`
- * stays alongside: it is the hover tooltip and carries detail the name should
- * not (the Generate All disabled reason, the chips' `rounds/rN/batch.json`
- * path).
+ * two `Import` buttons in that menu announce identically. Each label *contains*
+ * its button's visible text (WCAG 2.5.3 Label in Name), which is why the round
+ * chips are "View round r1" / "Reload round r1", not "View round 1", and the
+ * header rename control is "Rename {name}". `title` stays alongside: it is the
+ * hover tooltip and carries detail the name should not (the Generate All
+ * disabled reason, the chips' `rounds/rN/batch.json` path).
  */
 
 import { useRef, useState } from 'react';
