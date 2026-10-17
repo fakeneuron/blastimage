@@ -12,7 +12,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-(none)
+- [ ] **DEPLOY-011** [medium]🧩 | landing-page — producer landing for blastimage.com from natabula `templates/landing/` (Astro, Cloudflare Worker, apex canonical, `www`→apex redirect), copy from `brand/BRAND.md`, prelaunch noindex. Decide first: `landing/` placement, since blastimage is an adoptable submodule and every adopter checks it out.
 
 ## Low
 
