@@ -16,7 +16,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **DEPLOY-012** [light] | personal-config-audit — confirm git tracks no personal or machine-specific config (`.vscode/`, workspace file, `.claude/`, absolute paths, emails, hostnames); repo is public and adopter-checked-out.
+- [ ] **DEPLOY-012** [light] [unattended] | personal-config-audit — confirm git tracks no personal or machine-specific config (`.vscode/`, workspace file, `.claude/`, absolute paths, emails, hostnames); repo is public and adopter-checked-out.
 
 ## Future Opportunities
 
