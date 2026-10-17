@@ -78,6 +78,21 @@ until a real 1600 × 900 exists).
 - The text is set in a system font at render time. Re-render on a
   machine with Helvetica Neue, or accept the fallback metrics.
 
+## chamber-reference
+
+- origin: generated
+- date: 2026-10-16
+- model: Grok 4.7 Imagine
+- path: `brand/chamber-reference.jpg`
+- role: `visual-reference`
+- size: 1280×720 JPEG. Exact 16:9. The shipped file is the model's output, not a crop and not an upscale.
+- Chamber style: the same dark ribbed organic tunnel and green bioluminescent cell ring as flaitron's chamber, so the two stills read as one series. The operator's cinematic portal stills stay with the operator. They were not in this session. The image input was flaitron's shipped `brand/chamber-reference.jpg`. `brand/logo.svg` was not an image input.
+- Source mark: the essence of `brand/logo.svg` — one violet photo tile with a mountain and sun, bursting into a halo of candidate cards and plasma-orange rays. The raster was not placed in the frame. The manifest `source_paths` lists `brand/logo.svg` only, because that is the mark this prompt describes and a source path has to live in this repo. The flaitron still is the image input and is not a source path.
+- Method: one `image_edit` pass. The prompt carried the mark. The shipped pixels are that generation. No second pass. No crop and no upscale.
+- Prompt: A wide cinematic chamber seen from inside a dark ribbed organic tunnel, looking through a round portal like these chambers. A thick crown of green bioluminescent cells rings the aperture. The hologram filling the opening is a loose, glowing impression of one image blasting into many: a single violet photo tile at the centre with a faint mountain and sun inside it, bursting outward into a halo of smaller floating image cards and plasma-orange rays of light, one card glowing brighter like a keeper. Violet and orange light in soft mist, fluid and luminous, dark plated ribs widening into a 16:9 frame. No text.
+- This file is not `promo-16x9.webp`. Fakeneuron owns tunnel architecture, creatures, camera, lighting, keyframes, video, and card composition.
+- Asset review starts at `draft` on 2026-10-16. The person confirmed these pixels on 2026-10-17. Review is `approved`. That confirm is producer taste. It is not export approval.
+
 ## What not to change
 
 - Violet tile + orange rays. The two colours are the brand: violet is

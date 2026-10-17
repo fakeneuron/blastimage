@@ -12,7 +12,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **CORE-012** [medium] | brand-chamber-reference — Attended, in this repo: generate a 16:9 `chamber-reference` visual reference for Fakeneuron (role `visual-reference`, ≥1280×720, png/jpeg/webp, no tunnel crop). Record `origin: generated` and the prompt in `brand/PROMPTS.md`, declare it in `brand/assets.json` at asset review `draft`, then a person confirms `in-review → approved` (natabula `examples/visual-reference-approval.json`, checked with `brand-workflow.sh transition`). Feeds fakeneuron FE-127.
+(none)
 
 ## Low
 
@@ -23,6 +23,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **CORE-012** [medium] | brand-chamber-reference — Completed 2026-10-17.
 
 - [x] **BI-EPIC-067** [medium]🧩 | sidebar-split — Completed 2026-10-16.
   - [x] **BI-067.2** [light]🔧 | sidebar-pin-draft — Completed 2026-10-15.

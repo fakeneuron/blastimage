@@ -24,12 +24,15 @@ Presence of the four counted files is reported (never enforced) by natabula's
 
 ## Manifest and evidence
 
-[`assets.json`](assets.json) is the optional v1 producer declaration. It is
-not a fifth counted kit file. Project ID
+[`assets.json`](assets.json) is the optional v2 producer declaration. It is
+not a fifth counted kit file. Schema v2 stores each review as an object
+(`state`, `updated_on`, `evidence_paths`). Project ID
 `2c478fff-f154-46f1-8efe-98c8680d3d3e` belongs to blastimage and stays fixed
 across name, path and remote changes; a distinct product or fork allocates
 its own UUID. Asset IDs `symbol`, `favicon` and `promo` identify the existing
-files. Copy stays in [`BRAND.md`](BRAND.md); manifest evidence paths point
+files. `chamber-reference` identifies `brand/chamber-reference.jpg`, an
+uncounted visual reference. It is not `promo-16x9.webp` and does not
+replace that hero. Copy stays in [`BRAND.md`](BRAND.md); manifest evidence paths point
 to the committed product and generation-mode docs rather than duplicate copy.
 Evidence supports owner assertions, not an automatic semantic-freshness verdict.
 
@@ -50,12 +53,20 @@ as reproducible `derived` assets: no recipe/version/parameters are recoverable.
 The promo's intermediate SVG was not retained; PROMPTS records its layout,
 renderer and encoding, not a missing source file. Installed `app/` icons
 are documented in PROMPTS and remain outside this brand manifest.
+`chamber-reference` is `origin: generated` (Grok Imagine, 2026-10-16).
+[`PROMPTS.md`](PROMPTS.md) records the prompt, the flaitron chamber still
+used as the image input, and why `source_paths` names `brand/logo.svg`
+even though that file was not placed in the frame. The person
+confirmed these pixels on 2026-10-17. Review is `approved`.
 
 `audience: public` records the intended public identity-kit use.
-`review: approved` records the producer's suitability/taste review: CORE-6
-documents the operator's concept B selection and final logo, favicon,
-promo, tab-icon and blurb confirmation ("go"). That history applies to the
-unchanged kit landed in commit `a57d31f4a128481c4856a4dc6c62d3d772f255b1`.
+`review: approved` on `symbol`, `favicon` and `promo` records the
+producer's suitability/taste review: CORE-6 documents the operator's
+concept B selection and final logo, favicon, promo, tab-icon and blurb
+confirmation ("go"). That history applies to the unchanged kit landed
+in commit `a57d31f4a128481c4856a4dc6c62d3d772f255b1`. Those three reviews
+are v2 objects dated 2026-09-24, evidenced by the CORE-6 tasknote.
+`chamber-reference` stays `draft` until a person confirms its pixels.
 Neither field authorizes an export. Natabula NAT-415.5 owns a later separate
 approval of exact selected items and source revisions, bundle export and
 consumer import/derivation receipts. CORE-011 adds producer metadata only.
@@ -69,7 +80,8 @@ bash ~/Code/natabula/scripts/validate-brand.sh . --revision <full-commit>
 
 Contract and validator for CORE-011 were read at Natabula commit
 `a78a1d9562f8aafb6c6c9a7b1c746d76f895c4cc`; see DESIGN-STANDARDS §"Brand
-manifest v1" for schema, coverage and permission boundaries. Validation
+manifest v1" for schema, coverage and permission boundaries. This
+manifest is schema v2; the validator accepts v1 and v2. Validation
 does not approve, export or import anything.
 
 ## When replacing artwork (producer session)

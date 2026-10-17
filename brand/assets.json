@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_id": "2c478fff-f154-46f1-8efe-98c8680d3d3e",
   "display_name": "blastimage",
   "copy_source": "brand/BRAND.md",
@@ -32,7 +32,13 @@
       "variant": "default",
       "background": "transparent",
       "audience": "public",
-      "review": "approved",
+      "review": {
+        "state": "approved",
+        "updated_on": "2026-09-24",
+        "evidence_paths": [
+          ".flaitron/tasknote/archive/core/CORE-6.md"
+        ]
+      },
       "provenance": {
         "origin": "generated",
         "source_paths": [],
@@ -51,7 +57,13 @@
       "variant": "default",
       "background": "transparent",
       "audience": "public",
-      "review": "approved",
+      "review": {
+        "state": "approved",
+        "updated_on": "2026-09-24",
+        "evidence_paths": [
+          ".flaitron/tasknote/archive/core/CORE-6.md"
+        ]
+      },
       "provenance": {
         "origin": "generated",
         "source_paths": [
@@ -72,7 +84,40 @@
       "variant": "default",
       "background": "dark",
       "audience": "public",
-      "review": "approved",
+      "review": {
+        "state": "approved",
+        "updated_on": "2026-09-24",
+        "evidence_paths": [
+          ".flaitron/tasknote/archive/core/CORE-6.md"
+        ]
+      },
+      "provenance": {
+        "origin": "generated",
+        "source_paths": [
+          "brand/logo.svg"
+        ],
+        "note_path": "brand/PROMPTS.md"
+      }
+    },
+    {
+      "id": "chamber-reference",
+      "path": "brand/chamber-reference.jpg",
+      "role": "visual-reference",
+      "media_type": "image/jpeg",
+      "dimensions": {
+        "width": 1280,
+        "height": 720
+      },
+      "variant": "default",
+      "background": "dark",
+      "audience": "public",
+      "review": {
+        "state": "approved",
+        "updated_on": "2026-10-17",
+        "evidence_paths": [
+          "brand/PROMPTS.md"
+        ]
+      },
       "provenance": {
         "origin": "generated",
         "source_paths": [
