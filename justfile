@@ -14,36 +14,27 @@
 # Note: `lint` / `test` / `typecheck` / `e2e` / `coverage` here call the native
 # tools (eslint/vitest/ruff/pytest/tsc/playwright/diff-cover) so they work for
 # humans, agents, and CI alike. `coverage` mirrors the CI changed-line gate.
+#
+# blastimage is a root Next app plus a `landing/` Astro page (DEPLOY-011), a
+# layout the auto-adapt does not cover: a `landing/` dir would make `dev` start
+# the landing and `setup` / `lint` / `build` skip the root app. Those four
+# recipes are hand-authored here (STACK-TENDENCIES §"Command interface") — the
+# root app stays primary and the landing is additive.
 
 # list available recipes
 default:
     @just --list
 
-# install dependencies for every stack present
+# install dependencies for the root app and the landing page
 setup:
     #!/usr/bin/env bash
     set -euo pipefail
-    ran=0
-    if [ -d backend ];  then echo "› backend: uv sync";     (cd backend  && uv sync); ran=1; fi
-    if [ -d frontend ]; then echo "› frontend: npm install"; (cd frontend && npm install); ran=1; fi
-    if [ -d landing ];  then echo "› landing: npm install";  (cd landing  && npm install); ran=1; fi
-    if [ "$ran" = 0 ]; then
-      if   [ -f package.json ];   then echo "› root: npm install"; npm install
-      elif [ -f pyproject.toml ]; then echo "› root: uv sync";     uv sync
-      else echo "nothing to set up"; fi
-    fi
+    echo "› root: npm install";    npm install
+    echo "› landing: npm install"; (cd landing && npm install)
 
-# run the primary dev surface (frontend → landing → backend → root app)
+# run the primary dev surface — the root Next app (`just landing` for the landing page)
 dev:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if   [ -d frontend ]; then cd frontend && npm run dev
-    elif [ -d landing ];  then cd landing  && npm run dev
-    elif [ -d backend ];  then cd backend  && uv run python main.py
-    elif [ -f package.json ];   then npm run dev
-    elif [ -f pyproject.toml ]; then uv run python main.py
-    else echo "nothing to run (no frontend/, landing/, backend/, or root app)"; exit 1
-    fi
+    npm run dev
 
 # run the backend dev server (fullstack repos: pair with `just dev` in another terminal)
 api:
@@ -74,19 +65,12 @@ e2e:
     elif [ -f package.json ] && ls playwright.config.* >/dev/null 2>&1; then npx playwright test
     else echo "no Playwright config found — e2e not wired up for this repo"; fi
 
-# lint / type-check every stack present
+# lint the root app and check the landing page
 lint:
     #!/usr/bin/env bash
     set -euo pipefail
-    ran=0
-    if [ -d backend ];  then echo "› backend: ruff";        (cd backend  && uv run ruff check .); ran=1; fi
-    if [ -d frontend ]; then echo "› frontend: eslint";     (cd frontend && npm run lint); ran=1; fi
-    if [ -d landing ];  then echo "› landing: astro check"; (cd landing  && npm run check); ran=1; fi
-    if [ "$ran" = 0 ]; then
-      if   [ -f package.json ];   then echo "› root: lint"; npm run lint
-      elif [ -f pyproject.toml ]; then echo "› root: ruff"; uv run ruff check .
-      else echo "nothing to lint"; fi
-    fi
+    echo "› root: lint";           npm run lint
+    echo "› landing: astro check"; (cd landing && npm run check)
 
 # type-check the TypeScript surface(s) present (tsc via `npm run typecheck`)
 typecheck:
@@ -144,11 +128,9 @@ coverage BASE="origin/main":
     fi
     if [ "$ran" = 0 ]; then echo "nothing to measure"; fi
 
-# build every stack present (backend has no build step by default)
+# build the root app and the landing page
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    ran=0
-    if [ -d frontend ]; then echo "› frontend: build"; (cd frontend && npm run build); ran=1; fi
-    if [ -d landing ];  then echo "› landing: build";  (cd landing  && npm run build); ran=1; fi
-    if [ "$ran" = 0 ] && [ -f package.json ]; then echo "› root: build"; npm run build; fi
+    echo "› root: build";    npm run build
+    echo "› landing: build"; (cd landing && npm run build)

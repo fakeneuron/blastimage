@@ -1,0 +1,21 @@
+# Cloudflare Worker config — serves the Astro build output as static assets.
+# Deploy with `npx wrangler deploy`; run locally with `npx wrangler dev`.
+# See natabula docs/STACK-TENDENCIES.md §Deployment — Workers (not Pages) is the
+# default for anything new.
+# This Worker is the apex landing. www is a DNS redirect to that apex, not a second Worker.
+# A distinct app deploys from its own config.
+# See natabula docs/DESIGN-STANDARDS.md §"Landing surfaces".
+
+name = "blastimage-landing"
+compatibility_date = "2026-08-08"
+
+# No gate: landing is a public coming-soon page by design. Asset requests are
+# free and unlimited, since only Worker-*script* invocations bill and this
+# config has none — add `main`/`binding`/`run_worker_first` (see natabula
+# templates/frontend/wrangler.toml) only if you need code in front of the
+# assets (e.g. a Basic Auth gate).
+# No `not_found_handling = "404-page"`: there is no 404 page, so it would be
+# inert. Add it back with a src/pages/404.astro.
+
+[assets]
+directory = "./dist"

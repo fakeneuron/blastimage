@@ -1,0 +1,112 @@
+---
+// Producer landing for blastimage. Every portable fact is read from ../brand/
+// at build time — one copy source, no landing copy file:
+//   tagline / one_liner / description ← brand/BRAND.md front matter
+//   name / source link                ← brand/assets.json
+//   mark / favicon / promo             ← the approved brand kit files
+// Colors follow the promo composition (brand/PROMPTS.md).
+// site: in astro.config.mjs is the apex canonical origin. www redirects there.
+// Contract: natabula docs/DESIGN-STANDARDS.md §"Landing surfaces".
+// Prelaunch: crawlable noindex and no rel=canonical. At launch, declare the
+// site indexable, then remove noindex and add a page-specific canonical (README).
+import { frontmatter as brand } from '../../../brand/BRAND.md';
+import assets from '../../../brand/assets.json';
+import logoUrl from '../../../brand/logo.svg?url';
+import faviconUrl from '../../../brand/favicon.svg?url';
+import promo from '../../../brand/promo-16x9.webp';
+
+const name: string = assets.display_name;
+const tagline: string = brand.tagline;
+const oneLiner: string = brand.one_liner;
+const description: string = brand.description;
+const sourceURL: string = assets.public_metadata.source_url.value;
+
+const title = `${name} — ${tagline}`;
+const pageURL = new URL('/', Astro.site).href;
+const ogImageURL = new URL(promo.src, Astro.site).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href={faviconUrl} />
+    <title>{title}</title>
+    <meta name="description" content={oneLiner} />
+    <meta name="robots" content="noindex" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={pageURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={oneLiner} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content={String(promo.width)} />
+    <meta property="og:image:height" content={String(promo.height)} />
+
+    <!-- Global: Astro scopes `*` with an attribute selector, which would
+         outrank `body` and zero its padding. One page, one stylesheet. -->
+    <style is:global>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0a0a0a;
+        color: #f5f0e6;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1rem;
+      }
+      main {
+        width: 100%;
+        max-width: 56rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.25rem;
+      }
+      .mark { width: 4.5rem; height: 4.5rem; }
+      h1 { font-size: clamp(2.5rem, 7vw, 4.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+      .tagline { font-size: clamp(1.25rem, 3vw, 1.75rem); font-weight: 600; color: #ff4d00; }
+      .description { max-width: 40rem; font-size: 1.0625rem; line-height: 1.6; color: #bdb7ad; }
+      .source {
+        margin-top: 0.5rem;
+        padding: 0.7rem 1.25rem;
+        border: 1px solid #a78bfa;
+        border-radius: 999px;
+        color: #f5f0e6;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .source:hover { background: #a78bfa; color: #0a0a0a; }
+      .source:focus-visible { outline: 2px solid #ff4d00; outline-offset: 3px; }
+      .promo {
+        margin-top: 1.5rem;
+        width: 100%;
+        height: auto;
+        border-radius: 0.75rem;
+        border: 1px solid #262626;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="mark" src={logoUrl} alt="" width="72" height="72" />
+      <h1>{name}</h1>
+      <p class="tagline">{tagline}</p>
+      <p class="description">{description}</p>
+      <a class="source" href={sourceURL}>Source on GitHub</a>
+      <img
+        class="promo"
+        src={promo.src}
+        width={promo.width}
+        height={promo.height}
+        loading="lazy"
+        decoding="async"
+        alt={`${name}: ${tagline}`}
+      />
+    </main>
+  </body>
+</html>

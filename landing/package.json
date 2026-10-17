@@ -1,0 +1,20 @@
+{
+  "name": "blastimage-landing",
+  "description": "blastimage coming-soon landing page (static, Cloudflare Workers).",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "astro": "^7.4.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^5"
+  }
+}

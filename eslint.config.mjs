@@ -69,6 +69,8 @@ const eslintConfig = tseslint.config(
       // `npm run test:e2e` leaves them on disk and flat config would lint them.
       "playwright-report/**",
       "test-results/**",
+      // Self-contained Astro stack with its own `astro check` (DEPLOY-011).
+      "landing/**",
     ],
   },
 );
