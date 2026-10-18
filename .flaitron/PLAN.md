@@ -8,11 +8,20 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **TEST-EPIC-012** [medium]🧩 | test-reach — extend the safety net to the daily-driver browser and to the handler layer of the routes that write into the linked repo. Discovery supplied by audit-repo 2026-10-18. Surfaced by audit-repo 2026-10-18 (Theme: Test reach stops short of Safari and the route handlers)
+  - [ ] **TEST-012.2** [medium]🧩 [unattended] | webkit-e2e — add a `webkit` project to `playwright.config.ts` beside chromium and run all four `e2e/*.spec.ts` under it; install webkit in the CI `e2e` job too. TEST-007.2 deferred WebKit and never filed it, yet BI-045 replaced FSA specifically for WebKit. A WebKit-only failure is fixed or `test.skip`-ed with a filed follow-up, never dropped silently. Done: `npx playwright test --project=webkit` green locally and in CI.
+  - [ ] **TEST-012.3** [light]🔧 [unattended] | route-handler-tests — handler-level vitest coverage for `app/api/imagegen/{approved,browse,link,round,rounds}/route.ts` (20–42% lines today; the route-guard suite covers refusals only), mirroring `lib/imagegenFileRoute.test.ts`. `DELETE /approved` and `POST /approved` first. Done: each ≥80% lines under `vitest --coverage`.
+  - [ ] **TEST-012.N** [medium]🧩 [unattended] | test-reach audit
 
 ## Medium
 
-(none)
+- [ ] **DEPLOY-EPIC-014** [light]🔧 | upkeep-honesty — make the repo's upkeep claims match what is configured and armed. Discovery supplied by audit-repo 2026-10-18. Surfaced by audit-repo 2026-10-18 (Theme: Upkeep claims outrun configuration)
+  - [ ] **DEPLOY-014.2** [light]🔧 [unattended] | dependabot-claim-reconcile — README.md:25-28 claims weekly Dependabot npm/Actions PRs; `.github/dependabot.yml` sets `open-pull-requests-limit: 0` on both ecosystems (8c70e57), the natabula security-only policy (NAT-230, STACK-TENDENCIES §"Dependency updates"). Keep the config; rewrite the README sentence and the BI-037 comment to say version-update PRs are off by policy and security updates come from the repo setting. Done: no claim of weekly PRs remains.
+  - [ ] **DEPLOY-014.3** [light]🔧 [unattended] | landing-dep-gates — `landing/` is outside `dependabot.yml` (directory `/` only) and the `landing` CI job runs no `npm audit`. Add a `/landing` npm entry carrying the same `open-pull-requests-limit: 0` and an `npm audit --omit=dev --audit-level=high` step to the landing job. Done: both present, landing job green.
+  - [ ] **DEPLOY-014.4** [light]🔧 [unattended] | doc-comment-drift — README.md:65 glyphs (↓/↑ → ⤓/⤒ per `components/ProjectMenu.tsx:158,167`); `vitest.config.mts:37-39` claims tsconfig `jsx: "preserve"` but it is `react-jsx` — re-verify the `oxc.jsx` override and correct the comment. Done: grep `↓ Export` → 0; comment matches tsconfig.
+  - [ ] **DEPLOY-014.5** [light]🔧 | arm-dependabot-security — operator step: turn on Dependabot alerts and Dependabot security updates in the GitHub repo settings (Settings → Code security). Checked 2026-10-18: `automated-security-fixes` `enabled: false`, `vulnerability-alerts` 404, so no Dependabot signal reaches the repo and the CI `npm audit` gate is the only dependency check. Done: both API reads report enabled.
+  - [ ] **DEPLOY-014.6** [light]🔧 | landing-go-live — operator steps from landing/README.md §"Operator steps (not yet done)" (Cloudflare zone, wrangler deploy, custom domain, www → apex 301, `homepage_url`), untracked since DEPLOY-011 closed. Done: apex serves the page; checklist ticked.
+  - [ ] **DEPLOY-014.N** [light]🔧 | upkeep-honesty audit
 
 ## Low
 
