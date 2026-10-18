@@ -26,8 +26,9 @@ Dependencies are gated in CI (`npm audit --omit=dev --audit-level=high`, last
 step of the main job in `.github/workflows/ci.yml`; the `landing` job runs the
 same audit on `landing/`). Dependabot version-update PRs are off by policy
 (`open-pull-requests-limit: 0` on every entry in `.github/dependabot.yml`,
-`landing/` included); security updates, once enabled, come from the repo's
-Dependabot setting (Settings → Code security), not from that file. The same
+`landing/` included); Dependabot alerts and security updates are enabled
+(DEPLOY-014.5) and come from the repo's Dependabot setting (Settings → Code
+security), not from that file. The same
 workflow runs a pinned gitleaks working-tree scan (separate `secrets` job) as
 the backstop for clones that never armed the pre-commit hook, and a Playwright
 e2e job (TEST-007.2) on port 3009.
