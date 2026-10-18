@@ -16,7 +16,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-(none)
+- [ ] **DEPLOY-013** [light]🔧 [unattended] | landing-ci — add a `landing` job to `.github/workflows/ci.yml` running `npm ci`, `npm run check`, and `npm run build` in `landing/`; today CI never builds it, so broken `brand/BRAND.md` frontmatter or a moved brand asset surfaces only at `wrangler` publish time.
 
 ## Future Opportunities
 
