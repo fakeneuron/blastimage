@@ -67,8 +67,8 @@ test.describe('review keyboard', () => {
 
   test('lightbox focus trap holds Tab and restores the opener', async ({ page }) => {
     const opener = page.getByRole('button', { name: 'View full size' }).first();
-    // Keyboard-open: WebKit does not focus a clicked button, so a mouse-open
-    // leaves no opener to restore (BI-068). Restore is the keyboard user's path.
+    // Keyboard-open here: WebKit does not focus a clicked button, so the
+    // mouse-open path is its own test below (BI-068).
     await opener.focus();
     await page.keyboard.press('Enter');
 
@@ -97,6 +97,20 @@ test.describe('review keyboard', () => {
 
     await expect(page.getByRole('button', { name: 'Project menu' })).not.toBeFocused();
     await expect(page.getByRole('button', { name: 'Keep' }).first()).not.toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(viewer).toBeHidden();
+    await expect(opener).toBeFocused();
+  });
+
+  test('lightbox restores the opener after a mouse-open', async ({ page }) => {
+    // A click leaves WebKit's activeElement on <body>; the hook falls back to
+    // the pointer-down target (BI-068).
+    const opener = page.getByRole('button', { name: 'View full size' }).first();
+    await opener.click();
+
+    const viewer = page.getByRole('dialog', { name: 'Image viewer' });
+    await expect(viewer).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(viewer).toBeHidden();

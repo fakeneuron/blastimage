@@ -54,6 +54,41 @@ export interface UseFocusTrapOptions {
 }
 
 /**
+ * Safari/WebKit never focuses a clicked button, so a mouse-opened dialog finds
+ * `<body>` as `activeElement` and would restore focus nowhere (BI-068). The
+ * last pointer-down target stands in as the opener. Installed at module load,
+ * not on first mount, so it is already listening for the click that opens the
+ * very first dialog; capture phase so a handler that stops propagation cannot
+ * hide the target.
+ */
+let pointerOpener: Element | null = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      pointerOpener = e.target instanceof Element ? e.target.closest(FOCUSABLE) : null;
+    },
+    true,
+  );
+  // A keyboard interaction after the click means the pointer target no longer
+  // describes how the next dialog was opened.
+  document.addEventListener('keydown', () => (pointerOpener = null), true);
+}
+
+/**
+ * What held focus at mount, or the pointer-down target when focus sits on
+ * body. The target is consumed so one click can only ever stand in for the
+ * dialog it opened.
+ */
+function captureOpener(): Element | null {
+  const pointed = pointerOpener;
+  pointerOpener = null;
+  const active = document.activeElement;
+  if (active && active !== document.body) return active;
+  return pointed?.isConnected ? pointed : active;
+}
+
+/**
  * Mount-scoped focus trap. `onEscape` is re-read each keydown so callers can
  * pass a stable or unstable close callback without re-binding the listener.
  */
@@ -63,7 +98,7 @@ export function useFocusTrap(
 ): void {
   // Open: capture the opener, move focus in. Close: restore the opener.
   useEffect(() => {
-    const opener = document.activeElement;
+    const opener = captureOpener();
     const dialog = dialogRef.current;
     if (dialog) {
       if (focusTarget === 'first') {

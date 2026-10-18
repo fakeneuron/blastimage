@@ -118,6 +118,77 @@ describe('useFocusTrap — open / restore', () => {
     rerender(<Harness open={false} onEscape={vi.fn()} />);
     expect(document.activeElement).toBe(opener);
   });
+
+  // Safari/WebKit leaves a clicked button unfocused, so focus sits on body at
+  // mount; the last pointer-down target is the opener then (BI-068).
+  describe('mouse-open with focus left on body', () => {
+    it('restores focus to the pointer-down target', () => {
+      const { getByText, rerender } = render(<Harness open={false} onEscape={vi.fn()} />);
+      const opener = getByText('opener');
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerDown(opener);
+
+      rerender(<Harness open={true} onEscape={vi.fn()} />);
+      rerender(<Harness open={false} onEscape={vi.fn()} />);
+
+      expect(document.activeElement).toBe(opener);
+    });
+
+    it('resolves a pointer-down on a child to its closest focusable ancestor', () => {
+      const { getByText, rerender } = render(<Harness open={false} onEscape={vi.fn()} />);
+      const opener = getByText('opener');
+      const icon = document.createElement('span');
+      opener.appendChild(icon);
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerDown(icon);
+
+      rerender(<Harness open={true} onEscape={vi.fn()} />);
+      rerender(<Harness open={false} onEscape={vi.fn()} />);
+
+      expect(document.activeElement).toBe(opener);
+    });
+
+    it('does not reuse a pointer-down target for a later keyboard-driven open', () => {
+      const { getByText, rerender } = render(<Harness open={false} onEscape={vi.fn()} />);
+      const opener = getByText('opener');
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerDown(opener);
+      fireEvent.keyDown(document.body, { key: 'k' });
+
+      rerender(<Harness open={true} onEscape={vi.fn()} />);
+      rerender(<Harness open={false} onEscape={vi.fn()} />);
+
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('ignores a disabled or tabIndex={-1} pointer-down target', () => {
+      const { getByText, rerender } = render(<Harness open={false} onEscape={vi.fn()} />);
+      const inert = document.createElement('button');
+      inert.tabIndex = -1;
+      inert.textContent = 'inert';
+      getByText('opener').after(inert);
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerDown(inert);
+
+      rerender(<Harness open={true} onEscape={vi.fn()} />);
+      rerender(<Harness open={false} onEscape={vi.fn()} />);
+
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('ignores a pointer-down target that has left the document', () => {
+      const { getByText, rerender } = render(<Harness open={false} onEscape={vi.fn()} />);
+      const opener = getByText('opener');
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerDown(opener);
+      opener.remove();
+
+      rerender(<Harness open={true} onEscape={vi.fn()} />);
+      expect(() => rerender(<Harness open={false} onEscape={vi.fn()} />)).not.toThrow();
+
+      expect(document.activeElement).toBe(document.body);
+    });
+  });
 });
 
 describe('useFocusTrap — Tab cycling', () => {

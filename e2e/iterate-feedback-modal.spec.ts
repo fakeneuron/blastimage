@@ -125,8 +125,8 @@ test.describe('iterate and feedback modals', () => {
   test('iterate modal traps Tab, and dismissing it writes nothing', async ({ page }) => {
     await page.getByRole('button', { name: 'Keep' }).first().click();
     const opener = page.getByRole('button', { name: 'Iterate →', disabled: false });
-    // Keyboard-open: WebKit does not focus a clicked button, so a mouse-open
-    // leaves no opener to restore (BI-068). Restore is the keyboard user's path.
+    // Keyboard-open here: WebKit does not focus a clicked button, so the
+    // mouse-open path is covered by the feedback modal's test below (BI-068).
     await opener.focus();
     await page.keyboard.press('Enter');
 
@@ -163,7 +163,7 @@ test.describe('iterate and feedback modals', () => {
 
   test('feedback modal traps Tab and leaves the card untouched on Escape', async ({ page }) => {
     const opener = page.getByRole('button', { name: 'Feedback', exact: true }).first();
-    // Keyboard-open, as in the iterate test above (BI-068).
+    // Keyboard-open, as in the iterate test above; mouse-open is covered below (BI-068).
     await opener.focus();
     await page.keyboard.press('Enter');
 
@@ -194,5 +194,19 @@ test.describe('iterate and feedback modals', () => {
     await expect(dialog).toBeHidden();
     await expect(opener).toBeFocused();
     await expect(page.getByRole('button', { name: '💬 Edit feedback' })).toHaveCount(0);
+  });
+
+  test('feedback modal restores the opener after a mouse-open', async ({ page }) => {
+    // A click leaves WebKit's activeElement on <body>; the hook falls back to
+    // the pointer-down target (BI-068).
+    const opener = page.getByRole('button', { name: 'Feedback', exact: true }).first();
+    await opener.click();
+
+    const dialog = page.getByRole('dialog', { name: 'Image feedback' });
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
   });
 });

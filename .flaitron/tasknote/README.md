@@ -48,6 +48,7 @@ Project-specific prefixes:
 | `DB-*` | `archive/database/` |
 | `DEPLOY-*` | `archive/deployment/` |
 | `TEST-*` | `archive/test/` |
+| `BI-*` | `archive/bi/` |
 
 Project-specific prefixes archive under their own subfolder named for the area
 (e.g., `OCR-*` → `archive/ocr/`).
