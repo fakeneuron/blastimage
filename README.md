@@ -23,12 +23,13 @@ pre-commit install                                    # once per clone
 ```
 
 Dependencies are gated in CI (`npm audit --omit=dev --audit-level=high`, last
-step of the main job in `.github/workflows/ci.yml`) and kept moving by
-Dependabot — weekly npm and GitHub Actions PRs, with npm patch/minor grouped
-and majors raised individually. The same workflow runs a pinned gitleaks
-working-tree scan (separate `secrets` job) as the backstop for clones that
-never armed the pre-commit hook, and a Playwright e2e job (TEST-007.2) on
-port 3009.
+step of the main job in `.github/workflows/ci.yml`). Dependabot version-update
+PRs are off by policy (`open-pull-requests-limit: 0` on both ecosystems in
+`.github/dependabot.yml`); security updates, once enabled, come from the repo's
+Dependabot setting (Settings → Code security), not from that file. The same
+workflow runs a pinned gitleaks working-tree scan (separate `secrets` job) as
+the backstop for clones that never armed the pre-commit hook, and a Playwright
+e2e job (TEST-007.2) on port 3009.
 
 ## Workflow
 
