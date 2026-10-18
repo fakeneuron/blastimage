@@ -43,6 +43,15 @@ updates:
         update-types:
           - "version-update:semver-major"
 
+  # Landing page (`landing/`, its own lockfile), added in DEPLOY-014.3. Same
+  # policy as the root entry: version-update PRs off, security updates come
+  # from the repo setting. No groups/ignore — those holds are root-specific.
+  - package-ecosystem: "npm"
+    directory: "/landing"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+
   # Workflow action pins (`/` means `.github/workflows`), added in BI-037.
   # Ungrouped on purpose: the pins are major tags (`@v4`), so nearly every
   # update here is a major. Version-update PRs are off by policy

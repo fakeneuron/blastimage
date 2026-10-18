@@ -157,6 +157,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Same runtime-only gate as the root `ci` job (DEPLOY-014.3).
+      - name: Audit
+        run: npm audit --omit=dev --audit-level=high
+
   # Playwright e2e (TEST-007.2). Sibling job so browser install + Next
   # boot don't inflate the unit `ci` job. Owns port 3009
   # (`reuseExistingServer: false`); `just dev` on 3003 is unrelated.
