@@ -34,9 +34,8 @@ export default defineConfig({
       "@": fileURLToPath(new URL(".", import.meta.url)),
     },
   },
-  // tsconfig sets `jsx: "preserve"` (Next compiles JSX itself), and Vite does
-  // not read tsconfig for the transform — so component tests need the runtime
-  // named here or `.tsx` fails to parse.
+  // Pins the automatic JSX runtime for component tests so they do not depend
+  // on how Vite reads tsconfig's `jsx` (currently `react-jsx`).
   oxc: {
     jsx: { runtime: "automatic" },
   },
