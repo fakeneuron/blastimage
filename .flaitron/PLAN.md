@@ -20,6 +20,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-014.6** [light]🔧 | landing-go-live — operator steps from landing/README.md §"Operator steps (not yet done)" (Cloudflare zone, wrangler deploy, custom domain, www → apex 301, `homepage_url`), untracked since DEPLOY-011 closed. Done: apex serves the page; checklist ticked.
   - [ ] **DEPLOY-014.N** [light]🔧 | upkeep-honesty audit
 - [ ] **BI-068** [light] | safari-focus-restore — mouse-opened dialogs lose focus restore in Safari (clicks don't focus buttons); capture opener from pointer target, then add a mouse-open restore e2e.
+- [ ] **BI-069** [light] | webkit-link-flake — intermittent webkit e2e failure: linkImagegenRoot (`e2e/helpers.ts:59`) link dialog stays visible after Link path click (~1 in 4 runs). Find the race.
 
 ## Low
 
