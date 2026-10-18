@@ -18,7 +18,7 @@ Producer landing for blastimage at `https://blastimage.com`. Static Astro site, 
 
 ## Public submodule
 
-blastimage is adopted as a git submodule, so every adopter checks out this directory. Nothing in the app imports it. The root npm gates (`npm run lint` / `typecheck` / `test`, which CI runs) skip it; the `just` verbs `setup` / `lint` / `build` include it. Keep the page about blastimage only. Adopter landings live in the adopter repositories.
+blastimage is adopted as a git submodule, so every adopter checks out this directory. Nothing in the app imports it. The root npm gates (`npm run lint` / `typecheck` / `test`, which CI runs) skip it; the `just` verbs `setup` / `lint` / `build` include it, and CI's `landing` job runs `npm run check` and `npm run build` here. Keep the page about blastimage only. Adopter landings live in the adopter repositories.
 
 ## Review
 
