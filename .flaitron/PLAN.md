@@ -19,11 +19,11 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-014.5** [light]🔧 | arm-dependabot-security — operator step: turn on Dependabot alerts and Dependabot security updates in the GitHub repo settings (Settings → Code security). Checked 2026-10-18: `automated-security-fixes` `enabled: false`, `vulnerability-alerts` 404, so no Dependabot signal reaches the repo and the CI `npm audit` gate is the only dependency check. Done: both API reads report enabled.
   - [ ] **DEPLOY-014.6** [light]🔧 | landing-go-live — operator steps from landing/README.md §"Operator steps (not yet done)" (Cloudflare zone, wrangler deploy, custom domain, www → apex 301, `homepage_url`), untracked since DEPLOY-011 closed. Done: apex serves the page; checklist ticked.
   - [ ] **DEPLOY-014.N** [light]🔧 | upkeep-honesty audit
-- [ ] **BI-071** [light] | approve-teardown-race — `review-keyboard` approve test ends on the optimistic Approved state while the promote to `approved/` is still writing; `afterEach` removeFixture then fails ENOTEMPTY (2 of 270 webkit runs, "Could not promote" banner). Wait for the write to settle before teardown.
+- [ ] **BI-071** [light] [unattended] | approve-teardown-race — `review-keyboard` approve test ends on the optimistic Approved state while the promote to `approved/` is still writing; `afterEach` removeFixture then fails ENOTEMPTY (2 of 270 webkit runs, "Could not promote" banner). Wait for the write to settle before teardown.
 
 ## Low
 
-- [ ] **BI-070** [light] | link-late-shift — link picker still shifts Link path when the Found-nearby suggestions row or the in-dialog error banner appears after mount; the centered dialog grows (BI-069 pinned only the list height). Top-anchor the dialog or reserve space for both; extend `e2e/imagegen-link-layout.spec.ts` with a late suggestion.
+- [ ] **BI-070** [light] [unattended] | link-late-shift — link picker still shifts Link path when the Found-nearby suggestions row or the in-dialog error banner appears after mount; the centered dialog grows (BI-069 pinned only the list height). Top-anchor the dialog or reserve space for both; extend `e2e/imagegen-link-layout.spec.ts` with a late suggestion.
 
 ## Future Opportunities
 
