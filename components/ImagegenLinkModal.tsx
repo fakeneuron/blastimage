@@ -135,7 +135,7 @@ export default function ImagegenLinkModal({
     // Backdrop: mouse dismiss only. Keyboard dismiss is Escape via useFocusTrap (BI-039).
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- see above
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-[6vh]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -146,7 +146,7 @@ export default function ImagegenLinkModal({
         aria-modal="true"
         aria-label="Link imagegen folder"
         tabIndex={-1}
-        className="flex max-h-[80vh] w-full max-w-xl flex-col gap-4 rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
+        className="flex max-h-[88vh] w-full max-w-xl flex-col gap-4 overflow-y-auto rounded-lg border border-black/10 bg-background p-5 shadow-xl focus:outline-none dark:border-white/15"
       >
         <div>
           <h2 className="text-sm font-semibold">Link your imagegen folder</h2>
@@ -156,27 +156,30 @@ export default function ImagegenLinkModal({
           </p>
         </div>
 
-        {suggestions.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-medium opacity-70">Found nearby</h3>
-            <ul className="flex flex-col gap-1">
-              {suggestions.map((path) => (
-                <li key={path}>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void link(path)}
-                    className="w-full truncate rounded border border-emerald-500/40 bg-emerald-500/5 px-3 py-1.5 text-left text-xs hover:bg-emerald-500/10 disabled:opacity-50"
-                  >
-                    📁 {path}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Fixed slot: suggestions land after mount above Link path, so a slot that grows on arrival moves it (BI-070). */}
+        <div className="flex h-[5.5rem] shrink-0 flex-col gap-2 overflow-y-auto">
+          {suggestions.length > 0 && (
+            <>
+              <h3 className="text-xs font-medium opacity-70">Found nearby</h3>
+              <ul className="flex flex-col gap-1">
+                {suggestions.map((path) => (
+                  <li key={path}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void link(path)}
+                      className="w-full truncate rounded border border-emerald-500/40 bg-emerald-500/5 px-3 py-1.5 text-left text-xs hover:bg-emerald-500/10 disabled:opacity-50"
+                    >
+                      📁 {path}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex shrink-0 flex-col gap-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -190,7 +193,7 @@ export default function ImagegenLinkModal({
               {listing?.path ?? 'Loading…'}
             </p>
           </div>
-          {/* Fixed height: a list that grows when the mount browse lands re-centers the dialog and moves Link path (BI-069). */}
+          {/* Fixed height: a list that grows when the mount browse lands moves Link path (BI-069). */}
           <ul className="h-64 min-h-[8rem] overflow-y-auto rounded border border-black/10 p-1 dark:border-white/15">
             {listing?.entries.length === 0 && (
               <li className="px-2 py-1.5 text-xs opacity-50">No sub-folders here.</li>
