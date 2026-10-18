@@ -38,12 +38,20 @@ test.describe('review keyboard', () => {
     await expect(discard.nth(1)).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Discarded')).toBeVisible();
 
+    // Approve is optimistic: the UI flips at once while the promote to
+    // `approved/` and the `selection.json` write are still in flight. The
+    // selection POST is the last of the three disk calls, so awaiting it keeps
+    // `afterEach`'s removeFixture from racing the write (BI-071).
+    const selectionWritten = page.waitForResponse(
+      (res) => res.url().includes('/api/imagegen/selection') && res.request().method() === 'POST',
+    );
     await approve.nth(0).click();
     await expect(approve.nth(0)).toHaveAttribute('aria-pressed', 'true');
     await expect(keep.nth(0)).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByText('Approved', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Iterate →' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Folder' })).toBeVisible();
+    await selectionWritten;
   });
 
   test('lightbox arrows and Escape in a real browser', async ({ page }) => {
