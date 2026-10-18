@@ -19,11 +19,11 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-014.5** [light]🔧 | arm-dependabot-security — operator step: turn on Dependabot alerts and Dependabot security updates in the GitHub repo settings (Settings → Code security). Checked 2026-10-18: `automated-security-fixes` `enabled: false`, `vulnerability-alerts` 404, so no Dependabot signal reaches the repo and the CI `npm audit` gate is the only dependency check. Done: both API reads report enabled.
   - [ ] **DEPLOY-014.6** [light]🔧 | landing-go-live — operator steps from landing/README.md §"Operator steps (not yet done)" (Cloudflare zone, wrangler deploy, custom domain, www → apex 301, `homepage_url`), untracked since DEPLOY-011 closed. Done: apex serves the page; checklist ticked.
   - [ ] **DEPLOY-014.N** [light]🔧 | upkeep-honesty audit
-- [ ] **BI-069** [light] [unattended] | webkit-link-flake — intermittent webkit e2e failure: linkImagegenRoot (`e2e/helpers.ts:59`) link dialog stays visible after Link path click (~1 in 4 runs). Find the race.
+- [ ] **BI-071** [light] | approve-teardown-race — `review-keyboard` approve test ends on the optimistic Approved state while the promote to `approved/` is still writing; `afterEach` removeFixture then fails ENOTEMPTY (2 of 270 webkit runs, "Could not promote" banner). Wait for the write to settle before teardown.
 
 ## Low
 
-(none)
+- [ ] **BI-070** [light] | link-late-shift — link picker still shifts Link path when the Found-nearby suggestions row or the in-dialog error banner appears after mount; the centered dialog grows (BI-069 pinned only the list height). Top-anchor the dialog or reserve space for both; extend `e2e/imagegen-link-layout.spec.ts` with a late suggestion.
 
 ## Future Opportunities
 
@@ -31,6 +31,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 - [ ] **DEPLOY-006** [light]🔧 [unattended] | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-09-10: typescript-eslint 8.70.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
+
+- [x] **BI-069** [light] [unattended] | webkit-link-flake — Completed 2026-10-18.
 
 - [x] **BI-068** [light] | safari-focus-restore — Completed 2026-10-18.
 

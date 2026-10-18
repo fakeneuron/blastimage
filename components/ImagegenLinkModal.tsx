@@ -190,7 +190,8 @@ export default function ImagegenLinkModal({
               {listing?.path ?? 'Loading…'}
             </p>
           </div>
-          <ul className="min-h-[8rem] flex-1 overflow-y-auto rounded border border-black/10 p-1 dark:border-white/15">
+          {/* Fixed height: a list that grows when the mount browse lands re-centers the dialog and moves Link path (BI-069). */}
+          <ul className="h-64 min-h-[8rem] overflow-y-auto rounded border border-black/10 p-1 dark:border-white/15">
             {listing?.entries.length === 0 && (
               <li className="px-2 py-1.5 text-xs opacity-50">No sub-folders here.</li>
             )}
