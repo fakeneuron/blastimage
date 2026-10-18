@@ -8,7 +8,7 @@ Local Next.js app for coordinated AI image generation workflows. Define prompt t
 npm install
 npm run dev   # http://localhost:3003
 npm test      # vitest + happy-dom
-npx playwright install chromium   # once
+npx playwright install chromium webkit   # once
 npm run test:e2e   # Playwright on :3009 (`just dev` on :3003 can stay up)
 ```
 

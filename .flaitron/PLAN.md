@@ -9,7 +9,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 - [ ] **TEST-EPIC-012** [medium]🧩 | test-reach — extend the safety net to the daily-driver browser and to the handler layer of the routes that write into the linked repo. Discovery supplied by audit-repo 2026-10-18. Surfaced by audit-repo 2026-10-18 (Theme: Test reach stops short of Safari and the route handlers)
-  - [ ] **TEST-012.2** [medium]🧩 [unattended] | webkit-e2e — add a `webkit` project to `playwright.config.ts` beside chromium and run all four `e2e/*.spec.ts` under it; install webkit in the CI `e2e` job too. TEST-007.2 deferred WebKit and never filed it, yet BI-045 replaced FSA specifically for WebKit. A WebKit-only failure is fixed or `test.skip`-ed with a filed follow-up, never dropped silently. Done: `npx playwright test --project=webkit` green locally and in CI.
+  - [x] **TEST-012.2** [medium]🧩 [unattended] | webkit-e2e — Completed 2026-10-18.
   - [ ] **TEST-012.3** [light]🔧 [unattended] | route-handler-tests — handler-level vitest coverage for `app/api/imagegen/{approved,browse,link,round,rounds}/route.ts` (20–42% lines today; the route-guard suite covers refusals only), mirroring `lib/imagegenFileRoute.test.ts`. `DELETE /approved` and `POST /approved` first. Done: each ≥80% lines under `vitest --coverage`.
   - [ ] **TEST-012.N** [medium]🧩 [unattended] | test-reach audit
 
@@ -22,7 +22,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **DEPLOY-014.5** [light]🔧 | arm-dependabot-security — operator step: turn on Dependabot alerts and Dependabot security updates in the GitHub repo settings (Settings → Code security). Checked 2026-10-18: `automated-security-fixes` `enabled: false`, `vulnerability-alerts` 404, so no Dependabot signal reaches the repo and the CI `npm audit` gate is the only dependency check. Done: both API reads report enabled.
   - [ ] **DEPLOY-014.6** [light]🔧 | landing-go-live — operator steps from landing/README.md §"Operator steps (not yet done)" (Cloudflare zone, wrangler deploy, custom domain, www → apex 301, `homepage_url`), untracked since DEPLOY-011 closed. Done: apex serves the page; checklist ticked.
   - [ ] **DEPLOY-014.N** [light]🔧 | upkeep-honesty audit
-- [ ] **BI-068** [light] | safari-focus-restore — mouse-opened dialogs lose focus restore in Safari (clicks don't focus buttons); capture opener from pointer target, then un-gate the WebKit e2e assertions.
+- [ ] **BI-068** [light] | safari-focus-restore — mouse-opened dialogs lose focus restore in Safari (clicks don't focus buttons); capture opener from pointer target, then add a mouse-open restore e2e.
 
 ## Low
 

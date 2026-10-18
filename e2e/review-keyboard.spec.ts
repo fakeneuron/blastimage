@@ -67,7 +67,10 @@ test.describe('review keyboard', () => {
 
   test('lightbox focus trap holds Tab and restores the opener', async ({ page }) => {
     const opener = page.getByRole('button', { name: 'View full size' }).first();
-    await opener.click();
+    // Keyboard-open: WebKit does not focus a clicked button, so a mouse-open
+    // leaves no opener to restore (BI-068). Restore is the keyboard user's path.
+    await opener.focus();
+    await page.keyboard.press('Enter');
 
     const viewer = page.getByRole('dialog', { name: 'Image viewer' });
     await expect(viewer).toBeVisible();

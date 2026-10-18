@@ -35,6 +35,12 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    // Safari is the operator's daily driver, and BI-045's imagegen API exists
+    // because WebKit has no File System Access API (TEST-012.2).
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+    },
   ],
   webServer: {
     command: `npx next dev --turbopack -H 127.0.0.1 -p ${E2E_PORT}`,

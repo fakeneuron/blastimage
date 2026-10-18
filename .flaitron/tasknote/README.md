@@ -80,7 +80,7 @@ project. Keep it terse and high-signal.
 - Lint: `npm run lint` (`eslint --max-warnings 0`, type-checked)
 - Unit tests: `npm test`
 - Changed-line coverage: `just coverage` (80% of lines the diff added or changed; same gate as CI)
-- E2E: `npm run test:e2e` (Playwright, port 3009, `distDir` `.next-e2e/` so it runs beside a live `npm run dev`; `npx playwright install chromium` once)
+- E2E: `npm run test:e2e` (Playwright, port 3009, `distDir` `.next-e2e/` so it runs beside a live `npm run dev`; `npx playwright install chromium webkit` once)
 - Test: `npm test` (one-shot; `npm run test:watch` for watch mode)
 - Dev server: `npm run dev` (port 3003)
 - Landing page: `just landing` (Astro, port 4003); `npm --prefix landing run build` / `run check` — a separate stack the root gates skip (DEPLOY-011)
