@@ -10,7 +10,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **TEST-EPIC-012** [medium]🧩 | test-reach — extend the safety net to the daily-driver browser and to the handler layer of the routes that write into the linked repo. Discovery supplied by audit-repo 2026-10-18. Surfaced by audit-repo 2026-10-18 (Theme: Test reach stops short of Safari and the route handlers)
   - [x] **TEST-012.2** [medium]🧩 [unattended] | webkit-e2e — Completed 2026-10-18.
-  - [ ] **TEST-012.3** [light]🔧 [unattended] | route-handler-tests — handler-level vitest coverage for `app/api/imagegen/{approved,browse,link,round,rounds}/route.ts` (20–42% lines today; the route-guard suite covers refusals only), mirroring `lib/imagegenFileRoute.test.ts`. `DELETE /approved` and `POST /approved` first. Done: each ≥80% lines under `vitest --coverage`.
+  - [x] **TEST-012.3** [light]🔧 [unattended] | route-handler-tests — Completed 2026-10-18.
   - [ ] **TEST-012.N** [medium]🧩 [unattended] | test-reach audit
 
 ## Medium
