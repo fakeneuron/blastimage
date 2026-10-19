@@ -8,8 +8,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-072** [!critical] [medium]🧩 | imagegen-symlink-confinement — close two `lib/imagegenServerFs.ts` confinement gaps, both reproduced against the real functions 2026-10-19: (1) `resolveUnderRoot` passes a dangling leaf symlink (realpath fails → parent checked), so `promoteApproved`'s `copyFile` follows `approved/<name>` and creates a file outside the linked root while `approvedConflict` reports no conflict; (2) `listRounds` reads `rounds/r<N>/batch.json` via bare `join`, so a symlinked `batch.json` outside the root reaches the round list. Fix fail-closed, per natabula's containment rule (resolve the real path, drop anything not provably inside the root — natabula `docs/FLEET-ARCHITECTURE.md` wandora guard, `docs/DESIGN-STANDARDS.md` path rules): when `realpath` fails, `lstat` the leaf and refuse a symlink; route `listRounds`'s read through `resolveUnderRoot`. Add dangling-leaf and symlinked-`batch.json` cases beside the existing symlink tests in `lib/imagegenServerFs.test.ts`. Surfaced by audit-security 2026-10-19 (Finding #1, Critical; Finding #2, Medium).
-
 ## Medium
 
 - [ ] **BI-073** [light]🔧 [unattended] | dev-url-origin — docs name `http://localhost:3003` but `next dev -H 127.0.0.1` prints `http://127.0.0.1:3003`, a separate localStorage origin; make `127.0.0.1:3003` canonical in `README.md:9`, `docs/ADOPT.md:58`, `docs/ADOPT.md:214`, `.grok/skills/blast-generate/SKILL.md:123`, and add one sentence to ADOPT's Clearing-state note that `localhost:3003` stores sessions separately and that sessions made there move over with ⤓ Export / ⤒ Import. The fleet sets no URL rule (natabula `docs/PORT-REGISTRY.md` registers ports only); this repo's own `AGENTS.md` dev-port line (`next dev -H 127.0.0.1 -p 3003`, BI-058) is the source the docs follow. Surfaced by audit-docs 2026-10-19 (Finding #1, Medium).
@@ -25,6 +23,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-072** [!critical] [medium]🧩 | imagegen-symlink-confinement — Completed 2026-10-19.
 - [x] **BI-074** [light] | adopt-stale-prereq — deleted the bootstrap-era "blastimage must be pushed to GitHub first" prerequisite from `docs/ADOPT.md` §Prerequisites (`origin/main` exists; Troubleshooting still covers an aborted add). Surfaced by audit-docs 2026-10-19 (Finding #2, Low), fixed inline.
 - [x] **BI-075** [light] | readme-vision-link — added `VISION.md` to `README.md` §Docs, the only doc index that omitted it. Surfaced by audit-docs 2026-10-19 (Finding #3, Low), fixed inline.
 - [x] **DEPLOY-EPIC-014** [light]🔧 | upkeep-honesty — Completed 2026-10-19.

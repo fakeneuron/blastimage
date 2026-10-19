@@ -131,6 +131,21 @@ describe('resolveUnderRoot confinement', () => {
     expect(await resolveUnderRoot(root, 'approved/new.png')).toMatchObject({ ok: false });
   });
 
+  it('rejects a dangling symlink, whose target a write would create outside the root (BI-072)', async () => {
+    await mkdir(join(root, 'approved'), { recursive: true });
+    await symlink(join(workspace, 'planted.png'), join(root, 'approved', 'hero.png'));
+
+    const result = await resolveUnderRoot(root, 'approved/hero.png');
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok) expect(result.error).toMatch(/escapes the linked imagegen folder/);
+  });
+
+  it('rejects a path beneath a dangling symlinked directory (BI-072)', async () => {
+    await symlink(join(workspace, 'not-yet'), join(root, 'approved'), 'dir');
+
+    expect(await resolveUnderRoot(root, 'approved/hero.png')).toMatchObject({ ok: false });
+  });
+
   it('reads and refuses through the public entry points too', async () => {
     await writeFile(join(workspace, 'secrets.txt'), 'private', 'utf8');
 
@@ -174,6 +189,23 @@ describe('listRounds', () => {
     expect(await listRounds(root)).toEqual([
       { round: 1, generatedAt: '2026-09-20T12:00:00.000Z', taskCount: 2, imageCount: 3 },
     ]);
+  });
+
+  it('skips a batch.json symlinked from outside the root (BI-072)', async () => {
+    await put('rounds/r1/batch.json', batchJson(1));
+    await writeFile(join(workspace, 'outside.json'), batchJson(2), 'utf8');
+    await mkdir(join(root, 'rounds', 'r2'), { recursive: true });
+    await symlink(join(workspace, 'outside.json'), join(root, 'rounds', 'r2', 'batch.json'));
+
+    expect((await listRounds(root)).map((r) => r.round)).toEqual([1]);
+  });
+
+  it('still lists a batch.json symlinked from inside the root (BI-072)', async () => {
+    await put('shared/batch.json', batchJson(1));
+    await mkdir(join(root, 'rounds', 'r1'), { recursive: true });
+    await symlink(join(root, 'shared', 'batch.json'), join(root, 'rounds', 'r1', 'batch.json'));
+
+    expect((await listRounds(root)).map((r) => r.round)).toEqual([1]);
   });
 });
 
@@ -274,6 +306,7 @@ describe('approved/ promotion', () => {
     expect(await promoteApproved(root, 1, 'hero-01.png')).toEqual({ ok: true, value: undefined });
 
     expect(await readFile(join(root, 'approved/hero-01.png'), 'utf8')).toBe('png-bytes');
+    expect(await readdir(join(root, 'approved'))).toEqual(['hero-01.png']); // no temp file left
   });
 
   it('fails when the round file is missing', async () => {
@@ -294,6 +327,15 @@ describe('approved/ promotion', () => {
     await put('approved/hero-01.png', 'a-different-image');
 
     expect(await approvedConflict(root, 1, 'hero-01.png')).toEqual({ ok: true, value: true });
+  });
+
+  it('refuses a dangling approved/ symlink rather than writing through it (BI-072)', async () => {
+    await mkdir(join(root, 'approved'), { recursive: true });
+    await symlink(join(workspace, 'planted.png'), join(root, 'approved', 'hero-01.png'));
+
+    expect(await approvedConflict(root, 1, 'hero-01.png')).toMatchObject({ ok: false });
+    expect(await promoteApproved(root, 1, 'hero-01.png')).toMatchObject({ ok: false });
+    expect(await readdir(workspace)).not.toContain('planted.png');
   });
 
   it('removes a promoted keeper, and stays silent when there is nothing to remove (BI-030.2)', async () => {

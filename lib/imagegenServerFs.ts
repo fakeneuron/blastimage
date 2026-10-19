@@ -28,6 +28,7 @@ import { constants } from 'node:fs';
 import {
   access,
   copyFile,
+  lstat,
   mkdir,
   readFile,
   readdir,
@@ -111,7 +112,10 @@ export async function looksLikeImagegenRoot(root: string): Promise<boolean> {
  * before touching the disk) and again on the `realpath` when the target exists
  * (catches a symlink whose *lexical* path is innocent). A non-existent target
  * passes the second check by construction — its parent is verified instead, so
- * a create-write cannot be aimed through a symlinked directory either.
+ * a create-write cannot be aimed through a symlinked directory either. A
+ * dangling symlink anywhere on the chain fails closed (BI-072): it does not
+ * resolve, so its parent would pass, yet a write through it lands wherever it
+ * points.
  */
 export async function resolveUnderRoot(root: string, relativePath: string): Promise<Result<string>> {
   const cleaned = relativePath.replace(/^\/+/, '');
@@ -120,28 +124,34 @@ export async function resolveUnderRoot(root: string, relativePath: string): Prom
   if (target !== root && !target.startsWith(root + sep)) {
     return { ok: false, error: `Path escapes the linked imagegen folder: ${relativePath}` };
   }
-  const canonical = await canonicalOrParent(target);
-  if (canonical && canonical !== root && !canonical.startsWith(root + sep)) {
+  if (!(await landsUnderRoot(root, target))) {
     return { ok: false, error: `Path escapes the linked imagegen folder: ${relativePath}` };
   }
   return { ok: true, value: target };
 }
 
 /**
- * Canonical path of `target` if it exists, else of its nearest existing
- * ancestor — the surface a write would actually land on. `null` when nothing
- * on the chain resolves, which leaves the lexical check as the only verdict.
+ * True when the canonical path of `target` — or, if it does not exist, of its
+ * nearest existing ancestor, the surface a write would actually land on — is
+ * `root` or inside it. When nothing on the chain resolves, the lexical check
+ * is the only verdict. An entry that exists but will not resolve (a dangling
+ * or looping symlink, or one whose target cannot be searched) has no landing
+ * surface to check, so it is refused.
  */
-async function canonicalOrParent(target: string): Promise<string | null> {
+async function landsUnderRoot(root: string, target: string): Promise<boolean> {
   let probe = target;
   for (;;) {
+    let canonical: string;
     try {
-      return await realpath(probe);
+      canonical = await realpath(probe);
     } catch {
+      if (await lstat(probe).then(() => true, () => false)) return false;
       const parent = resolve(probe, '..');
-      if (parent === probe) return null;
+      if (parent === probe) return true;
       probe = parent;
+      continue;
     }
+    return canonical === root || canonical.startsWith(root + sep);
   }
 }
 
@@ -160,8 +170,11 @@ export async function listRounds(root: string): Promise<RoundSummary[]> {
     if (!entry.isDirectory()) continue;
     const m = ROUND_DIR_RE.exec(entry.name);
     if (!m) continue;
+    // `entry.name`, not `r${round}`: the pattern admits `r01`, which is its own folder.
+    const batch = await resolveUnderRoot(root, `rounds/${entry.name}/batch.json`);
+    if (!batch.ok) continue;
     try {
-      const text = await readFile(join(roundsDir.value, entry.name, 'batch.json'), 'utf8');
+      const text = await readFile(batch.value, 'utf8');
       found.push(summarizeRoundBatch(Number(m[1]), text));
     } catch {
       // round folder without a readable batch.json — skip
@@ -293,7 +306,13 @@ export async function approvedConflict(
   return { ok: true, value: !resident.value.equals(source.value) };
 }
 
-/** Copies a keeper from `rounds/r<N>/` into `approved/`, creating it when absent. */
+/**
+ * Copies a keeper from `rounds/r<N>/` into `approved/`, creating it when absent.
+ * Copied to a sibling temp file then renamed over the target: `rename`
+ * replaces a symlink at the destination instead of following it, so a link
+ * planted after {@link resolveUnderRoot} checked the path still cannot steer
+ * the write outside the root (BI-072).
+ */
 export async function promoteApproved(
   root: string,
   round: number,
@@ -303,11 +322,14 @@ export async function promoteApproved(
   if (!source.ok) return source;
   const dest = await resolveUnderRoot(root, `approved/${filename}`);
   if (!dest.ok) return dest;
+  const temp = `${dest.value}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await mkdir(join(root, 'approved'), { recursive: true });
-    await copyFile(source.value, dest.value);
+    await copyFile(source.value, temp);
+    await rename(temp, dest.value);
     return { ok: true, value: undefined };
   } catch {
+    await rm(temp, { force: true }).catch(() => undefined);
     return { ok: false, error: `Could not promote ${filename} to approved/.` };
   }
 }
