@@ -12,7 +12,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-(none)
+- [ ] **BI-073** [light]🔧 [unattended] | dev-url-origin — docs name `http://localhost:3003` but `next dev -H 127.0.0.1` prints `http://127.0.0.1:3003`, a separate localStorage origin; make `127.0.0.1:3003` canonical in `README.md:9`, `docs/ADOPT.md:58`, `docs/ADOPT.md:214`, `.grok/skills/blast-generate/SKILL.md:123`, and add one sentence to ADOPT's Clearing-state note that `localhost:3003` stores sessions separately. Surfaced by audit-docs 2026-10-19 (Finding #1, Medium).
 
 ## Low
 
@@ -23,6 +23,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-074** [light] | adopt-stale-prereq — deleted the bootstrap-era "blastimage must be pushed to GitHub first" prerequisite from `docs/ADOPT.md` §Prerequisites (`origin/main` exists; Troubleshooting still covers an aborted add). Surfaced by audit-docs 2026-10-19 (Finding #2, Low), fixed inline.
+- [x] **BI-075** [light] | readme-vision-link — added `VISION.md` to `README.md` §Docs, the only doc index that omitted it. Surfaced by audit-docs 2026-10-19 (Finding #3, Low), fixed inline.
 - [x] **DEPLOY-EPIC-014** [light]🔧 | upkeep-honesty — Completed 2026-10-19.
   - [x] **DEPLOY-014.2** [light]🔧 [unattended] | dependabot-claim-reconcile — Completed 2026-10-18.
   - [x] **DEPLOY-014.3** [light]🔧 [unattended] | landing-dep-gates — Completed 2026-10-18.

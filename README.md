@@ -71,6 +71,7 @@ A stored project written by a different schema version — or one whose saved da
 
 ## Docs
 
+- [`VISION.md`](VISION.md) — product vision and the two generation modes
 - [`docs/REVIEW-LOOP.md`](docs/REVIEW-LOOP.md) — terminal-generate / frontend-review loop (adopter SSOT)
 - [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — the directed adopter operating loop, stage to landed assets
 - [`docs/USAGE.md`](docs/USAGE.md) — prompt-writing conventions and reference image preparation
