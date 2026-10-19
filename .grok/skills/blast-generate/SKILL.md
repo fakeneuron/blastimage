@@ -120,7 +120,7 @@ Omit `ref` when prompt-only. Image filenames are **relative to the round dir**.
 
 Tell the operator:
 
-1. `cd blastimage && npm run dev` → http://localhost:3003
+1. `cd blastimage && npm run dev` → http://127.0.0.1:3003
 2. Sidebar → **🔗 Link imagegen** → pick the host `imagegen/` folder
 3. **↻ Load round r<N>** → review keep/approve/discard
 4. Iterate selections write `selection.json` → run `/blast-iterate` next

@@ -54,7 +54,7 @@ npm install
 ## 4. Run the dev server
 
 ```bash
-npm run dev   # → http://localhost:3003
+npm run dev   # → http://127.0.0.1:3003
 ```
 
 No accounts. Session state persists in the browser's `localStorage`. The Next.js
@@ -210,7 +210,7 @@ git commit -m "chore: bump blastimage to latest"
 
 - **Isolation.** blastimage's `node_modules`, dev server, and `localStorage` data are isolated from the parent project; the one shared surface is the linked `imagegen/` folder, which it reads (`rounds/`) and writes (`selection.json`, `approved/`) through its localhost-only API. Running `npm install` inside `blastimage/` will not affect the parent's dependencies.
 - **Detached HEAD.** After `git submodule add` or `update --init`, the submodule is checked out at a pinned commit (detached HEAD). This is intentional — the parent tracks a specific blastimage version. Run `git checkout main` inside `blastimage/` to work on the latest branch.
-- **Clearing state.** blastimage sessions (project metadata, tasks, decisions) live in browser `localStorage` at the `localhost:3003` origin; round images stay on disk in `imagegen/` and are referenced as `imagegen:` URLs. Clearing browser storage for that origin resets the sessions, not the files in `imagegen/`.
+- **Clearing state.** blastimage sessions (project metadata, tasks, decisions) live in browser `localStorage` at the `127.0.0.1:3003` origin (sessions made at `localhost:3003` are stored separately, as a different origin, and move over with **⤓ Export** / **⤒ Import**); round images stay on disk in `imagegen/` and are referenced as `imagegen:` URLs. Clearing browser storage for that origin resets the sessions, not the files in `imagegen/`.
 
 ## Troubleshooting
 

@@ -10,8 +10,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Medium
 
-- [ ] **BI-073** [light]🔧 [unattended] | dev-url-origin — docs name `http://localhost:3003` but `next dev -H 127.0.0.1` prints `http://127.0.0.1:3003`, a separate localStorage origin; make `127.0.0.1:3003` canonical in `README.md:9`, `docs/ADOPT.md:58`, `docs/ADOPT.md:214`, `.grok/skills/blast-generate/SKILL.md:123`, and add one sentence to ADOPT's Clearing-state note that `localhost:3003` stores sessions separately and that sessions made there move over with ⤓ Export / ⤒ Import. The fleet sets no URL rule (natabula `docs/PORT-REGISTRY.md` registers ports only); this repo's own `AGENTS.md` dev-port line (`next dev -H 127.0.0.1 -p 3003`, BI-058) is the source the docs follow. Surfaced by audit-docs 2026-10-19 (Finding #1, Medium).
-
 ## Low
 
 - [ ] **DEPLOY-005** [light]🔧 [unattended] | eslint-10-natabula-config — move to ESLint 10 on natabula's Next template config instead of waiting for upstream (re-pointed natabula NAT-441, ruled 2026-10-19): drop `eslint-config-next`, compose `@next/eslint-plugin-next` (`configs['core-web-vitals']`) with `typescript-eslint`, `react-hooks` and `jsx-a11y` (natabula `templates/nextjs/eslint.config.mjs`, STACK §Frontend), then `eslint ^10` — that removes `eslint-plugin-react` from the tree. Gate: `npm run lint` clean with no new disables. On landing, drop the `eslint` major-ignore from `.github/dependabot.yml`. History: DEPLOY-003 measured the upstream blocker — `eslint-plugin-react` 7.37.5 (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 (`context.getFilename is not a function`); checked 2026-10-08, still 7.37.5, peer `^9.7`.
@@ -22,6 +20,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-073** [light]🔧 [unattended] | dev-url-origin — Completed 2026-10-19.
 - [x] **CORE-013** [medium]🧩 | audit-overlay-deltas — Completed 2026-10-19.
 - [x] **BI-072** [!critical] [medium]🧩 | imagegen-symlink-confinement — Completed 2026-10-19.
 - [x] **BI-074** [light] | adopt-stale-prereq — deleted the bootstrap-era "blastimage must be pushed to GitHub first" prerequisite from `docs/ADOPT.md` §Prerequisites (`origin/main` exists; Troubleshooting still covers an aborted add). Surfaced by audit-docs 2026-10-19 (Finding #2, Low), fixed inline.
