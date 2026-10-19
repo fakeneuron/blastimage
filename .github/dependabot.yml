@@ -55,7 +55,7 @@ updates:
   # Workflow action pins (`/` means `.github/workflows`), added in BI-037.
   # Ungrouped on purpose: the pins are major tags (`@v4`), so nearly every
   # update here is a major. Version-update PRs are off by policy
-  # (`open-pull-requests-limit: 0` on both entries, so the weekly schedule
+  # (`open-pull-requests-limit: 0` on every entry, so the weekly schedule
   # opens nothing); security updates come from the repo setting, not this file.
   - package-ecosystem: "github-actions"
     directory: "/"
