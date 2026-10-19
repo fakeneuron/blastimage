@@ -15,7 +15,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 
 - [ ] **DEPLOY-005** [light]🔧 [unattended] | eslint-10-natabula-config — move to ESLint 10 on natabula's Next template config instead of waiting for upstream (re-pointed natabula NAT-441, ruled 2026-10-19): drop `eslint-config-next`, compose `@next/eslint-plugin-next` (`configs['core-web-vitals']`) with `typescript-eslint`, `react-hooks` and `jsx-a11y` (natabula `templates/nextjs/eslint.config.mjs`, STACK §Frontend), then `eslint ^10` — that removes `eslint-plugin-react` from the tree. Gate: `npm run lint` clean with no new disables. On landing, drop the `eslint` major-ignore from `.github/dependabot.yml`. History: DEPLOY-003 measured the upstream blocker — `eslint-plugin-react` 7.37.5 (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 (`context.getFilename is not a function`); checked 2026-10-08, still 7.37.5, peer `^9.7`.
-- [ ] **CORE-013** [medium]🧩 | audit-overlay-deltas — fill `.claude/skills/audit/SKILL.md` `## Deltas` for all eight claimed domains so `/audit` stops tripping `scaffold-bootstrap.md` on every run — a scope glob and gate set keyed per domain, per-pass stack examples, and extra hard rules. Decide the values in Discovery, checking peer overlays that are already filled (13 of 15 fleet repos) for how they shaped theirs. Inputs from the 2026-10-19 run-once: CI's security commands (`.github/workflows/ci.yml:100` npm audit, `:127` gitleaks) — note that `gitleaks dir .` run locally scans the gitignored `.next*/` build output and reports 20 Next.js-generated keys, so pick a local form that matches what CI actually scans; the docs set had no doc tooling; a candidate hard rule is "every `fs` read or write under the linked root goes through `resolveUnderRoot`" (BI-072). Verify with `/audit security` and `/audit docs` both reaching pass 1 without the scaffold prompt. Surfaced by audit-security 2026-10-19 (scaffold-bootstrap run-once).
 
 ## Future Opportunities
 
@@ -23,6 +22,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-013** [medium]🧩 | audit-overlay-deltas — Completed 2026-10-19.
 - [x] **BI-072** [!critical] [medium]🧩 | imagegen-symlink-confinement — Completed 2026-10-19.
 - [x] **BI-074** [light] | adopt-stale-prereq — deleted the bootstrap-era "blastimage must be pushed to GitHub first" prerequisite from `docs/ADOPT.md` §Prerequisites (`origin/main` exists; Troubleshooting still covers an aborted add). Surfaced by audit-docs 2026-10-19 (Finding #2, Low), fixed inline.
 - [x] **BI-075** [light] | readme-vision-link — added `VISION.md` to `README.md` §Docs, the only doc index that omitted it. Surfaced by audit-docs 2026-10-19 (Finding #3, Low), fixed inline.
