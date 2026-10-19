@@ -8,7 +8,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-(none)
+- [ ] **BI-072** [!critical] [medium]🧩 | imagegen-symlink-confinement — close two `lib/imagegenServerFs.ts` confinement gaps: (1) `resolveUnderRoot` passes a dangling leaf symlink (realpath fails → parent checked), so `promoteApproved`'s `copyFile` follows `approved/<name>` and creates a file outside the linked root — `lstat` the leaf when `realpath` fails and refuse a symlink; (2) `listRounds` reads `rounds/r<N>/batch.json` via bare `join`, following a symlinked `batch.json` outside the root — route it through `resolveUnderRoot`. Add dangling-leaf and symlinked-`batch.json` cases beside the existing symlink tests in `lib/imagegenServerFs.test.ts`. Surfaced by audit-security 2026-10-19 (Finding #1, Critical; Finding #2, Medium).
 
 ## Medium
 
