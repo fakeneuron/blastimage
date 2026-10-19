@@ -9,6 +9,10 @@
 name = "blastimage-landing"
 compatibility_date = "2026-08-08"
 
+# The apex is the only public host; no workers.dev or preview URLs.
+workers_dev = false
+preview_urls = false
+
 # No gate: landing is a public coming-soon page by design. Asset requests are
 # free and unlimited, since only Worker-*script* invocations bill and this
 # config has none — add `main`/`binding`/`run_worker_first` (see natabula
@@ -19,3 +23,12 @@ compatibility_date = "2026-08-08"
 
 [assets]
 directory = "./dist"
+
+# Production hostname, declared here rather than clicked into the dashboard so
+# the domain wiring is reviewable and a deploy is reproducible. `custom_domain`
+# makes Cloudflare own the apex DNS record and certificate. Apex only: www is
+# not a second Worker — it is a proxied DNS record plus a Redirect Rule
+# (zone config, not in git). See README §Hosts.
+[[routes]]
+pattern = "blastimage.com"
+custom_domain = true

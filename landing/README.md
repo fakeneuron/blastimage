@@ -44,10 +44,10 @@ npm run check      # astro check
 
 Declare this surface in a producer `seo/sites.json` (natabula `templates/seo/README.md`) before launch. To launch it as an indexable site, review the declaration first (`intent: indexable`), then remove the robots meta, add `<link rel="canonical" href={pageURL} />`, and add the sitemap and robots.txt the indexable checklist expects.
 
-## Operator steps (not yet done)
+## Operator steps (done 2026-10-19)
 
-- [ ] Confirm `blastimage.com` is registered and its zone is on Cloudflare
-- [ ] `npm run build && npx wrangler deploy` (creates the `blastimage-landing` Worker)
-- [ ] Add `blastimage.com` as a custom domain on the `blastimage-landing` Worker
-- [ ] Add a proxied `www` DNS record (e.g. `AAAA www 100::`) and a `www.blastimage.com` → `https://blastimage.com` redirect rule in Cloudflare (301, keep path and query)
-- [ ] Optionally declare `public_metadata.homepage_url` in `brand/assets.json` once the apex serves
+- [x] Confirm `blastimage.com` is registered and its zone is on Cloudflare
+- [x] `npm run build && npx wrangler deploy` (creates the `blastimage-landing` Worker)
+- [x] Add `blastimage.com` as a custom domain on the `blastimage-landing` Worker (declared as a `[[routes]]` entry in `wrangler.toml`; the next `npx wrangler deploy` applies it)
+- [x] Add a proxied `www` DNS record (e.g. `AAAA www 100::`) and a `www.blastimage.com` → `https://blastimage.com` redirect rule in Cloudflare (301, keep path and query) — applied with natabula `scripts/cf-www-redirect.sh`; Always Use HTTPS turned on for the zone
+- [x] Optionally declare `public_metadata.homepage_url` in `brand/assets.json` once the apex serves

@@ -17,7 +17,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [x] **DEPLOY-014.3** [light]🔧 [unattended] | landing-dep-gates — Completed 2026-10-18.
   - [x] **DEPLOY-014.4** [light]🔧 [unattended] | doc-comment-drift — Completed 2026-10-18.
   - [x] **DEPLOY-014.5** [light]🔧 | arm-dependabot-security — Completed 2026-10-18.
-  - [ ] **DEPLOY-014.6** [light]🔧 | landing-go-live — operator steps from landing/README.md §"Operator steps (not yet done)" (Cloudflare zone, wrangler deploy, custom domain, www → apex 301, `homepage_url`), untracked since DEPLOY-011 closed; plus, per natabula NAT-434.6, pin `account_id`, `workers_dev = false`, `preview_urls = false`, apply `www` via natabula `scripts/cf-www-redirect.sh blastimage.com`, turn on Always Use HTTPS, and run `scripts/cf-email-routing.sh --to <inbox> blastimage.com`. Done: apex serves the page; checklist ticked; those four in place.
+  - [x] **DEPLOY-014.6** [light]🔧 | landing-go-live — Completed 2026-10-19.
   - [ ] **DEPLOY-014.N** [light]🔧 | upkeep-honesty audit
 
 ## Low
