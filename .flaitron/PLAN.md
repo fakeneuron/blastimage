@@ -12,14 +12,13 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **DEPLOY-005** [light]🔧 [unattended] | eslint-10-natabula-config — move to ESLint 10 on natabula's Next template config instead of waiting for upstream (re-pointed natabula NAT-441, ruled 2026-10-19): drop `eslint-config-next`, compose `@next/eslint-plugin-next` (`configs['core-web-vitals']`) with `typescript-eslint`, `react-hooks` and `jsx-a11y` (natabula `templates/nextjs/eslint.config.mjs`, STACK §Frontend), then `eslint ^10` — that removes `eslint-plugin-react` from the tree. Gate: `npm run lint` clean with no new disables. On landing, drop the `eslint` major-ignore from `.github/dependabot.yml`. History: DEPLOY-003 measured the upstream blocker — `eslint-plugin-react` 7.37.5 (transitive via `eslint-config-next`) crashes at rule load on ESLint 10 (`context.getFilename is not a function`); checked 2026-10-08, still 7.37.5, peer `^9.7`.
-
 ## Future Opportunities
 
 - [ ] **DEPLOY-006** [light]🔧 [unattended] | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-10-19: typescript-eslint 8.72.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
 
+- [x] **DEPLOY-005** [light]🔧 [unattended] | eslint-10-natabula-config — Completed 2026-10-19.
 - [x] **BI-073** [light]🔧 [unattended] | dev-url-origin — Completed 2026-10-19.
 - [x] **CORE-013** [medium]🧩 | audit-overlay-deltas — Completed 2026-10-19.
 - [x] **BI-072** [!critical] [medium]🧩 | imagegen-symlink-confinement — Completed 2026-10-19.

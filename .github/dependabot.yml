@@ -11,15 +11,6 @@ updates:
           - "patch"
           - "minor"
     ignore:
-      # ESLint majors are held at 9 until `eslint-plugin-react` supports
-      # ESLint 10. That plugin arrives transitively with `eslint-config-next`
-      # and crashes at rule load on 10 (`context.getFilename` was removed);
-      # 7.37.5 is `latest`, so there is nothing to bump to. Measured in
-      # DEPLOY-003 — see `.flaitron/tasknote/archive/deployment/DEPLOY-003.md`
-      # for the probe. Drop this entry when DEPLOY-005 lands.
-      - dependency-name: "eslint"
-        update-types:
-          - "version-update:semver-major"
       # TypeScript majors are held at 5 until `typescript-eslint` supports
       # TS 7 (the 7.1 compiler API). `eslint-config-next`'s typescript-eslint
       # throws at config load on 7.0 (`does not support TS 7.0`; no

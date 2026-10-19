@@ -1,35 +1,32 @@
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
+// `@next/eslint-plugin-next` is CommonJS: default-import it, never destructure.
+import next from "@next/eslint-plugin-next";
+import reactHooks from "eslint-plugin-react-hooks";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
 
-// eslint-config-next 16 ships native flat config, so these are spread directly
-// rather than routed through `@eslint/eslintrc`'s FlatCompat as they were under
-// v15 — the shim's eslintrc schema validation crashes on the v16 configs
-// (DEPLOY-002).
+// ESLint 10 flat config on natabula's Next template shape
+// (`templates/nextjs/eslint.config.mjs`), composing `@next/eslint-plugin-next`
+// directly instead of `eslint-config-next`. That package pulls in
+// `eslint-plugin-react`, which crashes at rule load on ESLint 10
+// (`context.getFilename` was removed; measured in DEPLOY-003), so dropping it
+// is what unblocks the upgrade (DEPLOY-005).
 //
-// Type-checked rules sit on that base (CORE-5). `eslint-config-next/typescript`
-// already spreads typescript-eslint `recommended` and registers the plugin, so
-// the full `recommendedTypeChecked` array would register `@typescript-eslint`
-// twice. `recommendedTypeCheckedOnly` is the type-aware half
-// (`no-floating-promises`, `no-misused-promises`, `no-unsafe-*`) meant to
-// layer on. ESLint stays on 9: DEPLOY-005, `eslint-plugin-react` has no
-// ESLint 10 release. `tseslint.config()` is what expands `extends`.
+// Type-checked rules (CORE-5): `recommendedTypeChecked` is typescript-eslint's
+// `recommended` plus the type-aware half (`no-floating-promises`,
+// `no-misused-promises`, `no-unsafe-*`). `tseslint.config()` is what expands
+// `extends`. The preset registers the `@next/next` plugin itself, so do not
+// also declare it in a `plugins` block.
 const eslintConfig = tseslint.config(
-  ...nextCoreWebVitals,
-  ...nextTypescript,
-  // next/* already registers a thin jsx-a11y warn subset; recommended promotes
-  // the full rule set to error so label / interaction regressions fail CI (BI-040).
-  // Rules only — spreading the whole flat config would re-register the `jsx-a11y`
-  // plugin namespace that eslint-config-next already owns, which flat config
-  // rejects outright. Both resolve the same hoisted plugin (DEPLOY-002).
-  {
-    name: "jsx-a11y/recommended (rules)",
-    rules: jsxA11y.flatConfigs.recommended.rules,
-  },
+  next.configs["core-web-vitals"],
   {
     files: ["**/*.{ts,tsx}"],
-    extends: [tseslint.configs.recommendedTypeCheckedOnly],
+    extends: [
+      tseslint.configs.recommendedTypeChecked,
+      reactHooks.configs.flat["recommended-latest"],
+      // Full recommended set at error severity, so label / interaction
+      // regressions fail CI (BI-040).
+      jsxA11y.flatConfigs.recommended,
+    ],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -38,8 +35,7 @@ const eslintConfig = tseslint.config(
     },
     rules: {
       // typescript-eslint v8 already defaults caughtErrors to 'all'. Pinning
-      // it keeps `catch (err) {}` reported if that default flips. An options
-      // object replaces next's warn-level copy of this rule for TS files.
+      // it keeps `catch (err) {}` reported if that default flips.
       "@typescript-eslint/no-unused-vars": ["error", { caughtErrors: "all" }],
     },
   },
