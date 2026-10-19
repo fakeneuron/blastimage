@@ -54,6 +54,39 @@ Closed rows moved verbatim from [PLAN.md](PLAN.md) per [Completed rotation](core
   - [x] **DEPLOY-007.3** [medium]🧩 | push-backlog-ci-verify — Completed 2026-09-09.
   - [x] **DEPLOY-007.N** [light]🔧 | ci-gate-recovery audit — Completed 2026-09-09.
 
+- [x] **BI-063** [light]🔧 [unattended] | approve-promote-rollback — Completed 2026-09-25.
+
+- [x] **BI-062** [medium]🧩 [unattended] | selection-write-integrity — Completed 2026-09-25.
+
+- [x] **BI-061** [heavy]🧠 | link-race-ownership — Completed 2026-09-25.
+
+- [x] **CORE-8** [light] | doc-drift-inline — ADOPT.md:149/199/201 now say blastimage reads/writes the linked imagegen/ folder (localhost only) with session metadata in localStorage; "⟳ Iterate" → "Iterate →" in REVIEW-LOOP.md:91 and lib/useWorkspace.ts:151; GROK-AGENT.md line-number refs → "inside generate()" and error surfacing → "error banner"; REVIEW-LOOP.md:99 "undo above" → "approve undo below (BI-030.2)". Surfaced by audit 2026-09-25 (Finding #11, Medium; Findings #14–#16, Low), fixed inline.
+
+- [x] **BI-EPIC-060** [heavy]🧠 | review-ux-speed — Completed 2026-09-25.
+  - [x] **BI-060.1** [heavy]🧠 | review-ux-speed discovery — Completed 2026-09-24.
+  - [x] **BI-060.2** [medium]🧩 | review-progress-status — Completed 2026-09-24.
+  - [x] **BI-060.3** [heavy]🧠 | lightbox-review-surface — Completed 2026-09-24.
+  - [x] **BI-060.4** [light]🔧 | viewer-mode-layout — Completed 2026-09-25.
+  - [x] **BI-060.5** [light]🔧 | kept-badge-e2e-collision — Completed 2026-09-25.
+  - [x] **BI-060.N** [heavy]🧠 | review-ux-speed audit — Completed 2026-09-25.
+
+- [x] **BI-059** [light]🔧 | browse-comment-boundary — Completed 2026-09-24.
+
+- [x] **DEPLOY-EPIC-009** [light]🔧 | upkeep-drift — Completed 2026-09-24.
+  - [x] **DEPLOY-009.2** [light]🔧 [unattended] | useworkspace-size-fossil — Completed 2026-09-24.
+  - [x] **DEPLOY-009.3** [light]🔧 | dependabot-backlog-triage — Completed 2026-09-24.
+  - [x] **DEPLOY-009.N** [light]🔧 | upkeep-drift audit — Completed 2026-09-24.
+
+- [x] **DEPLOY-EPIC-008** [medium]🧩 | verification-gate-reach — Completed 2026-09-24.
+  - [x] **DEPLOY-008.2** [light]🔧 | push-backlog-ci-verify — Completed 2026-09-24.
+  - [x] **DEPLOY-008.3** [light]🔧 | e2e-dev-coexistence — Completed 2026-09-24.
+  - [x] **DEPLOY-008.N** [light]🔧 | verification-gate-reach audit — Completed 2026-09-24.
+
+- [x] **BI-EPIC-058** [medium]🧩 | loopback-bind — Completed 2026-09-24.
+  - [x] **BI-058.2** [light]🔧 [unattended] | loopback-bind-scripts — Completed 2026-09-24.
+  - [x] **BI-058.3** [light]🔧 [unattended] | guard-threat-model-doc — Completed 2026-09-24.
+  - [x] **BI-058.N** [light]🔧 | loopback-bind audit — Completed 2026-09-24.
+
 ## Completed 2026-08
 
 - [x] **DEPLOY-004** [heavy]🧠 | typescript-7-upgrade — Completed 2026-08-31.
