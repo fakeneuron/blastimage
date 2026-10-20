@@ -1,7 +1,7 @@
 ---
 name: audit
 description: blastimage (Next.js 16 / TypeScript) audit — thin overlay over flaitron's bundled `ft-audit` (runs its passes by reference, applies the project deltas below). Forked from flaitron's audit-overlay template; see `docs/MIGRATION.md` §1.2.1.
-flaitron-reconciled: v7.2.0
+flaitron-reconciled: v7.4.0
 flaitron-tracks: ft-audit
 ---
 
