@@ -108,7 +108,7 @@ export default function BulkReviewPane({
           currentRound ??
           null;
         return (
-          <div key={task.id} id={sectionId(task.id)} className="flex scroll-mt-6 flex-col gap-2">
+          <div key={task.id} id={sectionId(task.id)} className="@container flex scroll-mt-6 flex-col gap-2">
             <label className="text-xs font-medium uppercase tracking-wide opacity-60">
               {task.name}
               {generating
@@ -120,7 +120,7 @@ export default function BulkReviewPane({
                   : ''}
             </label>
             {generating ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 @min-[26rem]:grid-cols-2 @min-[40rem]:grid-cols-3 @min-[54rem]:grid-cols-4">
                 {Array.from({ length: DEFAULT_BATCH_SIZE }, (_, i) => (
                   <div
                     key={i}

@@ -12,14 +12,13 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 
-- [ ] **BI-076** [moderate] | narrow-viewport-decision — Visual-check pilot (natabula NAT-445.4, 2026-10-25): at 390×844 the home view overflows (scrollWidth 401 > 390) and the fixed sidebar leaves the main pane ~100 px wide. Decide the supported width range: if phones are in scope, collapse the sidebar below a breakpoint and add a no-overflow assertion at 390; if not, record the floor and assert it the way marscharts' `header-narrow.spec.ts` does.
-
 ## Future Opportunities
 
 - [ ] **DEPLOY-006** [light]🔧 [unattended] | typescript-7-revisit — retry TypeScript 5→7 once `typescript-eslint` supports TS 7 (7.1 compiler API). DEPLOY-004 measured: `tsc` and `next build` already clean on 7.0.2; eslint-config-next's typescript-eslint throws at config load; Microsoft dual-install breaks Next 16.3.3. Unblock check: `npm view typescript-eslint peerDependencies`. On landing, drop the `typescript` major-ignore from `.github/dependabot.yml`. Checked 2026-10-19: typescript-eslint 8.72.0, peer still `>=4.8.4 <6.1.0`; no stable TS 7.1.
 
 ## Completed
 
+- [x] **BI-076** [moderate] | narrow-viewport-decision — Completed 2026-10-26.
 - [x] **DEPLOY-005** [light]🔧 [unattended] | eslint-10-natabula-config — Completed 2026-10-19.
 - [x] **BI-073** [light]🔧 [unattended] | dev-url-origin — Completed 2026-10-19.
 - [x] **CORE-013** [medium]🧩 | audit-overlay-deltas — Completed 2026-10-19.

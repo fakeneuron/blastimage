@@ -194,7 +194,7 @@ export default function TaskDetail({
 
       {/* Current-round batch — the review grid (BI-005 / BI-053.4) */}
       {(generating || shown) && (
-        <div className="flex flex-col gap-2">
+        <div className="@container flex flex-col gap-2">
           <label className="text-xs font-medium uppercase tracking-wide opacity-60">
             {generating
               ? 'Generating…'
@@ -203,7 +203,7 @@ export default function TaskDetail({
                 : `Latest batch · round ${(shown?.index ?? 0) + 1}`}
           </label>
           {generating ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 @min-[26rem]:grid-cols-2 @min-[40rem]:grid-cols-3 @min-[54rem]:grid-cols-4">
               {Array.from({ length: DEFAULT_BATCH_SIZE }, (_, i) => (
                 <div
                   key={i}

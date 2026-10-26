@@ -12,6 +12,8 @@ npx playwright install chromium webkit   # once
 npm run test:e2e   # Playwright on :3009 (`just dev` on :3003 can stay up)
 ```
 
+The local app supports desktop browsers at least **1024 px** wide. Phones aren't supported, since the server is loopback-only. The public `landing/` page is separate.
+
 Commits are gated by a [gitleaks](https://github.com/gitleaks/gitleaks) secret
 scan (`.pre-commit-config.yaml`, tuned by `.gitleaks.toml`). The config is inert
 until the hook is armed, and arming is **per clone** — a fresh checkout scans

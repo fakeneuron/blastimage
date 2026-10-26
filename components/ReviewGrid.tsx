@@ -96,7 +96,12 @@ export default function ReviewGrid({
 
   return (
     <>
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* Columns follow the pane, not the viewport (BI-076). The caller's
+          `@container` wrapper loses 256px when the gallery rail opens, and
+          viewport breakpoints then clipped each card's ~185px decision row.
+          Thresholds keep every track >= 200px; the TaskDetail / BulkReviewPane
+          skeletons repeat them. */}
+      <ul className="grid grid-cols-1 gap-4 @min-[26rem]:grid-cols-2 @min-[40rem]:grid-cols-3 @min-[54rem]:grid-cols-4">
         {iteration.images.map((img, i) => (
           <ReviewCard
             key={img.id}
