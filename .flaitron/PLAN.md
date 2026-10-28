@@ -8,6 +8,9 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
+
+- [ ] **CORE-014** [moderate] | secrets-posture — NAT-471 found root/landing `.dev.vars*` unignored and public GitHub scanning/push protection disabled. Add the ignore/example exception. With ordinary operator authorization, enable eligible repository controls and verify individual-repository status by metadata; preserve gitleaks. No visibility changes, paid upgrades, rotations or alert-value reads.
+
 ## Medium
 
 ## Low
