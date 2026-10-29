@@ -30,7 +30,8 @@ same audit on `landing/`). Dependabot version-update PRs are off by policy
 (`open-pull-requests-limit: 0` on every entry in `.github/dependabot.yml`,
 `landing/` included); Dependabot alerts and security updates are enabled
 (DEPLOY-014.5) and come from the repo's Dependabot setting (Settings → Code
-security), not from that file. The same
+security), not from that file. GitHub secret scanning and push protection are
+enabled there too (CORE-014), on top of gitleaks, not instead of it. The same
 workflow runs a pinned gitleaks working-tree scan (separate `secrets` job) as
 the backstop for clones that never armed the pre-commit hook, and a Playwright
 e2e job (TEST-007.2) on port 3009.

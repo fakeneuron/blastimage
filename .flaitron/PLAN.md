@@ -9,8 +9,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## High
 
 
-- [ ] **CORE-014** [moderate] | secrets-posture — NAT-471 found public GitHub scanning/push protection disabled. With ordinary operator authorization, enable eligible repository controls and verify individual-repository status by metadata; preserve gitleaks. No visibility changes, paid upgrades, rotations or alert-value reads.
-- [ ] **CORE-015** [light]🔧 [unattended] | dev-vars-ignores — Add `.dev.vars*` plus an exact `!.dev.vars.example` exception to the root `.gitignore` (unanchored, so it also covers `landing/`). Verify with `git check-ignore -v .dev.vars.example landing/.dev.vars.example` (each must report the exception line); read no file values.
 
 ## Medium
 
@@ -22,6 +20,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-015** [light]🔧 [unattended] | dev-vars-ignores — landed in CORE-014's commit (split from CORE-014 by 8f4f290 after that run had already made the edit): root `.gitignore` `.dev.vars*` / `!.dev.vars.example`; operator-run `git check-ignore -q --no-index` gave 0/0/0/1 at root and `landing/`. Completed 2026-10-29.
+- [x] **CORE-014** [moderate] | secrets-posture — Completed 2026-10-29.
 - [x] **BI-076** [moderate] | narrow-viewport-decision — Completed 2026-10-26.
 - [x] **DEPLOY-005** [light]🔧 [unattended] | eslint-10-natabula-config — Completed 2026-10-19.
 - [x] **BI-073** [light]🔧 [unattended] | dev-url-origin — Completed 2026-10-19.

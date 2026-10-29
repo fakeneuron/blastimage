@@ -1,6 +1,9 @@
 # Secrets — .env* catches .env, .env.local, .env.bak, etc.; keep .env.example for docs
 .env*
 !.env.example
+# Cloudflare Worker local secrets (`wrangler dev`) — not matched by .env*; keep .dev.vars.example for docs
+.dev.vars*
+!.dev.vars.example
 
 # Build artifacts & caches
 node_modules/
