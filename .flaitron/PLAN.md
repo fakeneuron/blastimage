@@ -8,9 +8,13 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-
+- [ ] **BI-077** [moderate] | landing-baseline-security-headers — 🌱 Starter. blastimage.com sends 0 of 6 baseline headers; add `landing/public/_headers` per natabula NAT-478 policy (low-risk four first, CSP Report-Only, HSTS last). Siblings: bidviz DEPLOY-062, bananapeel BP-2606, delparte DP-130, siteguy DEPLOY-005.
 
 ## Medium
+
+- [ ] **BI-EPIC-078** [heavy]🧠 | video-support — Batch-generate 16:9 MP4 promo clips beside still batches, reusing the round/review/export pipeline (new `/blast-animate` skill, media-aware review, MP4 export + manifest). Related cloutomaton CORE-EPIC-054.
+  - [ ] **BI-078.1** [heavy]🧠 | video-support discovery — 🌱 Starter. Pilot one round, settle paid-video posture and the missing brand-video spec, file the implementation children.
+  - [ ] **BI-078.N** [heavy]🧠 | video-support audit — Final-subtask audit per SPEC/epic.md.
 
 ## Low
 
