@@ -1,4 +1,4 @@
-# Natabula — Cursor Rules
+# Fleet HQ — Cursor Rules
 
 **Canonical instructions:** `AGENTS.md` (repo root, agent-neutral SSOT) + `CLAUDE.md` (Claude-only addendum).
 Follow them for workflow, non-negotiables, architecture, task lifecycle, and skill triggers.
