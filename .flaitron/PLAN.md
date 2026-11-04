@@ -10,6 +10,8 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-077** [moderate] | landing-baseline-security-headers — 🌱 Starter. blastimage.com sends 0 of 6 baseline headers; add `landing/public/_headers` per natabula NAT-478 policy (low-risk four first, CSP Report-Only, HSTS last). Siblings: bidviz DEPLOY-062, bananapeel BP-2606, delparte DP-130, siteguy DEPLOY-005.
 
+- [ ] **BI-80** [light] | ci-job-timeouts — Raise every Actions job to the NAT-528 defaults (15 min lint/type/unit, 30 min E2E/build/deploy) where the current timeout-minutes differs. Origin NAT-528.
+
 ## Medium
 
 - [ ] **BI-EPIC-078** [heavy]🧠 | video-support — Batch-generate 16:9 MP4 promo clips beside still batches, reusing the round/review/export pipeline (new `/blast-animate` skill, media-aware review, MP4 export + manifest). Related cloutomaton CORE-EPIC-054.
