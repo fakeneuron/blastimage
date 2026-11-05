@@ -10,8 +10,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 - [ ] **BI-077** [moderate] | landing-baseline-security-headers — 🌱 Starter. blastimage.com sends 0 of 6 baseline headers; add `landing/public/_headers` per natabula NAT-478 policy (low-risk four first, CSP Report-Only, HSTS last). Siblings: bidviz DEPLOY-062, bananapeel BP-2606, delparte DP-130, siteguy DEPLOY-005.
 
-- [ ] **BI-80** [light] | ci-job-timeouts — Raise every Actions job to the NAT-528 defaults (15 min lint/type/unit, 30 min E2E/build/deploy) where the current timeout-minutes differs. Origin NAT-528.
-
 ## Medium
 
 - [ ] **BI-EPIC-078** [heavy]🧠 | video-support — Batch-generate 16:9 MP4 promo clips beside still batches, reusing the round/review/export pipeline (new `/blast-animate` skill, media-aware review, MP4 export + manifest). Related cloutomaton CORE-EPIC-054.
@@ -27,6 +25,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-80** [light] | ci-job-timeouts — set `timeout-minutes` on every `.github/workflows/ci.yml` job to the NAT-528 defaults: `ci` 30 (unit plus build), `secrets` 15, `landing` 30 (astro check plus build), `e2e` 20→30; no tasknote. Completed 2026-11-05.
 - [x] **CORE-015** [light]🔧 [unattended] | dev-vars-ignores — landed in CORE-014's commit (split from CORE-014 by 8f4f290 after that run had already made the edit): root `.gitignore` `.dev.vars*` / `!.dev.vars.example`; operator-run `git check-ignore -q --no-index` gave 0/0/0/1 at root and `landing/`. Completed 2026-10-29.
 - [x] **CORE-014** [moderate] | secrets-posture — Completed 2026-10-29.
 - [x] **BI-076** [moderate] | narrow-viewport-decision — Completed 2026-10-26.
