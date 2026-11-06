@@ -1,0 +1,19 @@
+# Workers static-assets headers for the blastimage.com apex (blastimage-landing).
+# Astro copies public/ into dist/, which wrangler.toml uploads as [assets].
+# Policy: natabula docs/STACK-TENDENCIES.md §"Response security headers" (NAT-478); BI-077.
+#
+# - Content-Security-Policy is the full, enforced policy. The page has no
+#   scripts. Its only inline content is Astro's inlined global <style>, so
+#   'unsafe-inline' is style-only. The mark and favicon are inlined data: SVGs.
+#   Revisit before adding any script, font, form or analytics (incl. Cloudflare
+#   Web Analytics).
+# - Strict-Transport-Security is host-only and short-lived while trialled
+#   (300 -> 86400 -> 31536000, BI-081). Never add includeSubDomains or preload
+#   without an owner decision.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=300
+  Content-Security-Policy: default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'

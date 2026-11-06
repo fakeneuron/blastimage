@@ -8,13 +8,12 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-077** [moderate] | landing-baseline-security-headers — 🌱 Starter. blastimage.com sends 0 of 6 baseline headers; add `landing/public/_headers` per natabula NAT-478 policy (low-risk four first, CSP Report-Only, HSTS last). Siblings: bidviz DEPLOY-062, bananapeel BP-2606, delparte DP-130, siteguy DEPLOY-005.
-
 ## Medium
 
 - [ ] **BI-EPIC-078** [heavy]🧠 | video-support — Batch-generate 16:9 MP4 promo clips beside still batches, reusing the round/review/export pipeline (new `/blast-animate` skill, media-aware review, MP4 export + manifest). Related cloutomaton CORE-EPIC-054.
   - [ ] **BI-078.1** [heavy]🧠 | video-support discovery — 🌱 Starter. Pilot one round, settle paid-video posture and the missing brand-video spec, file the implementation children.
   - [ ] **BI-078.N** [heavy]🧠 | video-support audit — Final-subtask audit per SPEC/epic.md.
+- [ ] **BI-081** [light] | landing-hsts-promotion — From BI-077: step the apex's host-only HSTS in `landing/public/_headers` 300 → 86400 → 31536000 per natabula NAT-478 §"HSTS scope", one rung per deploy, each only after the previous rung's full max-age has elapsed; before each rung record dated `curl -sI` evidence for the apex, a 404 path, `http://` → `https://`, and www → apex. Never add `includeSubDomains`/`preload` here.
 
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
@@ -25,6 +24,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-077** [moderate] | landing-baseline-security-headers — Completed 2026-11-06.
 - [x] **BI-80** [light] | ci-job-timeouts — set `timeout-minutes` on every `.github/workflows/ci.yml` job to the NAT-528 defaults: `ci` 30 (unit plus build), `secrets` 15, `landing` 30 (astro check plus build), `e2e` 20→30; no tasknote. Completed 2026-11-05.
 - [x] **CORE-015** [light]🔧 [unattended] | dev-vars-ignores — landed in CORE-014's commit (split from CORE-014 by 8f4f290 after that run had already made the edit): root `.gitignore` `.dev.vars*` / `!.dev.vars.example`; operator-run `git check-ignore -q --no-index` gave 0/0/0/1 at root and `landing/`. Completed 2026-10-29.
 - [x] **CORE-014** [moderate] | secrets-posture — Completed 2026-10-29.
