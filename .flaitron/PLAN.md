@@ -17,6 +17,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
+- [ ] **BI-082** [light] | cf-account-pin-and-mail — From natabula fleet audit 2026-11-05 (@397b732; natabula FLEET-CLOUDFLARE graded 2026-10-27, re-confirmed 2026-11-01): DEPLOY-014.6 fixed the apex route, `www`, HTTPS, `workers_dev` and `preview_urls`, but not two cells. Pin `account_id` in the wrangler config, and enable Email Routing with the fleet aliases (or record why the zone takes no mail).
 
 ## Future Opportunities
 
