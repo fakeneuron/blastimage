@@ -15,6 +15,9 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **BI-078.N** [heavy]🧠 | video-support audit — Final-subtask audit per SPEC/epic.md.
 - [ ] **BI-081** [light] | landing-hsts-promotion — From BI-077: step the apex's host-only HSTS in `landing/public/_headers` 300 → 86400 → 31536000 per natabula NAT-478 §"HSTS scope", one rung per deploy, each only after the previous rung's full max-age has elapsed; before each rung record dated `curl -sI` evidence for the apex, a 404 path, `http://` → `https://`, and www → apex. Never add `includeSubDomains`/`preload` here.
 
+- [ ] **CORE-016** [moderate] | grok-block-adoption — Adopt Natabula Grok block v1 public variant in AGENTS.md; retain one CLAUDE import/link or symlink. Verify exact payload, checkout/closure capability stops and public-ID boundary using Natabula docs/GROK-TASKNOTES.md and its audit. Owner executes; push/PR/merge/deploy need explicit go.
+
+
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
 - [ ] **BI-082** [light] | cf-account-pin-and-mail — From natabula fleet audit 2026-11-05 (@397b732; natabula FLEET-CLOUDFLARE graded 2026-10-27, re-confirmed 2026-11-01): DEPLOY-014.6 fixed the apex route, `www`, HTTPS, `workers_dev` and `preview_urls`, but not two cells. Pin `account_id` in the wrangler config, and enable Email Routing with the fleet aliases (or record why the zone takes no mail).
