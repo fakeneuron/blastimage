@@ -21,7 +21,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
 - [ ] **BI-082** [light] | cf-account-pin-and-mail — From natabula fleet audit 2026-11-05 (@397b732; natabula FLEET-CLOUDFLARE graded 2026-10-27, re-confirmed 2026-11-01): DEPLOY-014.6 fixed the apex route, `www`, HTTPS, `workers_dev` and `preview_urls`, but not two cells. Pin `account_id` in the wrangler config, and enable Email Routing with the fleet aliases (or record why the zone takes no mail).
-- [ ] **BI-083** [light] [unattended] | port-registry-citation — Update the stale `~/Code/natabula/docs/PORT-REGISTRY.md` citation in `landing/astro.config.mjs:5` to `~/.natabula/registers/PORT-REGISTRY.md` (moved by natabula NAT-495.9). Verify: `git grep -F 'natabula/docs/PORT-REGISTRY.md' -- landing/` returns nothing.
 
 ## Future Opportunities
 
@@ -29,6 +28,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-083** [light] [unattended] | port-registry-citation — Completed 2026-11-10.
 - [x] **BI-077** [moderate] | landing-baseline-security-headers — Completed 2026-11-06.
 - [x] **BI-80** [light] | ci-job-timeouts — set `timeout-minutes` on every `.github/workflows/ci.yml` job to the NAT-528 defaults: `ci` 30 (unit plus build), `secrets` 15, `landing` 30 (astro check plus build), `e2e` 20→30; no tasknote. Completed 2026-11-05.
 - [x] **CORE-015** [light]🔧 [unattended] | dev-vars-ignores — landed in CORE-014's commit (split from CORE-014 by 8f4f290 after that run had already made the edit): root `.gitignore` `.dev.vars*` / `!.dev.vars.example`; operator-run `git check-ignore -q --no-index` gave 0/0/0/1 at root and `landing/`. Completed 2026-10-29.

@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 
 // blastimage coming-soon landing — static output, deployed as a Cloudflare Worker.
 // Dev port 4003 is pinned (strictPort) per the fleet port registry
-// (~/Code/natabula/docs/PORT-REGISTRY.md): 3003 is the blastimage app.
+// (~/.natabula/registers/PORT-REGISTRY.md): 3003 is the blastimage app.
 // site: is the apex canonical origin, never the www host.
 // www redirects to this origin in Cloudflare DNS, not a second Worker.
 // See natabula docs/DESIGN-STANDARDS.md §"Landing surfaces".
