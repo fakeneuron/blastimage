@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Project, stack, and workflow doctrine live in [`AGENTS.md`](AGENTS.md) (agent-neutral SSOT) — read it first. This file holds Claude-only notes.
+Project, stack, and workflow doctrine live in `AGENTS.md` (agent-neutral SSOT) — read it first. This file holds Claude-only notes.
 
 ## Workflow
 

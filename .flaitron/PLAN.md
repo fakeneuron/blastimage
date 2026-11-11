@@ -15,8 +15,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
   - [ ] **BI-078.N** [heavy]🧠 | video-support audit — Final-subtask audit per SPEC/epic.md.
 - [ ] **BI-081** [light] | landing-hsts-promotion — From BI-077: step the apex's host-only HSTS in `landing/public/_headers` 300 → 86400 → 31536000 per natabula NAT-478 §"HSTS scope", one rung per deploy, each only after the previous rung's full max-age has elapsed; before each rung record dated `curl -sI` evidence for the apex, a 404 path, `http://` → `https://`, and www → apex. Never add `includeSubDomains`/`preload` here.
 
-- [ ] **CORE-016** [moderate] | grok-block-adoption — Adopt Natabula Grok block v1 public variant in AGENTS.md; retain one CLAUDE import/link or symlink. Verify exact payload, checkout/closure capability stops and public-ID boundary using Natabula docs/GROK-TASKNOTES.md and its audit. Owner executes; push/PR/merge/deploy need explicit go.
-
 
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
@@ -28,6 +26,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **CORE-016** [moderate] | grok-block-adoption — Grok block v3 public installed by natabula NAT-595.3 wave (`5fc9544`), no markers (public); duplicate CLAUDE.md prose link to AGENTS.md unlinked so one import remains; no tasknote. Completed 2026-11-11.
 - [x] **BI-083** [light] [unattended] | port-registry-citation — Completed 2026-11-10.
 - [x] **BI-077** [moderate] | landing-baseline-security-headers — Completed 2026-11-06.
 - [x] **BI-80** [light] | ci-job-timeouts — set `timeout-minutes` on every `.github/workflows/ci.yml` job to the NAT-528 defaults: `ci` 30 (unit plus build), `secrets` 15, `landing` 30 (astro check plus build), `e2e` 20→30; no tasknote. Completed 2026-11-05.
