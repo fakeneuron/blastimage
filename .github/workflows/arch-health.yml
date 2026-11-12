@@ -1,0 +1,237 @@
+name: Arch health
+
+# NOT A GATE — a weekly report (NAT-G008 Part A, NAT-602.2).
+#
+# It produces two facts and uploads them as the `arch-health` artifact (30
+# days). It never judges them:
+#
+#   - an ephemeral repo map: dependency-cruiser JSON for each npm stack
+#     (arch/<stack>/dep-graph.json) and pydeps JSON for each Python package
+#     with more than one module (arch/<stack>/pydeps-<package>.json). Static
+#     imports only, so the graph is a lower bound. It is regenerated each run
+#     and never committed: `arch/` is gitignored, and a committed index stays
+#     rejected (docs/QUALITY-STACK.md).
+#   - knip, report-first (arch/<stack>/knip.json). Unused files, exports and
+#     dependencies are findings, not failures. Promoting knip to a gate is a
+#     per-repo step after that repo's first cleanup.
+#
+# Agents read the map before planning a task that touches more than one
+# module. Fetch it with `gh run download -n arch-health -D arch`. That pointer
+# line lives in AGENTS.md.
+#
+# Findings never turn the run red (NAT-118, facts not grades). A red run means
+# a tool failed: an install broke, dependency-cruiser crashed, or knip exited 2
+# (its error code; `--no-exit-code` turns only findings into 0). A scheduled red
+# opens or comments on one tracking issue (the report-failure job, NAT-360.4).
+# That is the canary pattern of natabula's templates-typecheck.yml (NAT-213),
+# scoped to this workflow. It is not the global automatic issue writer that
+# docs/CI-HEALTH.md rejects.
+#
+# Triggers: `schedule` + `workflow_dispatch` only, never push or pull_request
+# (A-D1, NAT-602.1). The CI spine's "no workflow_dispatch" rule governs the gate
+# workflow, ci.yml. This is a separate non-gate file, which is why it is not a
+# job on ci.yml.
+#
+# Layout-agnostic, like ci.yml. npm stacks: each of the repo root, frontend/,
+# worker/ and landing/ that has a package.json and a package-lock.json. Python
+# stack: backend/ or the root, whichever has the pyproject.toml. A nested layout
+# (e.g. cockpit/frontend/) adapts the detect step. Deposited by natabula's
+# Part A wave (docs/STANDARDS-ADOPTION.md §NAT-G008). natabula runs an
+# identical copy.
+
+on:
+  schedule:
+    # Mondays, 05:43 UTC. Off the hour on purpose — GitHub drops scheduled runs
+    # under load at popular cron minutes.
+    - cron: '43 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arch-health-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pin the tool, not the image (docs/STACK-TENDENCIES.md §"Continuous
+  # integration" → Runner image). TypeScript is pinned beside
+  # dependency-cruiser because the cruiser parses .ts only when `typescript`
+  # resolves from its own install (its supported range is >=2 <7).
+  DEPCRUISE_VERSION: '18.7.2'
+  TYPESCRIPT_VERSION: '6.0.3'
+  KNIP_VERSION: '6.45.1'
+  PYDEPS_VERSION: '3.0.9'
+
+jobs:
+  report:
+    name: repo map + knip
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Detect layout
+        id: layout
+        run: |
+          npm=''
+          for d in . frontend worker landing; do
+            if [ -f "$d/package.json" ] && [ -f "$d/package-lock.json" ]; then
+              npm="$npm $d"
+            fi
+          done
+          if   [ -f backend/pyproject.toml ]; then py=backend
+          elif [ -f pyproject.toml ];         then py=.
+          else py=''; fi
+          if [ -d backend ] && [ -z "$py" ]; then
+            echo "::notice::backend/ has no pyproject.toml; no Python map this run."
+          fi
+          echo "npm=${npm# }" >> "$GITHUB_OUTPUT"
+          echo "py=$py" >> "$GITHUB_OUTPUT"
+
+      # Bump node-version to match this repo's .nvmrc if it pins a different
+      # line (as in ci.yml). The lockfile patterns are listed statically, so an
+      # absent stack cannot expand to a bare "/package-lock.json". At least one
+      # resolves whenever this step runs.
+      - name: Set up Node
+        if: steps.layout.outputs.npm != ''
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            worker/package-lock.json
+            landing/package-lock.json
+
+      # The tools go in their own directory, so they never touch a stack's
+      # package.json or lockfile.
+      - name: Install report tools (npm)
+        if: steps.layout.outputs.npm != ''
+        run: |
+          npm install --prefix "$RUNNER_TEMP/arch-tools" --no-audit --no-fund \
+            "dependency-cruiser@$DEPCRUISE_VERSION" \
+            "typescript@$TYPESCRIPT_VERSION" \
+            "knip@$KNIP_VERSION"
+
+      # Each stack installs first because knip loads its configs (vite,
+      # vitest, eslint), which import the stack's own dependencies. The graph
+      # covers src/ when the stack has one and the stack directory otherwise.
+      # It uses tsconfig.app.json, or tsconfig.json when there is no app config,
+      # so path aliases resolve. When the root is a stack, the graph leaves out
+      # the other detected stack dirs; root knip may still list their files as
+      # unused, which is report noise, never red. `npm ci` runs the stack's
+      # install scripts, so a broken install script also goes red.
+      - name: Repo map + knip (npm)
+        if: steps.layout.outputs.npm != ''
+        env:
+          STACKS: ${{ steps.layout.outputs.npm }}
+        run: |
+          set -euo pipefail
+          bin="$RUNNER_TEMP/arch-tools/node_modules/.bin"
+          others=''
+          for d in $STACKS; do [ "$d" = . ] || others="$others|$d"; done
+          for d in $STACKS; do
+            name=$d; [ "$d" = . ] && name=root
+            out="$GITHUB_WORKSPACE/arch/$name"
+            mkdir -p "$out"
+            echo "::group::$name"
+            (
+              cd "$d"
+              npm ci --no-audit --no-fund
+              src=.; [ -d src ] && src=src
+              ts=()
+              if   [ -f tsconfig.app.json ]; then ts=(--ts-config tsconfig.app.json)
+              elif [ -f tsconfig.json ];     then ts=(--ts-config tsconfig.json); fi
+              skip='node_modules|dist|build|coverage|\.wrangler|arch'
+              [ "$d" = . ] && skip="$skip$others"
+              "$bin/depcruise" "$src" --no-config "${ts[@]}" \
+                --exclude "(^|/)($skip)/" \
+                --output-type json > "$out/dep-graph.json"
+              "$bin/knip" --no-exit-code --reporter json > "$out/knip.json"
+              # Unparseable output is a tool failure, not a finding.
+              jq empty "$out/dep-graph.json" "$out/knip.json"
+            )
+            echo "::endgroup::"
+          done
+
+      # No enable-cache: setup-uv's cache keys on a lockfile, and the only
+      # thing resolved here is the pinned pydeps.
+      - name: Set up uv
+        if: steps.layout.outputs.py != ''
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+          enable-cache: false
+
+      # One graph per top-level package (flat or src/ layout) that has more
+      # than one module; a single-module package has no internal graph to draw.
+      # `--no-output` skips graphviz and `--show-deps` prints the JSON.
+      - name: Repo map (Python)
+        if: steps.layout.outputs.py != ''
+        env:
+          STACK: ${{ steps.layout.outputs.py }}
+        run: |
+          set -euo pipefail
+          name=$STACK; [ "$STACK" = . ] && name=root
+          out="$GITHUB_WORKSPACE/arch/$name"
+          mkdir -p "$out"
+          for init in "$STACK"/*/__init__.py "$STACK"/src/*/__init__.py; do
+            [ -f "$init" ] || continue
+            pkg=$(dirname "$init")
+            base=$(basename "$pkg")
+            case "$base" in tests|test|.venv|venv|node_modules) continue ;; esac
+            n=$(find "$pkg" -name '*.py' -not -path '*/__pycache__/*' | wc -l)
+            [ "$n" -gt 1 ] || continue
+            uvx --from "pydeps==$PYDEPS_VERSION" pydeps "$pkg" \
+              --show-deps --no-output --no-config > "$out/pydeps-$base.json"
+          done
+
+      # Uploads whatever was produced, even after a tool failure, so a red run
+      # still leaves the stacks that succeeded.
+      - name: Upload arch-health
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: arch-health
+          path: arch/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # Where a red lands (NAT-360.4, the same job as templates-typecheck.yml).
+  # Schedule only: a workflow_dispatch run already has an operator watching
+  # it. One open issue, found by exact title. The first red opens it, each later
+  # red comments on it, and a human closes it once the tool is fixed.
+  # `issues: write` is granted here only.
+  report-failure:
+    name: report failure
+    needs: [report]
+    if: failure() && github.event_name == 'schedule'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='Arch health report is red'
+          body="Scheduled run failed: $RUN_URL"
+          # Captured before filtering, not piped: under `bash -e` a failed lookup
+          # then fails the step instead of reading as "no issue" and opening a
+          # duplicate. awk takes the exact title as data, never as program text.
+          matches=$(gh issue list --state open --search "in:title \"$title\"" \
+            --json number,title --jq '.[] | [.number, .title] | @tsv')
+          number=$(printf '%s\n' "$matches" | awk -F '\t' -v t="$title" '$2 == t { print $1; exit }')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$title" \
+              --body "$body
+
+          A report tool failed, not a finding (see the header of .github/workflows/arch-health.yml). Fix the install or bump the pinned tool, then close this issue. Later reds comment here instead of opening a new one."
+          fi

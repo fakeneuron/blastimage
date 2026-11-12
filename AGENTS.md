@@ -39,3 +39,7 @@ Local Next.js application for coordinated AI image generation workflows. Users d
 - If that workflow is unavailable, stop and report before task repo work. Claims and closures are committed repo markers, never Drive edits; do not infer approval.
 - Keep private workflow identifiers out of git; pushes, PRs, merges and deploys require the operator’s explicit approval for this repo.
 <!-- grok-tasknotes:end -->
+
+<!-- arch-health:start -->
+**Repo map:** for a task that touches more than one module, fetch the latest `arch-health` artifact (`gh run download -n arch-health -D arch`) into the gitignored `arch/` and read `arch/<stack>/dep-graph.json` (Python: `pydeps-<package>.json`) before planning. It holds static imports only, so read it as a lower bound (`.github/workflows/arch-health.yml`, natabula NAT-602.2).
+<!-- arch-health:end -->
