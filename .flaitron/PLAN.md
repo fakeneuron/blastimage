@@ -19,6 +19,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
 - [ ] **BI-082** [light] | cf-account-pin-and-mail — From natabula fleet audit 2026-11-05 (@397b732; natabula FLEET-CLOUDFLARE graded 2026-10-27, re-confirmed 2026-11-01): DEPLOY-014.6 fixed the apex route, `www`, HTTPS, `workers_dev` and `preview_urls`, but not two cells. Pin `account_id` in the wrangler config, and enable Email Routing with the fleet aliases (or record why the zone takes no mail).
+- [ ] **BI-084** [light] | ci-coverage-last-green — From natabula NAT-600: adopt the fleet CI template's last-green coverage diff base — replace the `Resolve coverage diff base` step's `env` + `run` in `.github/workflows/ci.yml` with the template's, and add `actions: read` to the job's existing `permissions:` block. Skipped by wave NAT-609: job already declares `permissions:`. Verify: the next push logs `Coverage diff base: … (last green run)`.
 
 ## Future Opportunities
 
