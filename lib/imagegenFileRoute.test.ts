@@ -20,18 +20,16 @@ import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { contentTypeFor, GET } from '../app/api/imagegen/file/route';
+import { contentTypeFor, GET, parseByteRange } from '../app/api/imagegen/file/route';
 
 /** A request-shaped literal for a same-origin GET against the file route. */
-function fileReq(root: string, path: string): Request {
+function fileReq(root: string, path: string, range?: string): Request {
   const url = new URL('http://localhost:3003/api/imagegen/file');
   url.searchParams.set('root', root);
   url.searchParams.set('path', path);
-  return {
-    method: 'GET',
-    url: url.toString(),
-    headers: new Headers({ 'sec-fetch-site': 'same-origin' }),
-  } as unknown as Request;
+  const headers = new Headers({ 'sec-fetch-site': 'same-origin' });
+  if (range) headers.set('range', range);
+  return { method: 'GET', url: url.toString(), headers } as unknown as Request;
 }
 
 describe('contentTypeFor', () => {
@@ -39,6 +37,7 @@ describe('contentTypeFor', () => {
     expect(contentTypeFor('001.png')).toBe('image/png');
     expect(contentTypeFor('rounds/r1/batch.json')).toBe('application/json');
     expect(contentTypeFor('notes.md')).toBe('text/markdown; charset=utf-8');
+    expect(contentTypeFor('rounds/r1/hero-banner-001.mp4')).toBe('video/mp4');
   });
 
   it('is case-insensitive on the extension', () => {
@@ -52,6 +51,31 @@ describe('contentTypeFor', () => {
 
   it('returns null for a path with no extension', () => {
     expect(contentTypeFor('README')).toBeNull();
+  });
+});
+
+describe('parseByteRange', () => {
+  it('ignores an absent, malformed, multi-range, or non-bytes header', () => {
+    expect(parseByteRange(null, 10)).toBeNull();
+    expect(parseByteRange('bytes=-', 10)).toBeNull();
+    expect(parseByteRange('bytes=0-1,4-5', 10)).toBeNull();
+    expect(parseByteRange('items=0-1', 10)).toBeNull();
+    expect(parseByteRange('bytes=5-3', 10)).toBeNull();
+  });
+
+  it('reads the closed, open-ended, and suffix forms, clamping to the file', () => {
+    expect(parseByteRange('bytes=0-1', 10)).toEqual({ start: 0, end: 1 });
+    expect(parseByteRange('bytes=4-', 10)).toEqual({ start: 4, end: 9 });
+    expect(parseByteRange('bytes=8-99', 10)).toEqual({ start: 8, end: 9 });
+    expect(parseByteRange('bytes=-3', 10)).toEqual({ start: 7, end: 9 });
+    expect(parseByteRange('bytes=-99', 10)).toEqual({ start: 0, end: 9 });
+  });
+
+  it('marks a range that misses the file as unsatisfiable', () => {
+    expect(parseByteRange('bytes=10-', 10)).toBe('unsatisfiable');
+    expect(parseByteRange('bytes=12-15', 10)).toBe('unsatisfiable');
+    expect(parseByteRange('bytes=-0', 10)).toBe('unsatisfiable');
+    expect(parseByteRange('bytes=-5', 0)).toBe('unsatisfiable');
   });
 });
 
@@ -84,5 +108,53 @@ describe('GET /api/imagegen/file', () => {
     expect(response.headers.get('Content-Type')).toBe('image/png');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Accept-Ranges')).toBe('bytes');
+  });
+
+  describe('byte ranges (BI-078.3)', () => {
+    const clip = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+    beforeEach(async () => {
+      await writeFile(join(root, 'take-001.mp4'), clip);
+    });
+
+    it('answers a satisfiable range with 206 and exactly that slice', async () => {
+      const response = await GET(fileReq(root, 'take-001.mp4', 'bytes=2-5'));
+      expect(response.status).toBe(206);
+      expect(response.headers.get('Content-Type')).toBe('video/mp4');
+      expect(response.headers.get('Content-Range')).toBe('bytes 2-5/10');
+      expect(response.headers.get('Content-Length')).toBe('4');
+      expect(response.headers.get('Accept-Ranges')).toBe('bytes');
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+      expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([2, 3, 4, 5]);
+    });
+
+    it('serves the two-byte probe Safari sends first', async () => {
+      const response = await GET(fileReq(root, 'take-001.mp4', 'bytes=0-1'));
+      expect(response.status).toBe(206);
+      expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([0, 1]);
+    });
+
+    it('answers a range past the end with 416 and the file size', async () => {
+      const response = await GET(fileReq(root, 'take-001.mp4', 'bytes=10-'));
+      expect(response.status).toBe(416);
+      expect(response.headers.get('Content-Range')).toBe('bytes */10');
+      expect(response.headers.get('Content-Type')).toBeNull();
+    });
+
+    it('ignores the range when If-Range is sent, since no validator can match', async () => {
+      const req = fileReq(root, 'take-001.mp4', 'bytes=2-5');
+      req.headers.set('if-range', 'Wed, 21 Oct 2026 07:28:00 GMT');
+      const response = await GET(req);
+      expect(response.status).toBe(200);
+      expect(new Uint8Array(await response.arrayBuffer()).length).toBe(10);
+    });
+
+    it('serves the whole file with 200 when the range is ignored', async () => {
+      const response = await GET(fileReq(root, 'take-001.mp4', 'bytes=0-1,4-5'));
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Range')).toBeNull();
+      expect(new Uint8Array(await response.arrayBuffer()).length).toBe(10);
+    });
   });
 });

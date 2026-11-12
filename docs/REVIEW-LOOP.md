@@ -136,8 +136,9 @@ still `"schemaVersion": 1` — nothing about clips bumps it:
 - Clip filenames follow the still pattern, `<slug>-NNN.mp4`, so an approved clip lands in the
   flat `approved/` beside its still without a name clash.
 
-The contract is in place; serving, reviewing, exporting, and generating clips arrive with
-BI-078.3–.6. The committed clip fixture lives in its own root, `test-fixtures/imagegen-clip/`,
+The contract is in place, and the file route serves `.mp4` as `video/mp4` with byte ranges,
+which Safari needs to play a `<video>` (BI-078.3). Reviewing, exporting, and generating clips
+arrive with BI-078.4–.6. The committed clip fixture lives in its own root, `test-fixtures/imagegen-clip/`,
 so the still fixture's auto-loaded r1 is unchanged.
 
 ### `rounds/r<N>/selection.json` — written by the frontend, read by `/blast-iterate`
