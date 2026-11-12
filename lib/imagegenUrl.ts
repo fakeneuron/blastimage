@@ -43,3 +43,17 @@ export function roundImageFilenameFromUrl(url: string): string | null {
   const m = /^rounds\/r\d+\/(.+)$/.exec(imagegenPathFromUrl(url));
   return m ? m[1]! : null;
 }
+
+/** What a round file renders as (BI-078.2). */
+export type MediaKind = 'image' | 'video';
+
+/**
+ * Media kind from a filename, a path relative to `imagegen/`, or an
+ * `imagegen:` URL — by extension, so no persisted discriminator is needed.
+ * `.mp4` is the only clip format (BI-078.1); everything else is an image.
+ * Pass the stored path or `imagegen:` URL, never a display URL from
+ * `imagegenFileUrl` — its trailing `&v=<epoch>` hides the extension.
+ */
+export function mediaKindFromPath(path: string): MediaKind {
+  return /\.mp4$/i.test(path.trim()) ? 'video' : 'image';
+}

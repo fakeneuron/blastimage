@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   imagegenPathFromUrl,
   isImagegenUrl,
+  mediaKindFromPath,
   roundImageFilenameFromUrl,
   roundImageUrl,
   roundNumberFromImageUrl,
@@ -31,5 +32,19 @@ describe('imagegenUrl helpers', () => {
   it('leaves non-imagegen urls alone', () => {
     expect(isImagegenUrl('data:image/png;base64,abc')).toBe(false);
     expect(imagegenPathFromUrl('data:image/png;base64,abc')).toBe('data:image/png;base64,abc');
+  });
+});
+
+describe('mediaKindFromPath (BI-078.2)', () => {
+  it('reads .mp4 as video from a filename, a relative path, or an imagegen URL', () => {
+    expect(mediaKindFromPath('hero-001.mp4')).toBe('video');
+    expect(mediaKindFromPath('rounds/r2/hero-001.MP4')).toBe('video');
+    expect(mediaKindFromPath(roundImageUrl(2, 'hero-001.mp4'))).toBe('video');
+  });
+
+  it('reads every other extension as an image', () => {
+    for (const name of ['hero-001.jpg', 'hero-001.png', 'hero-001.webp', 'hero-mp4.jpg', 'hero']) {
+      expect(mediaKindFromPath(name)).toBe('image');
+    }
   });
 });

@@ -6,7 +6,7 @@
  * and reuses {@link RoundBatch} / {@link RoundSelection} shapes from BI-024.1/2.
  */
 
-import type { RoundBatch, RoundBatchTask } from './roundBatch';
+import type { RoundBatch, RoundBatchTask, RoundClipProvenance } from './roundBatch';
 import { ROUND_BATCH_SCHEMA_VERSION } from './roundBatch';
 import type { RoundSelection, RoundSelectionTask } from './roundSelection';
 import { slugify } from './storage';
@@ -15,13 +15,24 @@ import type { TaskImportDraft } from './storage';
 /** Matches {@link import('./useWorkspace').DEFAULT_BATCH_SIZE}. */
 export const TERMINAL_BATCH_SIZE = 4 as const;
 
+/**
+ * Takes per clip round (BI-078.1). A `/blast-animate` default, deliberately
+ * not tied to {@link TERMINAL_BATCH_SIZE}: a clip costs far more than a still.
+ */
+export const TERMINAL_CLIP_TAKES = 3 as const;
+
 /** One prompt task the terminal skills will generate for. */
 export interface TerminalTaskPlan {
   slug: string;
   name: string;
   prompt: string;
-  /** Path relative to `imagegen/`, e.g. `refs/hero-banner.jpg`. */
+  /**
+   * Path relative to `imagegen/`, e.g. `refs/hero-banner.jpg`; for a clip
+   * round, the source still, e.g. `approved/hero-banner-002.jpg`.
+   */
   ref?: string;
+  /** Clip provenance; set only when planning a clip round. */
+  clip?: RoundClipProvenance;
 }
 
 /** Planned iterate entry derived from a selection file. */
@@ -116,6 +127,7 @@ export function buildRoundBatch(
       images: [...(imageLists[t.slug] ?? [])],
     };
     if (t.ref !== undefined) task.ref = t.ref;
+    if (t.clip !== undefined) task.clip = { ...t.clip };
     return task;
   });
   return {

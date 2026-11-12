@@ -16,6 +16,7 @@ import {
   selectionMatchesRound,
   serializeRoundBatch,
   TERMINAL_BATCH_SIZE,
+  TERMINAL_CLIP_TAKES,
   validateIterateSelectionTasks,
 } from './terminalRound';
 import { DEFAULT_BATCH_SIZE } from './useWorkspace';
@@ -23,6 +24,11 @@ import { DEFAULT_BATCH_SIZE } from './useWorkspace';
 describe('terminalRound helpers', () => {
   it('keeps TERMINAL_BATCH_SIZE in sync with useWorkspace.DEFAULT_BATCH_SIZE', () => {
     expect(TERMINAL_BATCH_SIZE).toBe(DEFAULT_BATCH_SIZE);
+  });
+
+  it('defaults a clip round to 3 takes, apart from the still batch size (BI-078.2)', () => {
+    expect(TERMINAL_CLIP_TAKES).toBe(3);
+    expect(TERMINAL_CLIP_TAKES).not.toBe(TERMINAL_BATCH_SIZE);
   });
 
   it('plans generate tasks with slugs and refs', () => {
@@ -97,6 +103,23 @@ describe('terminalRound helpers', () => {
     );
     const parsed = parseRoundBatch(serializeRoundBatch(batch));
     expect(parsed).toEqual({ ok: true, value: batch });
+  });
+
+  it('carries clip provenance from the plan through serialize and parse (BI-078.2)', () => {
+    const clip = { model: 'grok-imagine-video-1.5', tool: 'reference_to_video', durationSeconds: 6 };
+    const batch = buildRoundBatch(
+      2,
+      '2026-06-18T00:00:00Z',
+      [
+        { slug: 'hero', name: 'Hero', prompt: 'slow push-in', ref: 'approved/hero-002.jpg', clip },
+        { slug: 'still', name: 'Still', prompt: 'p' },
+      ],
+      { hero: ['hero-001.mp4', 'hero-002.mp4', 'hero-003.mp4'], still: ['still-001.jpg'] },
+    );
+    expect(batch.tasks[0]!.clip).toEqual(clip);
+    expect(batch.tasks[0]!.clip).not.toBe(clip);
+    expect(batch.tasks[1]).not.toHaveProperty('clip');
+    expect(parseRoundBatch(serializeRoundBatch(batch))).toEqual({ ok: true, value: batch });
   });
 
   it('plans iterate tasks with append vs overhaul', () => {

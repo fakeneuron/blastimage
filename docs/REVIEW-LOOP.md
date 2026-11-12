@@ -106,6 +106,40 @@ round, reusing the same sibling-approval guard as the undo above); the delete it
 writes to the host repo, and the `rounds/r<N>/` files are never touched. `imagegen/tasks.json`
 is still yours to edit — a deleted task reappears on the next load until you remove it there.
 
+**Clip rounds (BI-EPIC-078).** A round of 16:9 MP4 promo clips uses the same `batch.json`,
+still `"schemaVersion": 1` — nothing about clips bumps it:
+
+```json
+{
+  "slug": "pressure-injuries-hero",
+  "name": "Pressure Injuries — hero",
+  "prompt": "…the motion prompt sent…",
+  "ref": "approved/pressure-injuries-hero-002.jpg",
+  "images": ["pressure-injuries-hero-001.mp4", "pressure-injuries-hero-002.mp4", "pressure-injuries-hero-003.mp4"],
+  "clip": { "model": "grok-imagine-video-1.5", "tool": "reference_to_video", "durationSeconds": 6 }
+}
+```
+
+- **Media kind comes from the extension.** A `.mp4` entry in `images` is a clip, anything else
+  is a still (`mediaKindFromPath` in `lib/imagegenUrl.ts`). There is no `mediaKind` field.
+- **`ref` names the source still under `approved/`**, the approved `<slug>-NNN.<ext>` the clip
+  animates — its first frame and its poster. It is the same "path relative to `imagegen/`"
+  field a still round uses for `refs/<slug>.<ext>`; only the folder differs.
+- **`clip` is optional provenance**, present only on clip tasks: `model`, `tool`, and the
+  target `durationSeconds` of each take. `parseRoundBatch` carries it and rejects a malformed
+  value (not an object, blank `model`/`tool`, non-positive or non-numeric `durationSeconds`).
+  A task that carries `clip` must also have a `ref` under `approved/` and only `.mp4` takes,
+  so the provenance and the files cannot disagree. Like every other key, a misspelled one
+  (`"clips"`) is ignored, and the task loads with no provenance.
+- **3 takes per round by default** (`TERMINAL_CLIP_TAKES` in `lib/terminalRound.ts`), separate
+  from the 4-image still default.
+- Clip filenames follow the still pattern, `<slug>-NNN.mp4`, so an approved clip lands in the
+  flat `approved/` beside its still without a name clash.
+
+The contract is in place; serving, reviewing, exporting, and generating clips arrive with
+BI-078.3–.6. The committed clip fixture lives in its own root, `test-fixtures/imagegen-clip/`,
+so the still fixture's auto-loaded r1 is unchanged.
+
 ### `rounds/r<N>/selection.json` — written by the frontend, read by `/blast-iterate`
 
 ```json

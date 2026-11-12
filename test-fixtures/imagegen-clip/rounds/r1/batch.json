@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "round": 1,
+  "generatedAt": "2026-11-12T00:00:00Z",
+  "tasks": [
+    {
+      "slug": "hero-banner",
+      "name": "Hero banner",
+      "prompt": "Slow push-in on the hero still, ambient one-move loop",
+      "ref": "approved/hero-banner-002.jpg",
+      "images": [
+        "hero-banner-001.mp4",
+        "hero-banner-002.mp4"
+      ],
+      "clip": {
+        "model": "grok-imagine-video-1.5",
+        "tool": "reference_to_video",
+        "durationSeconds": 2
+      }
+    }
+  ]
+}
