@@ -580,6 +580,40 @@ describe('ingestRoundBatch', () => {
     expect('durationSeconds' in still).toBe(false);
   });
 
+  // BI-078.5: the approved projection (gallery + manifest) carries the clip fields.
+  it('projects mediaKind on every approved entry and poster/duration on clips only (BI-078.5)', () => {
+    const mixed: RoundBatch = {
+      ...batch,
+      tasks: [
+        {
+          slug: 'hero-banner',
+          name: 'Hero banner',
+          prompt: 'Slow push-in',
+          ref: 'approved/hero-banner-002.jpg',
+          images: ['hero-banner-001.mp4'],
+          clip: { model: 'grok-imagine-video-1.5', tool: 'reference_to_video', durationSeconds: 6 },
+        },
+        { slug: 'about', name: 'About', prompt: 'Team photo', images: ['about-001.jpg'] },
+      ],
+    };
+    let s = ingestRoundBatch(newSession('S'), mixed, (f) => roundImageUrl(mixed.round, f));
+    for (const task of s.tasks) {
+      s = setImageDecision(s, task.id, task.iterations[0]!.images[0]!.id, 'approved');
+    }
+
+    const [clip, still] = buildExportManifest(s).approved;
+    expect(clip).toMatchObject({
+      taskName: 'Hero banner',
+      finalPrompt: 'Slow push-in',
+      mediaKind: 'video',
+      posterUrl: 'imagegen:approved/hero-banner-002.jpg',
+      durationSeconds: 6,
+    });
+    expect(still!.mediaKind).toBe('image');
+    expect('posterUrl' in still!).toBe(false);
+    expect('durationSeconds' in still!).toBe(false);
+  });
+
   // BI-043: re-load of the same round must not stack iterations.
   it('replaces an existing same-round iteration instead of appending (BI-043)', () => {
     let s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));

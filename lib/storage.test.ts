@@ -11,6 +11,7 @@ import {
   escapeHtml,
   exportManifestToFolder,
   getActiveSessionId,
+  approvedExtension,
   imageExtension,
   importSession,
   listSessions,
@@ -282,6 +283,15 @@ describe('imageExtension', () => {
     expect(imageExtension('image/webp')).toBe('webp');
   });
 
+  it('maps the clip mime type to mp4 (BI-078.5)', () => {
+    expect(imageExtension('video/mp4')).toBe('mp4');
+  });
+
+  it('names a clip mp4 whatever mime its bytes carry (BI-078.5)', () => {
+    expect(approvedExtension('video', 'application/octet-stream')).toBe('mp4');
+    expect(approvedExtension('image', 'image/png')).toBe('png');
+  });
+
   it('falls back to jpg for unknown or empty mime types', () => {
     expect(imageExtension('image/tiff')).toBe('jpg');
     expect(imageExtension('')).toBe('jpg');
@@ -309,6 +319,9 @@ function makeManifest(approved: Array<Partial<ApprovedImage>> = []): ExportManif
       rating: 0,
       feedback: null,
       approvedAt: '2026-06-14T00:00:00.000Z',
+      mediaKind: a.mediaKind ?? 'image',
+      ...(a.posterUrl !== undefined ? { posterUrl: a.posterUrl } : {}),
+      ...(a.durationSeconds !== undefined ? { durationSeconds: a.durationSeconds } : {}),
     })),
     references: [],
   };
@@ -476,6 +489,17 @@ describe('buildReviewSheetHtml', () => {
     expect(html).toContain('prompt history (2)');
     expect(html).toContain('first pass');
     expect(html).toContain('refined');
+  });
+
+  it('labels a clip card with its length; a still gets no clip line (BI-078.5)', () => {
+    const manifest = makeManifest([
+      { imageId: 'clip1', mediaKind: 'video', posterUrl: 'imagegen:approved/a-002.jpg', durationSeconds: 6 },
+      { imageId: 'img1' },
+    ]);
+    const html = buildReviewSheetHtml(manifest, new Map([['clip1', 'data:,p'], ['img1', 'data:,x']]));
+
+    expect(html).toContain('<span class="label">clip</span>6 s</div>');
+    expect(html.match(/class="label">clip</g)).toHaveLength(1);
   });
 
   it('omits the refs line and history block when there are none', () => {
@@ -655,6 +679,37 @@ describe('exports with imagegen: URLs', () => {
     expect(html).toContain('src="data:image/jpeg;base64,');
     expect(html).not.toContain('image unavailable');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('exports an approved clip as .mp4 and embeds its poster in the sheet (BI-078.5)', async () => {
+    const files = {
+      ...IMAGEGEN_FILES,
+      'rounds/r2/hero-001.mp4': new Blob(['mp4-bytes'], { type: 'video/mp4' }),
+    };
+    const manifest = makeManifest([
+      {
+        taskName: 'Hero Banner',
+        imageId: 'cccccccc3333',
+        url: roundImageUrl(2, 'hero-001.mp4'),
+        mediaKind: 'video',
+        posterUrl: roundImageUrl(1, 'hero-01.png'),
+        durationSeconds: 6,
+      },
+      { taskName: 'No Poster', imageId: 'dddddddd4444', url: roundImageUrl(2, 'hero-001.mp4'), mediaKind: 'video' },
+    ]);
+
+    const { names, blobs } = captureDownloads();
+    expect(await downloadManifestBundle(manifest, linkedResolver(files))).toBe(0);
+    expect(names).toEqual(['manifest.json', 'hero-banner-cccccccc.mp4', 'no-poster-dddddddd.mp4']);
+    expect(await blobs[1]!.text()).toBe('mp4-bytes');
+
+    // The poster-less clip has nothing an <img> can show: counted, placeholder.
+    expect(await downloadReviewSheet(manifest, linkedResolver(files))).toBe(1);
+    expect(names[3]).toBe('review.html');
+    const html = await blobs[3]!.text();
+    expect(html).toContain('src="data:image/png;base64,');
+    expect(html).not.toContain('data:video/mp4');
+    expect(html).toContain('image unavailable');
   });
 
   it('counts every image as failed when the resolver cannot read the scheme', async () => {

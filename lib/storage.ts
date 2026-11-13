@@ -275,7 +275,10 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-/** File extension (no dot) for an image mime type; falls back to `jpg` for unknown types. */
+/**
+ * File extension (no dot) for an approved file's mime type — images plus the
+ * one clip format, `video/mp4` (BI-078.5); falls back to `jpg` for unknown types.
+ */
 export function imageExtension(mime: string): string {
   switch (mime) {
     case 'image/png':
@@ -284,6 +287,8 @@ export function imageExtension(mime: string): string {
       return 'jpg';
     case 'image/webp':
       return 'webp';
+    case 'video/mp4':
+      return 'mp4';
     default:
       return 'jpg';
   }
@@ -417,10 +422,19 @@ export function supportsDirectoryPicker(): boolean {
   return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 }
 
+/**
+ * Extension for an approved file: `mp4` for a clip whatever type its bytes
+ * arrived with, so the name agrees with the manifest's `mediaKind` (BI-078.5);
+ * otherwise from the blob's mime type.
+ */
+export function approvedExtension(mediaKind: ApprovedImage['mediaKind'], mime: string): string {
+  return mediaKind === 'video' ? 'mp4' : imageExtension(mime);
+}
+
 /** Bundle filename for an approved image: `<task-slug>-<id8>.<ext>` (matches the per-image download). */
 function approvedImageFilename(approved: ApprovedImage, mime: string): string {
   const base = `${slugify(approved.taskName) || 'image'}-${approved.imageId.slice(0, 8)}`;
-  return `${base}.${imageExtension(mime)}`;
+  return `${base}.${approvedExtension(approved.mediaKind, mime)}`;
 }
 
 /**
@@ -606,6 +620,12 @@ export function buildReviewSheetHtml(manifest: ExportManifest, embedded: Map<ID,
       const refsLine = refs.length
         ? `<div class="meta"><span class="label">refs</span>${refs.join(', ')}</div>`
         : '';
+      const clipLine =
+        img.mediaKind === 'video'
+          ? `<div class="meta"><span class="label">clip</span>${
+              img.durationSeconds !== undefined ? `${escapeHtml(String(img.durationSeconds))} s` : 'length unknown'
+            }</div>`
+          : '';
       const historyBlock = img.promptHistory.length
         ? `<details class="history"><summary>prompt history (${img.promptHistory.length})</summary><ol>${img.promptHistory
             .map((p) => `<li>${escapeHtml(p)}</li>`)
@@ -617,6 +637,7 @@ export function buildReviewSheetHtml(manifest: ExportManifest, embedded: Map<ID,
     <div class="head"><span class="task">${escapeHtml(img.taskName)}</span><span class="stars" title="${img.rating}/5">${starGlyphs(img.rating)}</span></div>
     <p class="prompt">${escapeHtml(img.finalPrompt)}</p>
     <div class="meta"><span class="label">approved</span>${escapeHtml(img.approvedAt)}</div>
+    ${clipLine}
     ${refsLine}
     ${historyBlock}
   </div>
@@ -659,7 +680,9 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * data URL for inline embedding in the review sheet, keyed by `imageId`. Skips
  * images that fail to resolve and reports the count so the sheet can still land.
  * Mirrors {@link gatherExportFiles} but yields data URLs (for HTML embed) rather
- * than blobs (for file writes).
+ * than blobs (for file writes). A clip embeds its poster still instead of the
+ * `.mp4`, which an `<img>` cannot show (BI-078.5); a clip with no poster counts
+ * as failed and renders the placeholder.
  */
 async function gatherReviewImages(
   manifest: ExportManifest,
@@ -668,8 +691,13 @@ async function gatherReviewImages(
   const embedded = new Map<ID, string>();
   let failed = 0;
   for (const approved of manifest.approved) {
+    const url = approved.mediaKind === 'video' ? approved.posterUrl : approved.url;
+    if (url === undefined) {
+      failed += 1;
+      continue;
+    }
     try {
-      embedded.set(approved.imageId, await blobToDataUrl(await resolveBlob(approved.url)));
+      embedded.set(approved.imageId, await blobToDataUrl(await resolveBlob(url)));
     } catch {
       failed += 1;
     }

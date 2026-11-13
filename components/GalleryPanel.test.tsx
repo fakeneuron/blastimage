@@ -43,6 +43,7 @@ function makeApproved(id: string, overrides: Partial<ApprovedImage> = {}): Appro
     rating: 0,
     feedback: null,
     approvedAt: NOW,
+    mediaKind: 'image',
     ...overrides,
   };
 }
@@ -171,5 +172,27 @@ describe('GalleryPanel — item rendering (BI-008)', () => {
 
     expect(screen.getByText('Hero shot')).toBeTruthy();
     expect(screen.getByText('Footer banner')).toBeTruthy();
+  });
+
+  it('shows an approved clip with its source still as poster (BI-078.5)', async () => {
+    const { container } = render(
+      markup(
+        {
+          approved: [
+            makeApproved('c1', {
+              url: 'https://example.test/c1.mp4',
+              mediaKind: 'video',
+              posterUrl: 'https://example.test/still.png',
+              durationSeconds: 6,
+            }),
+          ],
+        },
+        makeSpies(),
+      ),
+    );
+    await act(async () => {});
+
+    const video = container.querySelector('video');
+    expect(video?.getAttribute('poster')).toBe('https://example.test/still.png');
   });
 });

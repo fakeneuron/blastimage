@@ -12,7 +12,12 @@
  * unit-testable without a component-render dependency.
  */
 
-import { roundImageFilenameFromUrl, roundNumberFromImageUrl, toImagegenUrl } from './imagegenUrl';
+import {
+  mediaKindFromPath,
+  roundImageFilenameFromUrl,
+  roundNumberFromImageUrl,
+  toImagegenUrl,
+} from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import { slugify } from './storage';
 import {
@@ -682,7 +687,7 @@ export function setImageFeedback(
  * Derives the flat list of approved images across all tasks, in task + iteration
  * order. Each entry is a provenance-rich {@link ApprovedImage} ready for the gallery.
  * `approvedAt` proxies `GeneratedImage.createdAt` (no separate approval timestamp
- * on the model).
+ * on the model). A clip also carries its poster and duration (BI-078.5).
  */
 export function buildApprovedImages(session: Session): ApprovedImage[] {
   const result: ApprovedImage[] = [];
@@ -703,6 +708,9 @@ export function buildApprovedImages(session: Session): ApprovedImage[] {
             rating: img.rating,
             feedback: img.feedback,
             approvedAt: img.createdAt,
+            mediaKind: mediaKindFromPath(img.url),
+            ...(img.posterUrl !== undefined ? { posterUrl: img.posterUrl } : {}),
+            ...(img.durationSeconds !== undefined ? { durationSeconds: img.durationSeconds } : {}),
           });
         }
       }

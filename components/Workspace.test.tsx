@@ -371,6 +371,7 @@ describe('promise handlers (CORE-5)', () => {
       rating: 0,
       feedback: null,
       approvedAt: NOW,
+      mediaKind: 'image',
     };
     const generate = vi.fn(async () => {});
     const exportToFolder = vi.fn(async () => {});

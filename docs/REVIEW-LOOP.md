@@ -141,8 +141,11 @@ which Safari needs to play a `<video>` (BI-078.3). Review handles clips (BI-078.
 records its `ref` as a poster and `clip.durationSeconds` for a badge. Cards play on hover or focus,
 unless the viewer prefers reduced motion, and the lightbox gives a clip native controls. Iterate on a
 clip writes the usual `iterate` entry, with the `.mp4` take as `keeper` and the refined motion prompt
-as `nextPrompt`, for `/blast-animate`; it re-animates the same source still. Exporting and generating
-clips arrive with BI-078.5–.6. The committed clip fixture lives in its own root,
+as `nextPrompt`, for `/blast-animate`; it re-animates the same source still. Export handles clips
+(BI-078.5): an approved clip exports as `<task-slug>-<id8>.mp4`, and its `manifest.json` entry adds
+`mediaKind: "video"`, `posterUrl` (the source still) and `durationSeconds`, while every entry carries
+`mediaKind`. The gallery and review sheet show the poster still. Generating clips arrives with
+BI-078.6. The committed clip fixture lives in its own root,
 `test-fixtures/imagegen-clip/`, so the still fixture's auto-loaded r1 is unchanged.
 
 ### `rounds/r<N>/selection.json` — written by the frontend, read by `/blast-iterate`

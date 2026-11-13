@@ -15,6 +15,8 @@
  * the small constants below that the rest of the app shares.
  */
 
+import type { MediaKind } from './imagegenUrl';
+
 /** Bump when the persisted shape changes in a non-backward-compatible way (BI-002 reads this). */
 export const SCHEMA_VERSION = 1;
 
@@ -224,6 +226,12 @@ export interface ApprovedImage {
   rating: StarRating;
   feedback: FeedbackState | null;
   approvedAt: Timestamp;
+  /** Still or clip, derived from `url` by `mediaKindFromPath` (BI-078.5). */
+  mediaKind: MediaKind;
+  /** Clips only (BI-078.5): the source still's `imagegen:` URL, from {@link GeneratedImage.posterUrl}. */
+  posterUrl?: string;
+  /** Clips only (BI-078.5): requested length in seconds, from {@link GeneratedImage.durationSeconds}. */
+  durationSeconds?: number;
 }
 
 /**

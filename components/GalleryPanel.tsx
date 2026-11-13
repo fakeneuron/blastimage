@@ -15,9 +15,9 @@ import Lightbox from '@/components/Lightbox';
 import ResolvedImage from '@/components/ResolvedImage';
 import { useImagegen } from '@/lib/ImagegenContext';
 import type { ImageBlobResolver } from '@/lib/imageBlob';
-import { isImagegenUrl } from '@/lib/imagegenUrl';
+import { isImagegenUrl, type MediaKind } from '@/lib/imagegenUrl';
 import type { ApprovedImage, StarRating } from '@/lib/types';
-import { downloadBlob, imageExtension, slugify } from '@/lib/storage';
+import { approvedExtension, downloadBlob, slugify } from '@/lib/storage';
 
 interface GalleryPanelProps {
   approved: ApprovedImage[];
@@ -35,10 +35,15 @@ function StarDisplay({ rating }: { rating: StarRating }) {
   );
 }
 
-async function downloadImage(url: string, basename: string, resolveBlob: ImageBlobResolver) {
+async function downloadImage(
+  url: string,
+  basename: string,
+  mediaKind: MediaKind,
+  resolveBlob: ImageBlobResolver,
+) {
   try {
     const blob = await resolveBlob(url);
-    downloadBlob(blob, `${basename}.${imageExtension(blob.type)}`);
+    downloadBlob(blob, `${basename}.${approvedExtension(mediaKind, blob.type)}`);
   } catch {
     // Fallback: open in a new tab if the fetch fails (e.g. strict CORS). An
     // `imagegen:` path has no browser handler, so there is nothing to open.
@@ -56,7 +61,11 @@ export default function GalleryPanel({
   const { resolveBlob } = useImagegen();
   // Index of the approved image shown full-size in the lightbox; null when closed (BI-027).
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const lightboxImages = approved.map((item) => ({ src: item.url, alt: item.finalPrompt }));
+  const lightboxImages = approved.map((item) => ({
+    src: item.url,
+    alt: item.finalPrompt,
+    ...(item.posterUrl !== undefined ? { poster: item.posterUrl } : {}),
+  }));
 
   if (approved.length === 0) return null;
 
@@ -107,6 +116,7 @@ export default function GalleryPanel({
                 <ResolvedImage
                   src={item.url}
                   alt={item.finalPrompt}
+                  poster={item.posterUrl}
                   className="w-full rounded object-cover"
                   style={{ aspectRatio: '3/2' }}
                 />
@@ -122,6 +132,7 @@ export default function GalleryPanel({
                     void downloadImage(
                       item.url,
                       `${slugify(item.taskName) || 'image'}-${item.imageId.slice(0, 8)}`,
+                      item.mediaKind,
                       resolveBlob,
                     );
                   }}
