@@ -12,7 +12,7 @@
  * unit-testable without a component-render dependency.
  */
 
-import { roundImageFilenameFromUrl, roundNumberFromImageUrl } from './imagegenUrl';
+import { roundImageFilenameFromUrl, roundNumberFromImageUrl, toImagegenUrl } from './imagegenUrl';
 import type { RoundBatch } from './roundBatch';
 import { slugify } from './storage';
 import {
@@ -361,7 +361,17 @@ export function ingestRoundBatch(
 ): Session {
   let next = session;
   for (const entry of batch.tasks) {
-    const images = entry.images.map((f) => newGeneratedImage(imageUrlFor(f), entry.prompt));
+    // A clip take carries its source still (the poster) and requested length
+    // (BI-078.4); `parseRoundBatch` already guarantees a clip task's `ref` is
+    // under approved/ and its takes are all .mp4.
+    const clip =
+      entry.clip && entry.ref
+        ? { posterUrl: toImagegenUrl(entry.ref), durationSeconds: entry.clip.durationSeconds }
+        : null;
+    const images = entry.images.map((f) => ({
+      ...newGeneratedImage(imageUrlFor(f), entry.prompt),
+      ...(clip ?? {}),
+    }));
     const draft: IterationDraft = {
       prompt: entry.prompt,
       refImageIds: [],

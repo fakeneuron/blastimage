@@ -265,3 +265,131 @@ describe('ResolvedImage — consumer recovery (BI-042.3 · BI-045)', () => {
     expect(servedPath()).toMatchObject({ path: 'rounds/r2/hero.png', version: '1' });
   });
 });
+
+describe('ResolvedImage — clips (BI-078.4)', () => {
+  const CLIP = 'imagegen:rounds/r1/hero-banner-001.mp4';
+  const POSTER = 'imagegen:approved/hero-banner-002.jpg';
+
+  function clip(props: { playing?: boolean; controls?: boolean; src?: string }) {
+    return (
+      <ImagegenProvider>
+        <AutoLink />
+        <Linked>
+          <ResolvedImage
+            src={props.src ?? CLIP}
+            alt="take"
+            poster={POSTER}
+            {...(props.playing !== undefined ? { playing: props.playing } : {})}
+            {...(props.controls !== undefined ? { controls: props.controls } : {})}
+          />
+        </Linked>
+      </ImagegenProvider>
+    );
+  }
+
+  async function settle() {
+    await act(async () => {});
+    await act(async () => {});
+  }
+
+  const video = () => screen.getByLabelText<HTMLVideoElement>('take');
+  const pathOf = (url: string | null) => new URL(url ?? '', 'http://localhost:3003').searchParams.get('path');
+
+  /** Stubs `matchMedia` so `(prefers-reduced-motion: reduce)` reads `reduce`. */
+  function reduceMotion(reduce: boolean) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: reduce && query.includes('reduce'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('renders a muted, looping, inline <video> with its poster resolved through the file route', async () => {
+    render(clip({}));
+    await settle();
+
+    const v = video();
+    expect(v.tagName).toBe('VIDEO');
+    expect(v.muted).toBe(true);
+    expect(v.loop).toBe(true);
+    expect(v.hasAttribute('playsinline')).toBe(true);
+    expect(v.getAttribute('preload')).toBe('metadata');
+    expect(v.hasAttribute('controls')).toBe(false);
+    expect(pathOf(v.getAttribute('src'))).toBe('rounds/r1/hero-banner-001.mp4');
+    expect(pathOf(v.getAttribute('poster'))).toBe('approved/hero-banner-002.jpg');
+  });
+
+  it('shows native controls when asked', async () => {
+    render(clip({ controls: true }));
+    await settle();
+
+    expect(video().hasAttribute('controls')).toBe(true);
+  });
+
+  it('plays while `playing` is true, then pauses and rewinds', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const { rerender } = render(clip({ playing: false }));
+    await settle();
+    expect(play).not.toHaveBeenCalled();
+
+    rerender(clip({ playing: true }));
+    await settle();
+    expect(play).toHaveBeenCalledTimes(1);
+
+    video().currentTime = 1.5;
+    rerender(clip({ playing: false }));
+    await settle();
+    expect(pause).toHaveBeenCalled();
+    expect(video().currentTime).toBe(0);
+  });
+
+  it('re-plays when the source changes under a hovered card', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    const { rerender } = render(clip({ playing: true }));
+    await settle();
+    const before = play.mock.calls.length;
+
+    rerender(clip({ playing: true, src: 'imagegen:rounds/r1/hero-banner-002.mp4' }));
+    await settle();
+
+    expect(play.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it('swallows a rejected play()', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new DOMException('interrupted', 'AbortError'));
+    render(clip({ playing: true }));
+    await settle();
+
+    expect(video()).toBeTruthy();
+  });
+
+  it('does not play under prefers-reduced-motion', async () => {
+    reduceMotion(true);
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    render(clip({ playing: true }));
+    await settle();
+
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it('leaves playback alone when `playing` is undefined (Lightbox controls)', async () => {
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    render(clip({ controls: true }));
+    await settle();
+
+    expect(pause).not.toHaveBeenCalled();
+  });
+
+  it('switches back to <img> for a still src', async () => {
+    const { rerender } = render(clip({}));
+    await settle();
+    rerender(clip({ src: 'imagegen:rounds/r1/hero.png' }));
+    await settle();
+
+    expect(screen.getByAltText('take').tagName).toBe('IMG');
+  });
+});

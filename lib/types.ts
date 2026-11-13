@@ -110,6 +110,14 @@ export interface GeneratedImage {
   /** `null` until the user writes feedback. */
   feedback: FeedbackState | null;
   createdAt: Timestamp;
+  /**
+   * Clip takes only (BI-078.4): the `imagegen:` URL of the source still the
+   * clip was animated from, shown as its poster. Absent on stills, and on
+   * sessions ingested before clips existed, so {@link SCHEMA_VERSION} stays put.
+   */
+  posterUrl?: string;
+  /** Clip takes only (BI-078.4): requested length in seconds, from `batch.json`. */
+  durationSeconds?: number;
 }
 
 /**

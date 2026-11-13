@@ -266,3 +266,26 @@ describe('FeedbackModal — focus management (BI-039)', () => {
     expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
   });
 });
+
+describe('FeedbackModal — clips (BI-078.4)', () => {
+  it('never submits useAsReference for a clip, even if older feedback set it', async () => {
+    const { onSubmit } = await renderModal(
+      makeImage({
+        url: 'https://example.test/take.mp4',
+        feedback: { text: 'slower', useAsReference: true, updatedAt: NOW },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenCalledWith({ text: 'slower', useAsReference: false }, 'save');
+  });
+
+  it('hides "Use as reference" for a clip take', async () => {
+    await renderModal(makeImage({ url: 'https://example.test/take.mp4', posterUrl: 'https://example.test/still.jpg' }));
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.getByLabelText('a serene forest at dawn').getAttribute('poster')).toBe(
+      'https://example.test/still.jpg',
+    );
+  });
+});

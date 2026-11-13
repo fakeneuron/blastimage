@@ -549,6 +549,37 @@ describe('ingestRoundBatch', () => {
     expect(s.tasks[0]!.iterations[0]!.prompt).toBe('Warm hero shot');
   });
 
+  // BI-078.4: a clip take carries its source still and requested length.
+  it('sets posterUrl and durationSeconds on clip takes only (BI-078.4)', () => {
+    const mixed: RoundBatch = {
+      ...batch,
+      tasks: [
+        {
+          slug: 'hero-banner',
+          name: 'Hero banner',
+          prompt: 'Slow push-in',
+          ref: 'approved/hero-banner-002.jpg',
+          images: ['hero-banner-001.mp4'],
+          clip: { model: 'grok-imagine-video-1.5', tool: 'reference_to_video', durationSeconds: 6 },
+        },
+        {
+          slug: 'about',
+          name: 'About',
+          prompt: 'Team photo',
+          ref: 'refs/about.jpg',
+          images: ['about-001.jpg'],
+        },
+      ],
+    };
+    const s = ingestRoundBatch(newSession('S'), mixed, (f) => roundImageUrl(mixed.round, f));
+    const take = s.tasks[0]!.iterations[0]!.images[0]!;
+    expect(take.posterUrl).toBe('imagegen:approved/hero-banner-002.jpg');
+    expect(take.durationSeconds).toBe(6);
+    const still = s.tasks[1]!.iterations[0]!.images[0]!;
+    expect('posterUrl' in still).toBe(false);
+    expect('durationSeconds' in still).toBe(false);
+  });
+
   // BI-043: re-load of the same round must not stack iterations.
   it('replaces an existing same-round iteration instead of appending (BI-043)', () => {
     let s = ingestRoundBatch(newSession('S'), batch, (f) => roundImageUrl(batch.round, f));

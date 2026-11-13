@@ -18,6 +18,10 @@
  * lightbox before handing off, so the modal's focus trap never stacks on the
  * lightbox's — the lightbox's unmount restores focus to the thumbnail, which the
  * modal then captures as its own opener.
+ *
+ * Clips (BI-078.4): a `.mp4` take shows its source still as poster, plays while
+ * its card is hovered or focused, and carries a duration badge; the lightbox
+ * gives it native controls. Reduced motion is enforced in {@link ResolvedImage}.
  */
 
 import { useState } from 'react';
@@ -74,6 +78,7 @@ export default function ReviewGrid({
   const lightboxImages = iteration.images.map((img) => ({
     src: img.url,
     alt: img.prompt || 'generated image',
+    ...(img.posterUrl !== undefined ? { poster: img.posterUrl } : {}),
   }));
   const lightboxImage = lightboxIndex === null ? undefined : iteration.images[lightboxIndex];
 
@@ -162,28 +167,54 @@ interface ReviewCardProps {
   onIterate: (imageId: ID) => void;
 }
 
+/** `m:ss` for a clip's duration badge; rounds to the nearest second. */
+export function formatClipDuration(seconds: number): string {
+  const total = Math.round(seconds);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function ReviewCard({ image, onOpen, onSetDecision, onSetRating, onFeedback, onIterate }: ReviewCardProps) {
   const badge = STATE_BADGE[image.decision];
+  // Clips play while the card is hovered or its open button is focused (BI-078.4).
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   return (
     <li
       className={`flex flex-col overflow-hidden rounded-lg border-2 transition ${STATE_RING[image.decision]}`}
     >
       {/* Image (dimmed when discarded, but still visible) — click to enlarge. */}
-      <div className="relative">
+      <div
+        className="relative"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <button
           type="button"
           onClick={onOpen}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           aria-label="View full size"
           className="block w-full cursor-zoom-in"
         >
           <ResolvedImage
             src={image.url}
             alt={image.prompt || 'generated image'}
+            poster={image.posterUrl}
+            playing={hovered || focused}
             className={`aspect-[3/2] w-full object-cover transition-opacity ${
               image.decision === 'discarded' ? 'opacity-40' : ''
             }`}
           />
         </button>
+        {image.durationSeconds !== undefined && (
+          <span
+            role="img"
+            aria-label={`Clip, ${Math.round(image.durationSeconds)} seconds`}
+            className="pointer-events-none absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white"
+          >
+            ▶ {formatClipDuration(image.durationSeconds)}
+          </span>
+        )}
         {badge && (
           <span
             className={`pointer-events-none absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${badge.cls}`}

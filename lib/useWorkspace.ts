@@ -28,7 +28,12 @@ import type { ImagegenApi } from './ImagegenContext';
 import { clearStoredRoot, loadStoredRoot } from './imagegenClient';
 import type { DirectoryListing } from './imagegenServerFs';
 import { resolveImageBlob } from './imageBlob';
-import { roundImageFilenameFromUrl, roundImageUrl, roundNumberFromImageUrl } from './imagegenUrl';
+import {
+  mediaKindFromPath,
+  roundImageFilenameFromUrl,
+  roundImageUrl,
+  roundNumberFromImageUrl,
+} from './imagegenUrl';
 import type { RoundSummary } from './roundBatch';
 import {
   buildApproveSelectionTask,
@@ -1001,16 +1006,20 @@ export function useWorkspace(imagegen: ImagegenApi = NOOP_IMAGEGEN): UseWorkspac
     const trimmed = nextPrompt.trim();
     if (!trimmed) return;
     const slug = slugify(hit.task.name);
-    const entry = buildIterateSelectionTask(slug, keeper, hit.task.basePrompt, trimmed);
+    // A clip's prompt mode is judged against its own motion prompt, which the
+    // modal pre-filled; the task's base prompt describes the still (BI-078.4).
+    const isClip = mediaKindFromPath(keeper) === 'video';
+    const base = isClip ? hit.image.prompt : hit.task.basePrompt;
+    const entry = buildIterateSelectionTask(slug, keeper, base, trimmed);
     const result = await imagegen.writeSelection(round, [entry], new Date().toISOString());
     if (!result.ok) {
       setNotice(null);
       setError(result.error);
     } else {
       setError(null);
-      setNotice(
-        `Saved rounds/r${round}/selection.json. Next: run /blast-iterate, then ↻ Refresh rounds.`,
-      );
+      // A clip round re-animates its source still; /blast-iterate refuses it (BI-078.4).
+      const skill = isClip ? '/blast-animate' : '/blast-iterate';
+      setNotice(`Saved rounds/r${round}/selection.json. Next: run ${skill}, then ↻ Refresh rounds.`);
     }
   }
 

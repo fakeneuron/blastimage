@@ -270,3 +270,28 @@ describe('IterateModal — focus management (BI-039)', () => {
     expect(fireEvent.keyDown(window, { key: 'Tab' })).toBe(false);
   });
 });
+
+describe('IterateModal — clips (BI-078.4)', () => {
+  it('prefills from the take’s own motion prompt, not the still’s base prompt', async () => {
+    const onSubmit = vi.fn();
+    render(
+      <ImagegenProvider>
+        <IterateModal
+          image={{ ...makeImage('slower'), url: 'https://example.test/take.mp4', prompt: 'Slow push-in' }}
+          basePrompt="Warm hero still"
+          onClose={vi.fn()}
+          onSubmit={onSubmit}
+        />
+      </ImagegenProvider>,
+    );
+    await act(async () => {});
+
+    expect(screen.getByRole('heading', { name: 'Re-animate from this take' })).toBeTruthy();
+    expect(screen.getByText(/\/blast-animate/)).toBeTruthy();
+    const box = screen.getByLabelText<HTMLTextAreaElement>(/Refined motion prompt/i);
+    expect(box.value).toBe('Slow push-in\n\nRefine: slower');
+
+    fireEvent.click(submitButton());
+    expect(onSubmit).toHaveBeenCalledWith('Slow push-in\n\nRefine: slower');
+  });
+});

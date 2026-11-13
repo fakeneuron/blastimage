@@ -422,3 +422,17 @@ describe('Lightbox — review slots (BI-060.3)', () => {
     expect(onIndexChange).toHaveBeenCalledWith(2);
   });
 });
+
+describe('Lightbox — clips (BI-078.4)', () => {
+  it('renders a clip with native controls and its poster', async () => {
+    await renderLightbox(
+      [{ src: 'https://example.test/take.mp4', alt: 'take', poster: 'https://example.test/still.jpg' }],
+      0,
+    );
+
+    const video = screen.getByLabelText('take');
+    expect(video.tagName).toBe('VIDEO');
+    expect(video.hasAttribute('controls')).toBe(true);
+    expect(video.getAttribute('poster')).toBe('https://example.test/still.jpg');
+  });
+});

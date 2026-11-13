@@ -19,6 +19,7 @@
 import { useRef, useState } from 'react';
 
 import ResolvedImage from '@/components/ResolvedImage';
+import { mediaKindFromPath } from '@/lib/imagegenUrl';
 import type { GeneratedImage } from '@/lib/types';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 
@@ -38,7 +39,10 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
 
   useFocusTrap(dialogRef, { onEscape: onClose });
 
-  const submit = (action: FeedbackAction) => onSubmit({ text: text.trim(), useAsReference }, action);
+  const isClip = mediaKindFromPath(image.url) === 'video';
+  // A clip never seeds a reference, even if an older state marked it so.
+  const submit = (action: FeedbackAction) =>
+    onSubmit({ text: text.trim(), useAsReference: useAsReference && !isClip }, action);
 
   return (
     // Backdrop: mouse dismiss only. Keyboard dismiss is Escape via useFocusTrap (BI-039).
@@ -61,6 +65,7 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
           <ResolvedImage
             src={image.url}
             alt={image.prompt || 'generated image'}
+            poster={image.posterUrl}
             className="aspect-[3/2] w-32 shrink-0 rounded object-cover"
           />
           <div className="min-w-0">
@@ -83,14 +88,18 @@ export default function FeedbackModal({ image, onClose, onSubmit }: FeedbackModa
           />
         </div>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={useAsReference}
-            onChange={(e) => setUseAsReference(e.target.checked)}
-          />
-          Use as reference for the next iteration
-        </label>
+        {/* A clip cannot seed the next round as a reference (BI-078.4):
+            /blast-animate re-animates the round's source still instead. */}
+        {!isClip && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={useAsReference}
+              onChange={(e) => setUseAsReference(e.target.checked)}
+            />
+            Use as reference for the next iteration
+          </label>
+        )}
 
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           <button

@@ -31,6 +31,8 @@ import { useFocusTrap } from '@/lib/useFocusTrap';
 export interface LightboxImage {
   src: string;
   alt: string;
+  /** A clip's source still (BI-078.4); clips render with native controls here. */
+  poster?: string;
 }
 
 interface LightboxProps {
@@ -127,6 +129,8 @@ export default function Lightbox({
         <ResolvedImage
           src={image.src}
           alt={image.alt}
+          poster={image.poster}
+          controls
           // Review controls need room under the image, so it gives up some height.
           className={`${children ? 'max-h-[60vh]' : 'max-h-[85vh]'} max-w-[90vw] rounded object-contain`}
         />

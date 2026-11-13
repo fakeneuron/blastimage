@@ -95,3 +95,15 @@ test.describe('with a linked round', () => {
     await expectFits(page);
   });
 });
+
+// A clip card adds a duration badge over the poster (BI-078.4).
+test(`clip review cards fit at ${FLOOR} px`, async ({ page }) => {
+  const root = copyFixture('imagegen-clip');
+  try {
+    await linkImagegenRoot(page, root, 'imagegen-clip');
+    await expect(page.getByLabel('Clip, 2 seconds')).toHaveCount(2);
+    await expectFits(page);
+  } finally {
+    removeFixture(root);
+  }
+});

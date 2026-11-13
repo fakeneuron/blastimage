@@ -13,6 +13,10 @@
  * `/blast-iterate`. Mirrors the {@link FeedbackModal} idiom (Esc/backdrop/Cancel
  * dismiss without writing).
  *
+ * A clip take (BI-078.4) reads differently: `/blast-animate` re-animates the
+ * round's source still with the refined motion prompt, and the kept take only
+ * marks which clip the feedback is about. The selection entry is the same.
+ *
  * Focus (BI-039): {@link useFocusTrap} moves focus to the prompt field on open,
  * traps Tab inside the dialog, and restores the opener on close.
  */
@@ -20,6 +24,7 @@
 import { useRef, useState } from 'react';
 
 import ResolvedImage from '@/components/ResolvedImage';
+import { mediaKindFromPath } from '@/lib/imagegenUrl';
 import type { GeneratedImage } from '@/lib/types';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 
@@ -46,7 +51,12 @@ function composePrompt(basePrompt: string, feedback: string): string {
 }
 
 export default function IterateModal({ image, basePrompt, onClose, onSubmit }: IterateModalProps) {
-  const [prompt, setPrompt] = useState(() => composePrompt(basePrompt, image.feedback?.text ?? ''));
+  const isClip = mediaKindFromPath(image.url) === 'video';
+  // A clip's base is its own motion prompt: the task's base prompt describes
+  // the still, which a clip round never rewrites (`ingestRoundBatch`).
+  const [prompt, setPrompt] = useState(() =>
+    composePrompt(isClip ? image.prompt : basePrompt, image.feedback?.text ?? ''),
+  );
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(dialogRef, { onEscape: onClose });
@@ -74,27 +84,40 @@ export default function IterateModal({ image, basePrompt, onClose, onSubmit }: I
           <ResolvedImage
             src={image.url}
             alt={image.prompt || 'kept image'}
+            poster={image.posterUrl}
             className="aspect-[3/2] w-32 shrink-0 rounded object-cover"
           />
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold">Iterate from this keeper</h2>
-            <p className="mt-1 text-xs opacity-60">
-              This image seeds the next round as its primary reference. Edit the
-              prompt below, then save a selection request for /blast-iterate.
-            </p>
+            <h2 className="text-sm font-semibold">
+              {isClip ? 'Re-animate from this take' : 'Iterate from this keeper'}
+            </h2>
+            {isClip ? (
+              <p className="mt-1 text-xs opacity-60">
+                The next round re-animates the same source still with this motion
+                prompt; this take only marks which clip the feedback is about.
+                Save a selection request for /blast-animate.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs opacity-60">
+                This image seeds the next round as its primary reference. Edit the
+                prompt below, then save a selection request for /blast-iterate.
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="iterate-prompt" className="text-xs font-medium uppercase tracking-wide opacity-60">
-            Refined prompt
+            {isClip ? 'Refined motion prompt' : 'Refined prompt'}
           </label>
           <textarea
             id="iterate-prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={6}
-            placeholder="Describe the refined image for the next round…"
+            placeholder={
+              isClip ? 'Describe the motion for the next round…' : 'Describe the refined image for the next round…'
+            }
             className="w-full resize-y rounded border border-black/15 bg-background p-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/40 dark:border-white/15"
           />
         </div>

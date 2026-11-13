@@ -20,13 +20,17 @@ import { expect, type Page } from '@playwright/test';
  * callers write under the linked root — Approve emits `approved/`, Iterate
  * emits `rounds/r1/selection.json`. That is the contract in `CLAUDE.md`
  * §Stack "Testing".
+ *
+ * Two committed roots (BI-078.4): `imagegen` (the still round every spec
+ * auto-loads) and `imagegen-clip` (an approved still plus an H.264 clip round,
+ * BI-078.2). Both name their one task "Hero banner".
  */
-const SOURCE_FIXTURE = path.join(process.cwd(), 'test-fixtures', 'imagegen');
+export type FixtureName = 'imagegen' | 'imagegen-clip';
 
-/** Copies `test-fixtures/imagegen/` into a fresh temp dir and returns its path. */
-export function copyFixture(): string {
+/** Copies `test-fixtures/<name>/` into a fresh temp dir and returns its path. */
+export function copyFixture(name: FixtureName = 'imagegen'): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'blastimage-e2e-'));
-  fs.cpSync(SOURCE_FIXTURE, root, { recursive: true });
+  fs.cpSync(path.join(process.cwd(), 'test-fixtures', name), root, { recursive: true });
   return root;
 }
 
@@ -35,17 +39,22 @@ export function removeFixture(root: string): void {
   if (root) fs.rmSync(root, { recursive: true, force: true });
 }
 
-/**
- * Loads the workspace and links `root` through the picker's typed-path
- * fallback (the CI-stable naming path — the browse tree starts at `$HOME`),
- * returning once round r1 has auto-loaded (BI-026).
- */
 /** Opens the sidebar ⋯ disclosure that holds Link imagegen / switch / backup. */
 export async function openProjectMenu(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Project menu' }).click();
 }
 
-export async function linkImagegenRoot(page: Page, root: string): Promise<void> {
+/**
+ * Loads the workspace and links `root` through the picker's typed-path
+ * fallback (the CI-stable naming path — the browse tree starts at `$HOME`),
+ * returning once round r1 has auto-loaded (BI-026). `fixture` names which
+ * committed root `root` was copied from, so the loaded check fits it.
+ */
+export async function linkImagegenRoot(
+  page: Page,
+  root: string,
+  fixture: FixtureName = 'imagegen',
+): Promise<void> {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Project menu' })).toBeVisible();
 
@@ -59,5 +68,9 @@ export async function linkImagegenRoot(page: Page, root: string): Promise<void> 
   await expect(dialog).toBeHidden();
 
   await expect(page.getByRole('button', { name: 'Hero banner' })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Warm hero shot for the homepage' })).toHaveCount(2);
+  if (fixture === 'imagegen-clip') {
+    await expect(page.locator('video')).toHaveCount(2);
+  } else {
+    await expect(page.getByRole('img', { name: 'Warm hero shot for the homepage' })).toHaveCount(2);
+  }
 }

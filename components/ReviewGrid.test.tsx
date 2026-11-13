@@ -24,7 +24,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import ReviewGrid from './ReviewGrid';
+import ReviewGrid, { formatClipDuration } from './ReviewGrid';
 import { ImagegenProvider } from '@/lib/ImagegenContext';
 import type { GeneratedImage, Iteration, ReviewDecision } from '@/lib/types';
 
@@ -380,5 +380,71 @@ describe('ReviewGrid — lightbox review surface (BI-060.3)', () => {
     const { dialog } = await openLightbox([makeImage('i1')]);
 
     expect(within(dialog).getByRole('button', { name: 'Iterate →' }).hasAttribute('disabled')).toBe(true);
+  });
+});
+
+describe('ReviewGrid — clips (BI-078.4)', () => {
+  const take = () =>
+    makeImage('c1', {
+      url: 'https://example.test/c1.mp4',
+      posterUrl: 'https://example.test/still.jpg',
+      durationSeconds: 6,
+    });
+
+  it('renders a clip card with its poster and a duration badge', async () => {
+    await renderGrid([take()]);
+
+    const video = screen.getByLabelText('prompt c1');
+    expect(video.tagName).toBe('VIDEO');
+    expect(video.getAttribute('poster')).toBe('https://example.test/still.jpg');
+    expect(screen.getByLabelText('Clip, 6 seconds').textContent).toContain('0:06');
+  });
+
+  it('shows no badge on a still', async () => {
+    await renderGrid([makeImage('i1')]);
+
+    expect(screen.queryByLabelText(/^Clip,/)).toBeNull();
+  });
+
+  it('plays on hover and focus, and pauses when both leave', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    await renderGrid([take()]);
+    const open = screen.getByRole('button', { name: 'View full size' });
+
+    fireEvent.mouseEnter(open.parentElement!);
+    await act(async () => {});
+    expect(play).toHaveBeenCalledTimes(1);
+
+    fireEvent.focus(open);
+    fireEvent.mouseLeave(open.parentElement!);
+    await act(async () => {});
+    expect(play).toHaveBeenCalledTimes(1);
+
+    pause.mockClear();
+    fireEvent.blur(open);
+    await act(async () => {});
+    expect(pause).toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it('opens the clip in the lightbox with controls and the poster', async () => {
+    await renderGrid([take()]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View full size' }));
+    await act(async () => {});
+
+    const dialog = screen.getByRole('dialog', { name: 'Image viewer' });
+    const video = within(dialog).getByLabelText('prompt c1');
+    expect(video.hasAttribute('controls')).toBe(true);
+    expect(video.getAttribute('poster')).toBe('https://example.test/still.jpg');
+  });
+});
+
+describe('formatClipDuration (BI-078.4)', () => {
+  it('formats m:ss, rounding to the second', () => {
+    expect(formatClipDuration(6)).toBe('0:06');
+    expect(formatClipDuration(5.6)).toBe('0:06');
+    expect(formatClipDuration(75)).toBe('1:15');
   });
 });

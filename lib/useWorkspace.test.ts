@@ -1472,6 +1472,47 @@ describe('iterate save ack (BI-057)', () => {
     expect(result.current.notice).toBeNull();
   });
 
+  it('judges a clip’s prompt mode against its own motion prompt, not the still’s base (BI-078.4)', async () => {
+    const { api, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.mp4']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+    await act(async () => result.current.setTaskPrompt(taskId, 'the still prompt'));
+
+    await act(async () => {
+      await result.current.requestNextRound(taskId, imageIds[0]!, 'a hero image\n\nRefine: slower');
+    });
+
+    expect(selections[0]!.tasks[0]).toMatchObject({ promptMode: 'append' });
+  });
+
+  it('writes the same iterate entry for a clip take and names /blast-animate (BI-078.4)', async () => {
+    const { api, selections } = recordingImagegen({
+      1: roundBatch(1, ['hero-001.mp4']),
+    });
+    const { result } = renderHook(() => useWorkspace(api));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const { taskId, imageIds } = await loadHero(result, 1);
+
+    await act(async () => {
+      await result.current.requestNextRound(taskId, imageIds[0]!, 'slower push-in');
+    });
+
+    expect(selections).toEqual([
+      {
+        round: 1,
+        tasks: [
+          expect.objectContaining({ decision: 'iterate', keeper: 'hero-001.mp4', nextPrompt: 'slower push-in' }),
+        ],
+      },
+    ]);
+    expect(result.current.notice).toBe(
+      'Saved rounds/r1/selection.json. Next: run /blast-animate, then ↻ Refresh rounds.',
+    );
+  });
+
   it('does not claim a save when the write fails', async () => {
     const { api } = recordingImagegen({
       1: roundBatch(1, ['hero-001.jpg']),
