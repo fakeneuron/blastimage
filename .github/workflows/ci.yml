@@ -20,11 +20,18 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # `actions: read` lets the coverage-base step find the last green run
+    # (natabula NAT-600, BI-084). A job-level block sets every unlisted scope
+    # to none, so `contents: read` is listed for checkout.
+    permissions:
+      contents: read
+      actions: read
 
     steps:
-      # fetch-depth 0 so the changed-line gate can resolve github.event.before
-      # on a push. A shallow clone makes that base unresolvable and the gate
-      # skips. The secrets and e2e jobs do not run the gate.
+      # fetch-depth 0 so the changed-line gate can resolve its push base (the
+      # last green run's SHA, or github.event.before) and check its ancestry.
+      # A shallow clone makes that base unresolvable and the gate skips. The
+      # secrets and e2e jobs do not run the gate.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -60,20 +67,93 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE: ${{ github.base_ref }}
           PUSH_BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          BRANCH: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
         run: |
           set -euo pipefail
+          # Both triggers are handled on purpose. A PR-only coverage gate is the
+          # textbook deployment, but this fleet commits directly to `main`
+          # (~/Code/CLAUDE.md), so PR-only would ship a gate that never runs —
+          # the same "installed and never invoked" defect this gate was added
+          # to remove. Values come in as env vars, never interpolated into the
+          # script body, so a branch name cannot inject shell.
+          #
+          # On a push the base is the head of the last GREEN push run of this
+          # workflow on this branch (NAT-600), not `github.event.before`. A
+          # push whose run failed or was cancelled (cancel-in-progress) before
+          # this step never had its lines gated; diffing from the previous head
+          # would skip them for good. Needs the job's `actions: read`. The
+          # green SHA must still be an ancestor of HEAD (a force-push can
+          # orphan it). Any lookup failure, or no green run yet, falls back to
+          # `github.event.before` — the lookup can widen the gate, never break it.
+          # A red gate therefore stays red until those lines are covered:
+          # pushing again no longer moves the base past them. Any other event
+          # (workflow_dispatch, schedule) has no pushed lines and skips.
+          #
+          # Hardening (NAT-615): a failed lookup warns rather than falling back
+          # silently (a missing `actions: read` would otherwise quietly undo
+          # NAT-600). Runs list newest-created first, not in commit order
+          # (re-runs, concurrent pushes), so of the recent green SHAs the one
+          # nearest HEAD among its ancestors wins. A green base more than
+          # `max_behind` commits back means some job has been red that long;
+          # warn and fall back rather than widen the diff without bound. A tag
+          # push has no branch history to look up and skips.
+          max_behind=50
           base=""
+          why=""
           if [ "$EVENT_NAME" = "pull_request" ]; then
             base="origin/$PR_BASE"
-          elif [ -n "${PUSH_BEFORE:-}" ] \
-            && [ "$PUSH_BEFORE" != "0000000000000000000000000000000000000000" ] \
-            && git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
-            base="$PUSH_BEFORE"
+            why="PR base"
+          elif [ "$EVENT_NAME" = "push" ] && [ "${REF_TYPE:-}" = "tag" ]; then
+            echo "::notice::Tag push — no branch history to diff against."
+          elif [ "$EVENT_NAME" = "push" ]; then
+            # `owner/repo/.github/workflows/ci.yml@refs/heads/main` -> `ci.yml`;
+            # strip only the `@refs/…` suffix: the path and the branch may each hold an `@`.
+            wf="${WORKFLOW_REF%@refs/*}"
+            wf="${wf##*/}"
+            err="$(mktemp)"
+            if ! greens="$(gh run list --workflow "$wf" --branch "$BRANCH" --event push --status success \
+              --limit 20 --json headSha --jq '.[].headSha' 2>"$err")"; then
+              echo "::warning::Last-green run lookup failed ($(head -n 1 "$err")); falling back to the previous head. Does the job grant \`actions: read\`?"
+              greens=""
+            fi
+            rm -f "$err"
+            green=""
+            behind=""
+            while read -r sha; do
+              [ -n "$sha" ] || continue
+              git cat-file -e "${sha}^{commit}" 2>/dev/null || continue
+              git merge-base --is-ancestor "$sha" HEAD 2>/dev/null || continue
+              n="$(git rev-list --count "${sha}..HEAD")"
+              if [ -z "$behind" ] || [ "$n" -lt "$behind" ]; then
+                green="$sha"
+                behind="$n"
+              fi
+            done <<< "$greens"
+            if [ -n "$green" ] && [ "$behind" -gt "$max_behind" ]; then
+              echo "::warning::Last green run ($green) is $behind commits behind HEAD (cap $max_behind) — a job has been red that long; falling back to the previous head."
+              green=""
+            fi
+            if [ -n "$green" ]; then
+              base="$green"
+              why="last green run"
+            elif [ -n "${PUSH_BEFORE:-}" ] \
+              && [ "$PUSH_BEFORE" != "0000000000000000000000000000000000000000" ] \
+              && git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
+              base="$PUSH_BEFORE"
+              why="previous head; no usable green run"
+            fi
           fi
           if [ -z "$base" ]; then
+            # First push to a new branch, a force-push, or a squashed history:
+            # there is no honest base to diff against. Skip loudly rather than
+            # comparing against something wrong.
             echo "::notice::No usable diff base — changed-line coverage gate skipped for this run."
           else
-            echo "Coverage diff base: $base"
+            echo "Coverage diff base: $base ($why)"
           fi
           echo "ref=$base" >> "$GITHUB_OUTPUT"
 

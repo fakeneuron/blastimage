@@ -24,7 +24,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 ## Low
 - [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
 - [ ] **BI-082** [light] | cf-account-pin-and-mail — From natabula fleet audit 2026-11-05 (@397b732; natabula FLEET-CLOUDFLARE graded 2026-10-27, re-confirmed 2026-11-01): DEPLOY-014.6 fixed the apex route, `www`, HTTPS, `workers_dev` and `preview_urls`, but not two cells. Pin `account_id` in the wrangler config, and enable Email Routing with the fleet aliases (or record why the zone takes no mail).
-- [ ] **BI-084** [light] | ci-coverage-last-green — From natabula NAT-600: adopt the fleet CI template's last-green coverage diff base — replace the `Resolve coverage diff base` step's `env` + `run` in `.github/workflows/ci.yml` with the template's, and add `actions: read` to the job's existing `permissions:` block. Skipped by wave NAT-609: job already declares `permissions:`. Verify: the next push logs `Coverage diff base: … (last green run)`.
 - [ ] **BI-085** [light] | round-chip-clip-label — From BI-078.2 review: the Sidebar round chip (`components/Sidebar.tsx`) labels every take from `RoundSummary.imageCount` as "images", so a clip round reads "2 images". Count or label `.mp4` takes as clips (`mediaKindFromPath`). Blocked by [[BI-078.4]].
 
 ## Future Opportunities
@@ -33,6 +32,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-084** [light] | ci-coverage-last-green — Completed 2026-11-15.
 - [x] **BI-086** [moderate] | webkit-clip-playback-e2e — not a codec limit: Linux WebKit loaded the clip's metadata (assertions passed); only the spec's `waitForResponse` for the `<video>`'s 206 timed out, since WebKitGTK fetches media via GStreamer outside Playwright's network events. `e2e/clip-playback.spec.ts` now asserts the range directly (`page.request` with `Range: bytes=0-1` → 206 + `Content-Range`); no tasknote. Completed 2026-11-15.
 - [x] **CORE-016** [moderate] | grok-block-adoption — Grok block v3 public installed by natabula NAT-595.3 wave (`5fc9544`), no markers (public); duplicate CLAUDE.md prose link to AGENTS.md unlinked so one import remains; no tasknote. Completed 2026-11-11.
 - [x] **BI-083** [light] [unattended] | port-registry-citation — Completed 2026-11-10.
