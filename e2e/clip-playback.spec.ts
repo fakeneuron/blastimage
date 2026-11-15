@@ -21,14 +21,9 @@ import { expect, test } from '@playwright/test';
 const CLIP_ROOT = path.join(process.cwd(), 'test-fixtures', 'imagegen-clip');
 const CLIP_PATH = 'rounds/r1/hero-banner-001.mp4';
 
-test('a clip served by the file route loads in a <video>', async ({ page, browserName }) => {
+test('a clip served by the file route loads in a <video>', async ({ page }) => {
   await page.goto('/');
   const src = `/api/imagegen/file?${new URLSearchParams({ root: CLIP_ROOT, path: CLIP_PATH })}`;
-  // WebKit always fetches media by range; a 206 proves that path served it.
-  const partial =
-    browserName === 'webkit'
-      ? page.waitForResponse((r) => r.url().includes('/api/imagegen/file?') && r.status() === 206)
-      : null;
 
   const media = await page.evaluate(
     (videoSrc) =>
@@ -50,5 +45,12 @@ test('a clip served by the file route loads in a <video>', async ({ page, browse
   expect(media.error).toBeNull();
   expect(media.readyState).toBeGreaterThanOrEqual(1); // HAVE_METADATA
   expect(media.duration).toBeGreaterThan(0);
-  if (partial) await partial;
+
+  // The route honors ranges. This is asked directly, not by watching the
+  // <video>'s own requests: Linux WebKit (CI) fetches media through GStreamer,
+  // outside Playwright's network events, so a waitForResponse on its 206 never
+  // fires even though the clip loads (BI-086).
+  const ranged = await page.request.get(src, { headers: { Range: 'bytes=0-1' } });
+  expect(ranged.status()).toBe(206);
+  expect(ranged.headers()['content-range']).toMatch(/^bytes 0-1\//);
 });

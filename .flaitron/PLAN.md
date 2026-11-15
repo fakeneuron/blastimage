@@ -8,7 +8,6 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
-- [ ] **BI-086** [moderate] | webkit-clip-playback-e2e — CI red on main since 0a14cee: `e2e/clip-playback.spec.ts:24` (BI-078.3 file-route video) times out in `page.waitForResponse` on webkit only; chromium passes. Likely webkit-on-Linux video codec support, not a flake. Fix the clip/fixture format or scope the spec off webkit with a reason. Run 43749892339; relates to BI-078.N audit.
 ## Medium
 
 - [ ] **BI-EPIC-078** [heavy]🧠 | video-support — Batch-generate 16:9 MP4 promo clips beside still batches, reusing the round/review/export pipeline (new `/blast-animate` skill, media-aware review, MP4 export + manifest). Related cloutomaton CORE-EPIC-054.
@@ -34,6 +33,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## Completed
 
+- [x] **BI-086** [moderate] | webkit-clip-playback-e2e — not a codec limit: Linux WebKit loaded the clip's metadata (assertions passed); only the spec's `waitForResponse` for the `<video>`'s 206 timed out, since WebKitGTK fetches media via GStreamer outside Playwright's network events. `e2e/clip-playback.spec.ts` now asserts the range directly (`page.request` with `Range: bytes=0-1` → 206 + `Content-Range`); no tasknote. Completed 2026-11-15.
 - [x] **CORE-016** [moderate] | grok-block-adoption — Grok block v3 public installed by natabula NAT-595.3 wave (`5fc9544`), no markers (public); duplicate CLAUDE.md prose link to AGENTS.md unlinked so one import remains; no tasknote. Completed 2026-11-11.
 - [x] **BI-083** [light] [unattended] | port-registry-citation — Completed 2026-11-10.
 - [x] **BI-077** [moderate] | landing-baseline-security-headers — Completed 2026-11-06.
