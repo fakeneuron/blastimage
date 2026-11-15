@@ -41,5 +41,5 @@ Local Next.js application for coordinated AI image generation workflows. Users d
 <!-- grok-tasknotes:end -->
 
 <!-- arch-health:start -->
-**Repo map:** for a task that touches more than one module, fetch the latest `arch-health` artifact (`gh run download -n arch-health -D arch`) into the gitignored `arch/` and read `arch/<stack>/dep-graph.json` (Python: `pydeps-<package>.json`) before planning. It holds static imports only, so read it as a lower bound (`.github/workflows/arch-health.yml`, natabula NAT-602.2).
+**Repo map:** for a task that touches more than one module, fetch the latest `arch-health` artifact (`gh run download -n arch-health -D arch`) into the gitignored `arch/` and read `arch/<stack>/dep-graph.json` (Python: `pydeps-<package>.json`) before planning. It holds static imports only, so read it as a lower bound (`.github/workflows/arch-health.yml`, Fleet HQ NAT-602.2).
 <!-- arch-health:end -->
