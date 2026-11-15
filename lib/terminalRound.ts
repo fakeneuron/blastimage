@@ -6,6 +6,7 @@
  * and reuses {@link RoundBatch} / {@link RoundSelection} shapes from BI-024.1/2.
  */
 
+import { mediaKindFromPath } from './imagegenUrl';
 import type { RoundBatch, RoundBatchTask, RoundClipProvenance } from './roundBatch';
 import { ROUND_BATCH_SCHEMA_VERSION } from './roundBatch';
 import type { RoundSelection, RoundSelectionTask } from './roundSelection';
@@ -147,6 +148,8 @@ export function serializeRoundBatch(batch: RoundBatch): string {
  * Derives iterate plans from a parsed `selection.json`. Skips `skip` and
  * `approve` (frontend already promoted approved keepers). `overhaul` → no ref;
  * `append` (or default) → keeper as primary reference via `image_edit`.
+ * A clip keeper (`.mp4`) is skipped: clips re-animate through
+ * {@link planReanimateTasks} (`/blast-animate`), never `image_edit`.
  */
 export function planIterateTasks(
   selection: RoundSelection,
@@ -158,11 +161,54 @@ export function planIterateTasks(
     const prompt = task.nextPrompt?.trim() ?? '';
     if (!prompt) continue;
     const keeper = task.keeper?.trim();
+    if (keeper && mediaKindFromPath(keeper) === 'video') continue;
     const keeperPath = keeper ? `rounds/r${round}/${keeper}` : undefined;
     const useReference = task.promptMode !== 'overhaul' && Boolean(keeperPath);
     const plan: IterateTaskPlan = { slug: task.slug, prompt, useReference };
     if (useReference && keeperPath !== undefined) plan.keeperPath = keeperPath;
     plans.push(plan);
+  }
+  return plans;
+}
+
+/**
+ * True when a round holds clips: any task carries `clip` provenance or an
+ * `.mp4` take. `/blast-iterate` refuses such a round (BI-078.1).
+ */
+export function isClipRound(batch: RoundBatch): boolean {
+  return batch.tasks.some(
+    (t) => t.clip !== undefined || t.images.some((img) => mediaKindFromPath(img) === 'video'),
+  );
+}
+
+/**
+ * Plans the next clip round from a clip round's `selection.json` (BI-078.1):
+ * each `iterate` entry with an `.mp4` keeper re-animates the **same** source
+ * still (`ref` under `approved/`) with the refined motion prompt. The keeper
+ * only marks which take the feedback was about; `promptMode` does not apply.
+ * Entries whose slug has no clip task with a `ref` in `batch` are skipped, and
+ * a slug is planned once (the first entry wins) so output filenames never clash.
+ */
+export function planReanimateTasks(
+  selection: RoundSelection,
+  batch: RoundBatch,
+): TerminalTaskPlan[] {
+  const plans: TerminalTaskPlan[] = [];
+  for (const task of selection.tasks) {
+    if (task.decision !== 'iterate') continue;
+    if (plans.some((p) => p.slug === task.slug)) continue;
+    const prompt = task.nextPrompt?.trim() ?? '';
+    const keeper = task.keeper?.trim() ?? '';
+    if (!prompt || mediaKindFromPath(keeper) !== 'video') continue;
+    const source = batch.tasks.find((t) => t.slug === task.slug);
+    if (source?.clip === undefined || source.ref === undefined) continue;
+    plans.push({
+      slug: source.slug,
+      name: source.name,
+      prompt,
+      ref: source.ref,
+      clip: { ...source.clip },
+    });
   }
   return plans;
 }

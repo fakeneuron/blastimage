@@ -37,6 +37,12 @@ Read and validate with `parseRoundSelection()` logic (schema v1). Run
 `validateIterateSelectionTasks()` — every `decision: "iterate"` entry needs
 `keeper` + `nextPrompt`.
 
+**Refuse clip rounds.** If `isClipRound()` is true for `rounds/r<N>/batch.json`
+(any task has `clip` or an `.mp4` take), stop and tell the operator to run
+`/blast-animate --round <N>`. A clip keeper cannot seed `image_edit`; clips
+re-animate their source still instead. `planIterateTasks()` also skips `.mp4`
+keepers as a backstop.
+
 ### 2. Plan iterate tasks
 
 Use `planIterateTasks(selection, N)`:
@@ -110,9 +116,10 @@ Only include tasks that were generated (iterate decisions). Use
 - No `iterate` tasks → report and exit (all skip/approve).
 - Missing keeper file on disk → report slug, skip that task.
 - Round mismatch (`selection.round !== N`) → warn operator before proceeding.
+- Clip round → stop; point to `/blast-animate --round <N>`.
 
 ## References
 
 - `blastimage/docs/REVIEW-LOOP.md` — selection.json schema + iteration method
 - `blastimage/lib/roundSelection.ts` — `parseRoundSelection`, `detectPromptMode`
-- `blastimage/lib/terminalRound.ts` — `planIterateTasks`, `buildRoundBatch`
+- `blastimage/lib/terminalRound.ts` — `planIterateTasks`, `isClipRound`, `buildRoundBatch`

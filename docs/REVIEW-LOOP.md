@@ -144,8 +144,10 @@ clip writes the usual `iterate` entry, with the `.mp4` take as `keeper` and the 
 as `nextPrompt`, for `/blast-animate`; it re-animates the same source still. Export handles clips
 (BI-078.5): an approved clip exports as `<task-slug>-<id8>.mp4`, and its `manifest.json` entry adds
 `mediaKind: "video"`, `posterUrl` (the source still) and `durationSeconds`, while every entry carries
-`mediaKind`. The gallery and review sheet show the poster still. Generating clips arrives with
-BI-078.6. The committed clip fixture lives in its own root,
+`mediaKind`. The gallery and review sheet show the poster still. Generation landed in BI-078.6:
+`/blast-animate` writes a clip round from approved 16:9 stills, and `/blast-animate --round N`
+re-animates from its `selection.json` (`planReanimateTasks`); `/blast-iterate` refuses a clip
+round (`isClipRound`). The committed clip fixture lives in its own root,
 `test-fixtures/imagegen-clip/`, so the still fixture's auto-loaded r1 is unchanged.
 
 ### `rounds/r<N>/selection.json` — written by the frontend, read by `/blast-iterate`

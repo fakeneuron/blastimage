@@ -79,6 +79,7 @@ bundled terminal skills from the submodule into your **host repo**:
 mkdir -p .grok/skills
 ln -sf ../../blastimage/.grok/skills/blast-generate .grok/skills/blast-generate
 ln -sf ../../blastimage/.grok/skills/blast-iterate .grok/skills/blast-iterate
+ln -sf ../../blastimage/.grok/skills/blast-animate .grok/skills/blast-animate
 ```
 
 Copy instead of symlink if your tooling does not follow symlinks. Skills appear
@@ -87,10 +88,12 @@ in the slash menu within a few seconds.
 | Skill | Purpose |
 |---|---|
 | `/blast-generate` | Read `imagegen/tasks.json` + `refs/`, run `image_gen`/`image_edit`, write `rounds/r<N>/` + `batch.json`. Includes round-0 ref bootstrap when `refs/` is empty. |
-| `/blast-iterate` | Read `rounds/r<N>/selection.json`, generate the next round from keeper + edited prompt. |
+| `/blast-iterate` | Read `rounds/r<N>/selection.json`, generate the next round from keeper + edited prompt. Refuses clip rounds. |
+| `/blast-animate` | Animate approved 16:9 stills into a round of 3 MP4 clips (`reference_to_video`, first and last frame pinned to the still), encoded and `ffprobe`-checked to the promo-clip spec. `--round N` re-animates from a clip round's `selection.json`. Subscription pool only: it stops if `XAI_API_KEY` is set. Needs `ffmpeg`. |
 
 **Operating loop:** `/blast-generate` → blastimage review (⋯ → 🔗 Link imagegen, ↻ Refresh
 rounds) → iterate selections write `selection.json` → `/blast-iterate` → repeat.
+**Clips** follow approval: `/blast-animate` → review → `/blast-animate --round N` → repeat.
 Pure planning helpers live in `blastimage/lib/terminalRound.ts`.
 
 ## 6. Stage prompt tasks from the parent project
@@ -131,16 +134,17 @@ parent project root:
 imagegen/
 ├─ tasks.json          ← ⇪ Import file (the §6 contract)
 ├─ prompts/
-│  └─ <task-name>.txt  ← prompt source, one file per task
+│  ├─ <task-name>.txt  ← prompt source, one file per task
+│  └─ <task-name>.motion.txt ← optional clip motion prompt, read by /blast-animate
 ├─ refs/
 │  └─ <slug>.<ext>     ← optional 1:1 reference per task, read by /blast-generate
 ├─ rounds/
 │  └─ r<N>/
-│     ├─ batch.json    ← written by /blast-generate or /blast-iterate
+│     ├─ batch.json    ← written by /blast-generate, /blast-iterate or /blast-animate
 │     ├─ selection.json← written by blastimage after review
-│     └─ <slug>-NNN.<ext>
+│     └─ <slug>-NNN.<ext> ← stills, or .mp4 takes in a clip round
 ├─ approved/
-│  └─ <slug>-NNN.<ext> ← written by blastimage on Approve (keeper copied from rounds/)
+│  └─ <slug>-NNN.<ext> ← written by blastimage on Approve (keeper copied from rounds/); clips beside their stills
 └─ export/
    ├─ manifest.json    ← Gallery Folder export: provenance manifest
    ├─ <task-slug>-<id8>.<ext> ← Folder export's image copies (duplicate approved/; don't commit)
@@ -159,7 +163,9 @@ downloaded images, so keep them short and filesystem-friendly (e.g.
 **`prompts/<task-name>.txt`** — one prompt per file, filename matching the task
 name. This is the editable source of truth; `tasks.json` is the generated (or
 hand-assembled) artifact. Prompt-writing craft lives in
-[`docs/USAGE.md`](USAGE.md).
+[`docs/USAGE.md`](USAGE.md). An optional `prompts/<task-name>.motion.txt` is the
+motion prompt `/blast-animate` uses when it animates that task's approved still;
+without one it uses a default one-move loop prompt.
 
 **`refs/`** — optional reference images, one per task, named
 `<slug>.<ext>` where `<slug>` is the task name lowercased, with every run of

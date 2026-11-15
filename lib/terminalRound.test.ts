@@ -6,11 +6,13 @@ import { ROUND_SELECTION_SCHEMA_VERSION } from './roundSelection';
 import {
   buildRoundBatch,
   indexRefPaths,
+  isClipRound,
   needsRefBootstrap,
   nextRoundNumber,
   parseRoundDirNames,
   planGenerateTasks,
   planIterateTasks,
+  planReanimateTasks,
   planRefBootstrapCopies,
   roundImageFilename,
   selectionMatchesRound,
@@ -161,6 +163,79 @@ describe('terminalRound helpers', () => {
     });
     // Omitted, not set to undefined: exactOptionalPropertyTypes.
     expect(plans[1]).not.toHaveProperty('keeperPath');
+  });
+
+  describe('clip rounds (BI-078.6)', () => {
+    const clip = { model: 'grok-imagine-video-1.5', tool: 'reference_to_video', durationSeconds: 6 };
+    const clipBatch = buildRoundBatch(
+      2,
+      '2026-11-13T00:00:00Z',
+      [{ slug: 'hero', name: 'Hero', prompt: 'slow push-in', ref: 'approved/hero-002.jpg', clip }],
+      { hero: ['hero-001.mp4', 'hero-002.mp4', 'hero-003.mp4'] },
+    );
+    const clipSelection: RoundSelection = {
+      schemaVersion: ROUND_SELECTION_SCHEMA_VERSION,
+      round: 2,
+      selectedAt: '2026-11-13T00:10:00Z',
+      tasks: [
+        {
+          slug: 'hero',
+          decision: 'iterate',
+          keeper: 'hero-003.MP4',
+          promptMode: 'overhaul',
+          nextPrompt: '  slower push-in, steam rising  ',
+        },
+        { slug: 'hero', decision: 'iterate', keeper: 'hero-001.mp4', nextPrompt: 'duplicate' },
+        { slug: 'hero-still', decision: 'iterate', keeper: 'hero-still-001.jpg', nextPrompt: 'x' },
+        { slug: 'orphan', decision: 'iterate', keeper: 'orphan-001.mp4', nextPrompt: 'x' },
+        { slug: 'blank', decision: 'iterate', keeper: 'blank-001.mp4', nextPrompt: '   ' },
+        { slug: 'done', decision: 'approve', keeper: 'done-001.mp4' },
+      ],
+    };
+
+    it('detects a clip round by clip provenance or an .mp4 take', () => {
+      expect(isClipRound(clipBatch)).toBe(true);
+      const mp4Only = buildRoundBatch(1, 't', [{ slug: 'a', name: 'A', prompt: 'p' }], {
+        a: ['a-001.mp4'],
+      });
+      expect(isClipRound(mp4Only)).toBe(true);
+      const still = buildRoundBatch(1, 't', [{ slug: 'a', name: 'A', prompt: 'p' }], {
+        a: ['a-001.jpg'],
+      });
+      expect(isClipRound(still)).toBe(false);
+    });
+
+    it('re-animates the same source still with the refined motion prompt', () => {
+      const plans = planReanimateTasks(clipSelection, clipBatch);
+      expect(plans).toEqual([
+        {
+          slug: 'hero',
+          name: 'Hero',
+          prompt: 'slower push-in, steam rising',
+          ref: 'approved/hero-002.jpg',
+          clip,
+        },
+      ]);
+      expect(plans[0]!.clip).not.toBe(clipBatch.tasks[0]!.clip);
+    });
+
+    it('skips a clip task without a source still', () => {
+      const noRef = buildRoundBatch(2, 't', [{ slug: 'hero', name: 'Hero', prompt: 'p', clip }], {
+        hero: ['hero-001.mp4'],
+      });
+      expect(planReanimateTasks(clipSelection, noRef)).toEqual([]);
+    });
+
+    it('keeps .mp4 keepers out of the still iterate plan', () => {
+      expect(planIterateTasks(clipSelection, 2)).toEqual([
+        {
+          slug: 'hero-still',
+          prompt: 'x',
+          keeperPath: 'rounds/r2/hero-still-001.jpg',
+          useReference: true,
+        },
+      ]);
+    });
   });
 
   it('plans ref-bootstrap copies from selection', () => {
