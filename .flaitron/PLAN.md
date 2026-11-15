@@ -8,6 +8,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 ## High
 
+- [ ] **BI-086** [moderate] | webkit-clip-playback-e2e — CI red on main since 0a14cee: `e2e/clip-playback.spec.ts:24` (BI-078.3 file-route video) times out in `page.waitForResponse` on webkit only; chromium passes. Likely webkit-on-Linux video codec support, not a flake. Fix the clip/fixture format or scope the spec off webkit with a reason. Run 43749892339; relates to BI-078.N audit.
 ## Medium
 
 - [ ] **BI-EPIC-078** [heavy]🧠 | video-support — Batch-generate 16:9 MP4 promo clips beside still batches, reusing the round/review/export pipeline (new `/blast-animate` skill, media-aware review, MP4 export + manifest). Related cloutomaton CORE-EPIC-054.
