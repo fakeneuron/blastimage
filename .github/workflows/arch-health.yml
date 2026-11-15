@@ -23,7 +23,7 @@ name: Arch health
 # a tool failed: an install broke, dependency-cruiser crashed, or knip exited 2
 # (its error code; `--no-exit-code` turns only findings into 0). A scheduled red
 # opens or comments on one tracking issue (the report-failure job, NAT-360.4).
-# That is the canary pattern of natabula's templates-typecheck.yml (NAT-213),
+# That is the canary pattern of Fleet HQ's templates-typecheck.yml (NAT-213),
 # scoped to this workflow. It is not the global automatic issue writer that
 # docs/CI-HEALTH.md rejects.
 #
@@ -35,8 +35,8 @@ name: Arch health
 # Layout-agnostic, like ci.yml. npm stacks: each of the repo root, frontend/,
 # worker/ and landing/ that has a package.json and a package-lock.json. Python
 # stack: backend/ or the root, whichever has the pyproject.toml. A nested layout
-# (e.g. cockpit/frontend/) adapts the detect step. Deposited by natabula's
-# Part A wave (docs/STANDARDS-ADOPTION.md §NAT-G008). natabula runs an
+# (e.g. cockpit/frontend/) adapts the detect step. Deposited by Fleet HQ's
+# Part A wave (docs/STANDARDS-ADOPTION.md §NAT-G008). Fleet HQ runs an
 # identical copy.
 
 on:
