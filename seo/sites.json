@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "owner": "fakeneuron",
+  "reviewed_on": "2026-11-15",
+  "next_review_on": "2027-02-13",
+  "sites": [
+    {
+      "id": "landing",
+      "base_url": "https://blastimage.com/",
+      "intent": "prelaunch",
+      "owner": "fakeneuron",
+      "excluded_paths": [],
+      "source_paths": [
+        "landing/src/pages/index.astro",
+        "landing/public/_headers",
+        "landing/astro.config.mjs",
+        "landing/wrangler.toml",
+        "landing/package.json",
+        "landing/package-lock.json"
+      ],
+      "check_commands": [],
+      "evidence": [],
+      "exceptions": []
+    }
+  ]
+}
