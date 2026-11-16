@@ -22,7 +22,7 @@ See [.flaitron/core/SPEC.md](core/SPEC.md) for the canonical workflow contract.
 
 
 ## Low
-- [ ] **BI-079** [light] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`, or record a no-intent decision here.
+- [ ] **BI-079** [light] [unattended] | seo-intent — From natabula NAT-506 (fleet audit 2026-10-31, @b036f6a): `blastimage.com` now exists, so declare SEO intent by committing `seo/sites.json` per natabula `docs/SEO-EVIDENCE.md`: one site `landing`, `base_url` `https://blastimage.com/`, `intent` `prelaunch` (the noindex state `landing/README.md` records), owner `fakeneuron` (per `LICENSE`).
 - [ ] **BI-082** [light] | cf-account-pin-and-mail — From natabula fleet audit 2026-11-05 (@397b732; natabula FLEET-CLOUDFLARE graded 2026-10-27, re-confirmed 2026-11-01): DEPLOY-014.6 fixed the apex route, `www`, HTTPS, `workers_dev` and `preview_urls`, but not two cells. Pin `account_id` in the wrangler config, and enable Email Routing with the fleet aliases (or record why the zone takes no mail).
 - [ ] **BI-085** [light] | round-chip-clip-label — From BI-078.2 review: the Sidebar round chip (`components/Sidebar.tsx`) labels every take from `RoundSummary.imageCount` as "images", so a clip round reads "2 images". Count or label `.mp4` takes as clips (`mediaKindFromPath`). Blocked by [[BI-078.4]].
 
